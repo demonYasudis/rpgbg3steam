@@ -8,7 +8,7 @@ namespace GuildTactics.HexGrid
     {
         private const float CameraPadding = 1.12f;
         private const float CameraDistance = 10f;
-        public const float HudHeight = 124f;
+        public const float HudHeight = 204f;
         private HexGrid grid;
         private HexLayout layout;
         private HexGridView view;
@@ -57,7 +57,8 @@ namespace GuildTactics.HexGrid
         public void ProcessPointer(Vector2 screenPosition, bool clicked, bool pointerAvailable = true)
         {
             Hovered = null;
-            if (pointerAvailable && gridCamera.pixelRect.Contains(screenPosition))
+            if (pointerAvailable && screenPosition.y < gridCamera.pixelRect.yMax - HudHeight &&
+                gridCamera.pixelRect.Contains(screenPosition))
             {
                 var ray = gridCamera.ScreenPointToRay(screenPosition);
                 var plane = new Plane(Vector3.forward, Vector3.zero);
@@ -97,7 +98,7 @@ namespace GuildTactics.HexGrid
         {
             if (grid == null) return;
             GUI.Label(new Rect(24, 16, 560, 24), "GUILD TACTICS / HEX PROTOTYPE");
-            GUI.Label(new Rect(24, 40, 700, 24), "Hover: cyan   |   Left click: select hero / move to green cell");
+            GUI.Label(new Rect(24, 40, 700, 24), "Left click: move active hero to green cell. End turn: next hero.");
             GUI.Label(new Rect(24, 64, 560, 24),
                 $"Hover: {Hovered?.ToString() ?? "—"}    Selected: {Selected?.ToString() ?? "—"}");
         }

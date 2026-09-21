@@ -31,6 +31,7 @@ namespace GuildTactics.Core
             interaction.Initialize(Grid, layout, view, gridCamera);
             var units = presentation.AddComponent<Units.PlayerUnitController>();
             units.Initialize(Grid, layout, view, interaction, movementSecondsPerStep);
+            presentation.AddComponent<Combat.TurnOrderUI>().Initialize(units);
             Debug.Log($"Guild Tactics: grid ready ({Grid.Width} x {Grid.Height}, {Grid.Cells.Count} cells, {units.Units.Count} heroes).", this);
         }
     }

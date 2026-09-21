@@ -16,6 +16,7 @@ namespace GuildTactics.Editor
         private const string PendingKey = "GuildTactics.WP02.Pending";
         private static int playFrames;
         private static double deadline;
+        private static bool turnChecksStarted;
 
         static HexPresentationChecks()
         {
@@ -76,6 +77,7 @@ namespace GuildTactics.Editor
                 ValidateLayout();
                 HexPathfindingChecks.Run();
                 UnitMovementChecks.Run();
+                TurnChecks.Run();
                 SessionState.SetBool(PendingKey, true);
                 deadline = EditorApplication.timeSinceStartup + 90;
                 EditorApplication.update -= WaitForPlayMode;
@@ -95,8 +97,12 @@ namespace GuildTactics.Editor
             if (!EditorApplication.isPlaying || ++playFrames < 10) return;
             try
             {
-                ValidatePlayingScene();
-                Finish(null);
+                if (!turnChecksStarted)
+                {
+                    ValidatePlayingScene();
+                    turnChecksStarted = true;
+                }
+                else if (TurnChecks.PollPresentation()) Finish(null);
             }
             catch (Exception exception) { Finish(exception); }
         }
@@ -126,6 +132,8 @@ namespace GuildTactics.Editor
             int occupiedCells = 0;
             foreach (var cell in bootstrap.Grid.Cells) if (cell.IsOccupied) occupiedCells++;
             Require(occupiedCells == 4, "Only four hero cells occupied");
+            // Temporarily detach gameplay input to test the isolated cell-selection layer.
+            units.enabled = false;
             interaction.SetSelected(new HexCoordinates(5, 5));
             var selected = interaction.Selected;
             interaction.ProcessPointer(new Vector2(-100, -100), true);
@@ -150,11 +158,13 @@ namespace GuildTactics.Editor
             CaptureAndCheckFraming(camera, interaction, layout, bootstrap.Grid, 1280, 720);
             CaptureAndCheckFraming(camera, interaction, layout, bootstrap.Grid, 640, 960);
             Debug.Log("WP-02 Play Mode checks passed: saved scene, 144 renderers, all 144 mouse projections, highlights, outside/focus, landscape/portrait framing and rendered pixels.");
+            units.enabled = true;
             UnitMovementChecks.ValidatePresentation(bootstrap.Grid, view, interaction, units, camera);
             CaptureAndCheckFraming(camera, interaction, layout, bootstrap.Grid, 1280, 720, "wp03");
             CaptureAndCheckFraming(camera, interaction, layout, bootstrap.Grid, 640, 960, "wp03");
             CaptureAndCheckFraming(camera, interaction, layout, bootstrap.Grid, 1280, 720, "wp04");
             CaptureAndCheckFraming(camera, interaction, layout, bootstrap.Grid, 640, 960, "wp04");
+            TurnChecks.BeginPresentation(units);
         }
 
         private static void CaptureAndCheckFraming(Camera camera, HexGridInteraction interaction,

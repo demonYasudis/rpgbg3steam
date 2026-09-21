@@ -94,15 +94,15 @@ namespace GuildTactics.Editor
             }
 
             controller.SetAnimationSecondsPerStep(0);
-            var selected = controller.Units[0];
+            var selected = controller.Turns.ActiveUnit;
             interaction.ProcessPointer(camera.WorldToScreenPoint(layout.ToWorld(selected.Position)), true);
             Require(controller.SelectedUnit == selected && controller.CurrentRange != null &&
                 controller.CurrentRange.Origin == selected.Position, "Click selects hero and computes range");
-            foreach (var other in controller.Units.Skip(1))
+            foreach (var other in controller.Units.Where(unit => unit != selected))
                 Require(!controller.CurrentRange.Costs.ContainsKey(other.Position), "Occupied hero cell unavailable");
 
             var origin = selected.Position;
-            var destination = new HexCoordinates(3, 0);
+            var destination = new HexCoordinates(0, 2);
             Require(controller.CurrentRange.Costs.ContainsKey(destination), "Chosen destination is reachable");
             var tileRenderers = Array.FindAll(gridView.GetComponentsInChildren<SpriteRenderer>(), item => item.sortingOrder == 0);
             Require(tileRenderers[destination.R * grid.Width + destination.Q].color !=
@@ -115,7 +115,7 @@ namespace GuildTactics.Editor
             var movedView = controller.GetComponentsInChildren<UnitView>().Single(item => item.State == selected);
             Require(Vector3.Distance(movedView.transform.position,
                 layout.ToWorld(destination) + new Vector3(0, 0, -0.2f)) < 0.001f, "Final view alignment");
-            Require(!controller.TryMoveSelected(controller.Units[1].Position), "Occupied destination remains illegal");
+            Require(!controller.TryMoveSelected(controller.Units.First(unit => unit != selected).Position), "Occupied destination remains illegal");
             Require(selected.Position == destination && grid.GetCell(destination).OccupantId == selected.InstanceId,
                 "Rejected move preserves logical state");
             Throws<ArgumentOutOfRangeException>(() => controller.SetAnimationSecondsPerStep(-1));

@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using GuildTactics.HexGrid;
+using GuildTactics.Combat;
 using UnityEngine;
 using GridModel = GuildTactics.HexGrid.HexGrid;
 
@@ -29,6 +30,9 @@ namespace GuildTactics.Units
         private HexGridInteraction interaction;
         private float secondsPerStep;
         private Coroutine movementRoutine;
+        private Coroutine actionRoutine;
+        private const float WaitActionSeconds = 0.35f;
+        public TurnManager Turns { get; private set; }
         public IReadOnlyList<UnitRuntimeState> Units { get; private set; }
         public UnitRuntimeState SelectedUnit { get; private set; }
         public HexMovementRange CurrentRange { get; private set; }
@@ -64,16 +68,18 @@ namespace GuildTactics.Units
             }
 
             Units = units.AsReadOnly();
+            Turns = new TurnManager(grid, Units);
+            StartNextTurn();
             interaction.CellClicked += HandleCellClicked;
         }
 
         public bool TrySelectUnit(HexCoordinates coordinate)
         {
-            if (grid == null || IsMoving) return false;
+            if (!isActiveAndEnabled || Turns == null || Turns.State != TurnState.SelectingAction) return false;
             UnitRuntimeState found = null;
             foreach (var unit in units)
                 if (unit.Position == coordinate) { found = unit; break; }
-            if (found == null) return false;
+            if (!Turns.CanSelectAction(found)) return false;
             SelectedUnit = found;
             RefreshSelection();
             return true;
@@ -89,13 +95,11 @@ namespace GuildTactics.Units
 
         public bool TryMoveSelected(HexCoordinates destination)
         {
-            if (grid == null || SelectedUnit == null || IsMoving || destination == SelectedUnit.Position)
+            if (!isActiveAndEnabled || Turns == null || !Turns.CanSelectAction(SelectedUnit))
                 return false;
 
             // Recalculate immediately before commit so stale highlights never grant permission.
-            var legalRange = HexPathfinder.FindReachable(grid, SelectedUnit.Position, SelectedUnit.Definition.Movement);
-            var path = legalRange.GetPathTo(destination);
-            if (path.Count < 2 || !SelectedUnit.TryMoveAlong(grid, path))
+            if (!Turns.TryBeginMovement(SelectedUnit, destination, out var path))
             {
                 RefreshSelection();
                 return false;
@@ -107,6 +111,7 @@ namespace GuildTactics.Units
             if (secondsPerStep <= 0)
             {
                 views[SelectedUnit.InstanceId].SnapTo(layout.ToWorld(SelectedUnit.Position));
+                Turns.TryCompleteMovement(SelectedUnit);
                 RefreshSelection();
             }
             else movementRoutine = StartCoroutine(AnimateMovement(SelectedUnit, path));
@@ -137,7 +142,7 @@ namespace GuildTactics.Units
 
         private void HandleCellClicked(HexCoordinates coordinate)
         {
-            if (IsMoving) return;
+            if (!isActiveAndEnabled || Turns == null || Turns.State != TurnState.SelectingAction) return;
             if (TrySelectUnit(coordinate)) return;
             if (!TryMoveSelected(coordinate) && SelectedUnit != null)
                 interaction.SetSelected(SelectedUnit.Position);
@@ -147,8 +152,8 @@ namespace GuildTactics.Units
         {
             foreach (var pair in views) pair.Value.SetSelected(SelectedUnit != null && pair.Key == SelectedUnit.InstanceId);
             interaction.SetSelected(SelectedUnit?.Position);
-            CurrentRange = SelectedUnit == null ? null :
-                HexPathfinder.FindReachable(grid, SelectedUnit.Position, SelectedUnit.Definition.Movement);
+            CurrentRange = !Turns.CanSelectAction(SelectedUnit) ? null :
+                HexPathfinder.FindReachable(grid, SelectedUnit.Position, Turns.RemainingMovement);
             gridView.SetReachableCells(CurrentRange == null ? null : CurrentRange.Costs.Keys);
         }
 
@@ -162,13 +167,55 @@ namespace GuildTactics.Units
                 float elapsed = 0;
                 while (elapsed < secondsPerStep)
                 {
-                    elapsed += Time.deltaTime;
+                    elapsed += Time.unscaledDeltaTime;
                     unitView.SetWorldPosition(Vector3.Lerp(from, to, Mathf.Clamp01(elapsed / secondsPerStep)));
                     yield return null;
                 }
                 unitView.SnapTo(to);
             }
             movementRoutine = null;
+            Turns.TryCompleteMovement(movingUnit);
+            RefreshSelection();
+        }
+
+        public bool TryEndTurn()
+        {
+            if (!isActiveAndEnabled || Turns == null || !Turns.TryEndTurn(SelectedUnit)) return false;
+            RefreshSelection();
+            return true;
+        }
+
+        // TODO(DEMO): Replace the placeholder Wait action with combat targeting in WP-06.
+        public bool TryWaitAction()
+        {
+            if (!isActiveAndEnabled || Turns == null || !Turns.TryBeginAction(SelectedUnit)) return false;
+            RefreshSelection();
+            actionRoutine = StartCoroutine(AnimateWait(SelectedUnit));
+            return true;
+        }
+
+        private IEnumerator AnimateWait(UnitRuntimeState unit)
+        {
+            float elapsed = 0;
+            while (elapsed < WaitActionSeconds)
+            {
+                elapsed += Time.unscaledDeltaTime;
+                yield return null;
+            }
+            actionRoutine = null;
+            Turns.TryCompleteAction(unit);
+            RefreshSelection();
+        }
+
+        private void Update()
+        {
+            if (Turns != null && Turns.State == TurnState.TurnComplete) StartNextTurn();
+        }
+
+        private void StartNextTurn()
+        {
+            if (!Turns.TryStartNextTurn()) return;
+            SelectedUnit = Turns.ActiveUnit;
             RefreshSelection();
         }
 
@@ -181,6 +228,13 @@ namespace GuildTactics.Units
                 movementRoutine = null;
                 if (SelectedUnit != null && views.TryGetValue(SelectedUnit.InstanceId, out var view))
                     view.SnapTo(layout.ToWorld(SelectedUnit.Position));
+                Turns.TryCompleteMovement(SelectedUnit);
+            }
+            if (actionRoutine != null)
+            {
+                StopCoroutine(actionRoutine);
+                actionRoutine = null;
+                Turns.TryCompleteAction(SelectedUnit);
             }
             CurrentRange = null;
             if (gridView != null) gridView.SetReachableCells(null);
@@ -189,14 +243,13 @@ namespace GuildTactics.Units
         private void OnEnable()
         {
             if (interaction != null) interaction.CellClicked += HandleCellClicked;
+            if (Turns != null) RefreshSelection();
         }
 
         private void OnGUI()
         {
-            if (grid == null) return;
-            string status = IsMoving ? "Moving..." : SelectedUnit == null
-                ? "Select one of four heroes"
-                : $"{SelectedUnit.Definition.DisplayName} | Move {SelectedUnit.Definition.Movement} | Green: {Math.Max(0, CurrentRange?.Costs.Count - 1 ?? 0)} destinations";
+            if (Turns == null) return;
+            string status = $"{SelectedUnit.Definition.DisplayName} | Move {Turns.RemainingMovement} | Action {(Turns.ActionAvailable ? "ready" : "used")} | {Turns.State}";
             GUI.Label(new Rect(24, 88, 760, 24), status);
         }
     }

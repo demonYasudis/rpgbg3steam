@@ -855,7 +855,7 @@ Acceptance criteria:
 
 ## WP-05 — Turn manager and action state machine
 
-Status: [ ]
+Status: [~]
 
 Goal:
 Create a robust turn loop.

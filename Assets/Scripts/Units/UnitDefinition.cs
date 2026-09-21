@@ -8,8 +8,9 @@ namespace GuildTactics.Units
         public string Id { get; }
         public string DisplayName { get; }
         public int Movement { get; }
+        public int Initiative { get; }
 
-        public UnitDefinition(string id, string displayName, int movement)
+        public UnitDefinition(string id, string displayName, int movement, int initiative = 0)
         {
             if (string.IsNullOrWhiteSpace(id))
                 throw new ArgumentException("A definition requires a stable ID.", nameof(id));
@@ -19,6 +20,7 @@ namespace GuildTactics.Units
             Id = id;
             DisplayName = displayName;
             Movement = movement;
+            Initiative = initiative;
         }
     }
 }
