@@ -827,7 +827,7 @@ Acceptance criteria:
 
 ## WP-04 — Unit runtime model and player movement
 
-Status: [ ]
+Status: [x]
 
 Goal:
 Place heroes on the grid and move one selected hero.

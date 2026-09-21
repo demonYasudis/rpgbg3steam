@@ -71,6 +71,25 @@ namespace GuildTactics.HexGrid
             return true;
         }
 
+        /// <summary>Moves an existing occupant without exposing a temporarily vacant grid state.</summary>
+        public bool TryMoveOccupant(HexCoordinates origin, HexCoordinates destination, string occupantId)
+        {
+            ValidateOccupantId(occupantId);
+            if (origin == destination ||
+                !TryGetCell(origin, out var originCell) ||
+                !TryGetCell(destination, out var destinationCell) ||
+                originCell.OccupantId != occupantId ||
+                destinationCell.IsOccupied ||
+                !occupants.TryGetValue(occupantId, out var registeredCell) ||
+                !ReferenceEquals(registeredCell, originCell))
+                return false;
+
+            originCell.OccupantId = null;
+            destinationCell.OccupantId = occupantId;
+            occupants[occupantId] = destinationCell;
+            return true;
+        }
+
         private static void ValidateOccupantId(string occupantId)
         {
             if (string.IsNullOrWhiteSpace(occupantId))

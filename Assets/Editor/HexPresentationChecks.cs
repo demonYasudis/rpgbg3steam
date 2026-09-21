@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using GuildTactics.Core;
 using GuildTactics.HexGrid;
+using GuildTactics.Units;
 using UnityEditor;
 using UnityEngine;
 using GridModel = GuildTactics.HexGrid.HexGrid;
@@ -74,6 +75,7 @@ namespace GuildTactics.Editor
                 HexGridChecks.Run();
                 ValidateLayout();
                 HexPathfindingChecks.Run();
+                UnitMovementChecks.Run();
                 SessionState.SetBool(PendingKey, true);
                 deadline = EditorApplication.timeSinceStartup + 90;
                 EditorApplication.update -= WaitForPlayMode;
@@ -107,19 +109,24 @@ namespace GuildTactics.Editor
             Require(bootstrap != null && bootstrap.Grid != null, "Saved scene bootstrapped");
             var view = bootstrap.GetComponentInChildren<HexGridView>();
             var interaction = bootstrap.GetComponentInChildren<HexGridInteraction>();
+            var units = bootstrap.GetComponentInChildren<PlayerUnitController>();
             var camera = new SerializedObject(bootstrap).FindProperty("gridCamera").objectReferenceValue as Camera;
-            Require(view != null && view.TileCount == 144 && interaction != null && camera != null, "144 runtime tiles and wiring");
-            var renderers = view.GetComponentsInChildren<SpriteRenderer>();
+            Require(view != null && view.TileCount == 144 && interaction != null && units != null && camera != null,
+                "144 runtime tiles and gameplay wiring");
+            var renderers = Array.FindAll(view.GetComponentsInChildren<SpriteRenderer>(), item => item.sortingOrder == 0);
             Require(renderers.Length == 144, "Exactly one renderer per cell");
             var layout = new HexLayout();
             foreach (var cell in bootstrap.Grid.Cells)
             {
                 var point = camera.WorldToScreenPoint(layout.ToWorld(cell.Coordinates));
-                interaction.ProcessPointer(point, true);
-                Require(interaction.Hovered == cell.Coordinates && interaction.Selected == cell.Coordinates,
-                    "Mouse screen projection selects exact cell " + cell.Coordinates);
-                Require(!cell.IsOccupied && cell.Terrain == TerrainType.Ground, "Presentation preserves model");
+                interaction.ProcessPointer(point, false);
+                Require(interaction.Hovered == cell.Coordinates, "Mouse screen projection hovers exact cell " + cell.Coordinates);
+                Require(cell.Terrain == TerrainType.Ground, "Presentation preserves terrain model");
             }
+            int occupiedCells = 0;
+            foreach (var cell in bootstrap.Grid.Cells) if (cell.IsOccupied) occupiedCells++;
+            Require(occupiedCells == 4, "Only four hero cells occupied");
+            interaction.SetSelected(new HexCoordinates(5, 5));
             var selected = interaction.Selected;
             interaction.ProcessPointer(new Vector2(-100, -100), true);
             Require(interaction.Hovered == null && interaction.Selected == selected, "Outside viewport preserves selection");
@@ -142,10 +149,12 @@ namespace GuildTactics.Editor
             Require(highlighted == 2 && interaction.Selected == new HexCoordinates(5, 5), "One hover and one persistent selection");
             CaptureAndCheckFraming(camera, interaction, layout, bootstrap.Grid, 1280, 720);
             CaptureAndCheckFraming(camera, interaction, layout, bootstrap.Grid, 640, 960);
-            Debug.Log("WP-02 Play Mode checks passed: saved scene, 144 renderers, all 144 mouse selections, highlights, outside/focus, landscape/portrait framing and rendered pixels.");
-            HexPathfindingChecks.ValidatePresentation(bootstrap.Grid, view, interaction, camera);
+            Debug.Log("WP-02 Play Mode checks passed: saved scene, 144 renderers, all 144 mouse projections, highlights, outside/focus, landscape/portrait framing and rendered pixels.");
+            UnitMovementChecks.ValidatePresentation(bootstrap.Grid, view, interaction, units, camera);
             CaptureAndCheckFraming(camera, interaction, layout, bootstrap.Grid, 1280, 720, "wp03");
             CaptureAndCheckFraming(camera, interaction, layout, bootstrap.Grid, 640, 960, "wp03");
+            CaptureAndCheckFraming(camera, interaction, layout, bootstrap.Grid, 1280, 720, "wp04");
+            CaptureAndCheckFraming(camera, interaction, layout, bootstrap.Grid, 640, 960, "wp04");
         }
 
         private static void CaptureAndCheckFraming(Camera camera, HexGridInteraction interaction,
@@ -215,4 +224,5 @@ namespace GuildTactics.Editor
             if (!condition) throw new InvalidOperationException("WP-02 failed: " + description);
         }
     }
+
 }

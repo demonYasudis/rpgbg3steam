@@ -87,9 +87,17 @@ namespace GuildTactics.Editor
             Require(grid.TryVacate(origin, "hero") && !grid.GetCell(origin).IsOccupied, "Vacate");
             Require(!grid.TryVacate(origin, "hero"), "Repeated vacate");
             Require(grid.TryOccupy(next, "hero"), "Released ID can be reused");
+            var destination = new HexCoordinates(2, 0);
+            Require(grid.TryMoveOccupant(next, destination, "hero"), "Atomic occupancy move");
+            Require(!grid.GetCell(next).IsOccupied && grid.GetCell(destination).OccupantId == "hero",
+                "Atomic move updates both cells");
+            Require(!grid.TryMoveOccupant(next, origin, "hero") &&
+                grid.GetCell(destination).OccupantId == "hero", "Failed move preserves occupancy");
+            Require(!grid.TryMoveOccupant(destination, destination, "hero"), "Same-cell move rejected");
             Require(new GridModel().TryOccupy(origin, "hero"), "Independent grids");
             Throws<ArgumentException>(() => grid.TryOccupy(origin, null));
             Throws<ArgumentException>(() => grid.TryVacate(origin, " "));
+            Throws<ArgumentException>(() => grid.TryMoveOccupant(origin, next, null));
             foreach (TerrainType terrain in Enum.GetValues(typeof(TerrainType)))
             {
                 grid.GetCell(origin).Terrain = terrain;

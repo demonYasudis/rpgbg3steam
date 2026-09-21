@@ -18,6 +18,7 @@ namespace GuildTactics.HexGrid
         public HexCoordinates? Hovered { get; private set; }
         public HexCoordinates? Selected { get; private set; }
         public event Action SelectionChanged;
+        public event Action<HexCoordinates> CellClicked;
 
         public void Initialize(HexGrid model, HexLayout hexLayout, HexGridView gridView, Camera camera)
         {
@@ -66,11 +67,24 @@ namespace GuildTactics.HexGrid
                     if (grid.Contains(coordinate)) Hovered = coordinate;
                 }
             }
-            // Clicking outside preserves selection. The small visual gutters belong to their hex.
-            bool selectionChanged = clicked && Hovered.HasValue && Selected != Hovered;
-            if (selectionChanged) Selected = Hovered;
+            // A gameplay controller owns selection when subscribed. Without one, retain the
+            // WP-02 cell-selection behavior for isolated use and editor checks.
+            if (clicked && Hovered.HasValue)
+            {
+                if (CellClicked == null) SetSelected(Hovered);
+                else CellClicked.Invoke(Hovered.Value);
+            }
             view.SetHighlights(Hovered, Selected);
-            if (selectionChanged) SelectionChanged?.Invoke();
+        }
+
+        public void SetSelected(HexCoordinates? coordinate)
+        {
+            if (coordinate.HasValue && !grid.Contains(coordinate.Value))
+                throw new ArgumentOutOfRangeException(nameof(coordinate));
+            if (Selected == coordinate) return;
+            Selected = coordinate;
+            if (view != null) view.SetHighlights(Hovered, Selected);
+            SelectionChanged?.Invoke();
         }
 
         private void OnDisable()
@@ -83,7 +97,7 @@ namespace GuildTactics.HexGrid
         {
             if (grid == null) return;
             GUI.Label(new Rect(24, 16, 560, 24), "GUILD TACTICS / HEX PROTOTYPE");
-            GUI.Label(new Rect(24, 40, 560, 24), "Hover: cyan   |   Left click: select (gold)");
+            GUI.Label(new Rect(24, 40, 700, 24), "Hover: cyan   |   Left click: select hero / move to green cell");
             GUI.Label(new Rect(24, 64, 560, 24),
                 $"Hover: {Hovered?.ToString() ?? "—"}    Selected: {Selected?.ToString() ?? "—"}");
         }

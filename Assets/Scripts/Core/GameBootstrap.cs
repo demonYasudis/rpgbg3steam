@@ -6,7 +6,7 @@ namespace GuildTactics.Core
     public sealed class GameBootstrap : MonoBehaviour
     {
         [SerializeField] private Camera gridCamera;
-        [SerializeField, Min(0)] private int previewMovementBudget = HexGrid.HexMovementPreview.DefaultBudget;
+        [SerializeField, Min(0)] private float movementSecondsPerStep = 0.12f;
         public HexGrid.HexGrid Grid { get; private set; }
 
         private void Awake()
@@ -29,9 +29,9 @@ namespace GuildTactics.Core
             view.Initialize(Grid, layout);
             var interaction = presentation.AddComponent<HexGrid.HexGridInteraction>();
             interaction.Initialize(Grid, layout, view, gridCamera);
-            var movementPreview = presentation.AddComponent<HexGrid.HexMovementPreview>();
-            movementPreview.Initialize(Grid, view, interaction, previewMovementBudget);
-            Debug.Log($"Guild Tactics: grid ready ({Grid.Width} x {Grid.Height}, {Grid.Cells.Count} cells).", this);
+            var units = presentation.AddComponent<Units.PlayerUnitController>();
+            units.Initialize(Grid, layout, view, interaction, movementSecondsPerStep);
+            Debug.Log($"Guild Tactics: grid ready ({Grid.Width} x {Grid.Height}, {Grid.Cells.Count} cells, {units.Units.Count} heroes).", this);
         }
     }
 }
