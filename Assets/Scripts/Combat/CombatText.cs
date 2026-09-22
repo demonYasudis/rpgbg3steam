@@ -41,6 +41,7 @@ namespace GuildTactics.Combat
         {
             if (result == null) throw new ArgumentNullException(nameof(result));
             var message = new StringBuilder(result.Ability.Name);
+            if (result.FellIntoPit) message.Append(" / PIT / DEAD");
             if (result.Attacks.Count == 0)
             {
                 switch (result.Ability.Effect)

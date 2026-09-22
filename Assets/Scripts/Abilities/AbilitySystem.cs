@@ -13,9 +13,10 @@ namespace GuildTactics.Abilities
         public HexCoordinates Position { get; }
         public IReadOnlyList<AttackResult> Attacks { get; }
         public TrapHit TrapHit { get; }
+        public bool FellIntoPit { get; }
         internal AbilityResult(AbilityDefinition ability, HexCoordinates position,
-            List<AttackResult> attacks, TrapHit trapHit)
-        { Ability = ability; Position = position; Attacks = attacks.AsReadOnly(); TrapHit = trapHit; }
+            List<AttackResult> attacks, TrapHit trapHit, bool fellIntoPit)
+        { Ability = ability; Position = position; Attacks = attacks.AsReadOnly(); TrapHit = trapHit; FellIntoPit = fellIntoPit; }
     }
 
     /// <summary>Single validation/commit pipeline for the eight signature abilities.</summary>
@@ -67,8 +68,8 @@ namespace GuildTactics.Abilities
                     return Reject("Backstab needs another ally next to the enemy.", out reason);
                 case AbilityEffect.Push:
                     return (enemy != null && actor.Position.DistanceTo(target) == 1 &&
-                        FreeGround(PushDestination(actor, enemy))) ||
-                        Reject("Push needs an adjacent enemy and a free ground hex behind it.", out reason);
+                        FreePushLanding(PushDestination(actor, enemy))) ||
+                        Reject("Push needs an adjacent enemy and free ground or a pit behind it.", out reason);
                 case AbilityEffect.Evade:
                     return target == actor.Position || Reject("Choose your own hex.", out reason);
                 case AbilityEffect.Trap:
@@ -92,6 +93,7 @@ namespace GuildTactics.Abilities
             {
                 var attacks = new List<AttackResult>();
                 TrapHit trapHit = null;
+                bool fellIntoPit = false;
                 switch (ability.Effect)
                 {
                     case AbilityEffect.HeavyStrike:
@@ -108,7 +110,8 @@ namespace GuildTactics.Abilities
                     case AbilityEffect.Push:
                         var pushed = EnemyAt(actor, target);
                         target = PushDestination(actor, pushed);
-                        if (!pushed.TryRelocate(grid, target)) throw new InvalidOperationException("Validated push failed.");
+                        if (!pushed.TryPushTo(grid, target)) throw new InvalidOperationException("Validated push failed.");
+                        fellIntoPit = grid.GetCell(target).Terrain == TerrainType.Pit;
                         trapHit = turns.Traps.TriggerEntry(pushed, target);
                         break;
                     case AbilityEffect.Evade:
@@ -122,7 +125,7 @@ namespace GuildTactics.Abilities
                         trapHit = turns.Traps.TriggerEntry(actor, target);
                         break;
                 }
-                result = new AbilityResult(ability, target, attacks, trapHit);
+                result = new AbilityResult(ability, target, attacks, trapHit, fellIntoPit);
                 return true;
             }
             catch
@@ -140,7 +143,10 @@ namespace GuildTactics.Abilities
             units.FindAll(unit => unit.Team != actor.Team && unit.IsPlacedOn(grid) && unit.Position.DistanceTo(target) <= radius);
 
         private bool FreeGround(HexCoordinates target) => grid.TryGetCell(target, out var cell) &&
-            !cell.IsOccupied && (cell.Terrain == TerrainType.Ground || cell.Terrain == TerrainType.HighGround);
+            !cell.IsOccupied && TerrainRules.CanWalk(cell.Terrain);
+
+        private bool FreePushLanding(HexCoordinates target) => grid.TryGetCell(target, out var cell) &&
+            !cell.IsOccupied && TerrainRules.CanPushInto(cell.Terrain);
 
         private static HexCoordinates PushDestination(UnitRuntimeState actor, UnitRuntimeState target) =>
             new HexCoordinates(checked(target.Position.Q + target.Position.Q - actor.Position.Q),

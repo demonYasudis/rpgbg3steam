@@ -13,6 +13,13 @@ namespace GuildTactics.Core
         private void Awake()
         {
             Grid = new HexGrid.HexGrid();
+            // Fixed terrain demonstration; seeded generation belongs to WP-11.
+            Grid.GetCell(new HexGrid.HexCoordinates(1, 4)).Terrain = HexGrid.TerrainType.Pit;
+            Grid.GetCell(new HexGrid.HexCoordinates(6, 6)).Terrain = HexGrid.TerrainType.Pit;
+            for (int r = 3; r <= 5; r++)
+                Grid.GetCell(new HexGrid.HexCoordinates(4, r)).Terrain = HexGrid.TerrainType.Blocked;
+            Grid.GetCell(new HexGrid.HexCoordinates(3, 3)).Terrain = HexGrid.TerrainType.HighGround;
+            Grid.GetCell(new HexGrid.HexCoordinates(3, 4)).Terrain = HexGrid.TerrainType.HighGround;
         }
 
         private void Start()

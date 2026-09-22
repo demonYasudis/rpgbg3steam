@@ -187,10 +187,10 @@ namespace GuildTactics.Editor
             var f = new Fixture(0);
             var system = f.System();
             var landing = new HexCoordinates(3, 1);
-            foreach (var terrain in new[] { TerrainType.Blocked, TerrainType.Pit })
+            foreach (var terrain in new[] { TerrainType.Blocked })
             {
                 f.Grid.GetCell(landing).Terrain = terrain;
-                Require(!system.CanUse(f.Actor, f.Ability(1), f.Enemy.Position, out _), "Push rejects blocked/pit until WP-09");
+                Require(!system.CanUse(f.Actor, f.Ability(1), f.Enemy.Position, out _), "Push rejects blocked landing");
             }
             f.Grid.GetCell(landing).Terrain = TerrainType.Ground;
             f.Grid.TryOccupy(landing, "blocker");

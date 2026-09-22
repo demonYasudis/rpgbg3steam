@@ -101,7 +101,7 @@ namespace GuildTactics.HexGrid
             GUI.Label(new Rect(24, 16, 560, 24), "GUILD TACTICS / HEX PROTOTYPE");
             GUI.Label(new Rect(24, 40, 700, 24), "Green: move. Purple: action targets. Orange: trap. End turn: next unit.");
             GUI.Label(new Rect(24, 64, 560, 24),
-                $"Hover: {Hovered?.ToString() ?? "—"}    Selected: {Selected?.ToString() ?? "—"}");
+                $"Hover: {Hovered?.ToString() ?? "—"} {(Hovered.HasValue ? grid.GetCell(Hovered.Value).Terrain.ToString() : "")}    Selected: {Selected?.ToString() ?? "—"}");
         }
     }
 }

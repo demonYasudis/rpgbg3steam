@@ -18,6 +18,7 @@ namespace GuildTactics.HexGrid
             new Dictionary<HexCoordinates, SpriteRenderer>();
         private Sprite tileSprite;
         private Texture2D tileTexture;
+        private HexGrid grid;
         private HexCoordinates? hovered;
         private HexCoordinates? selected;
         private readonly HashSet<HexCoordinates> reachable = new HashSet<HexCoordinates>();
@@ -32,6 +33,7 @@ namespace GuildTactics.HexGrid
             if (grid == null) throw new ArgumentNullException(nameof(grid));
             if (layout == null) throw new ArgumentNullException(nameof(layout));
             if (tileSprite != null) throw new InvalidOperationException("View is already initialized.");
+            this.grid = grid;
 
             // Unity's default sprite material works in the existing Built-in pipeline.
             // One shared white sprite, no imported art or per-cell material instances.
@@ -70,7 +72,7 @@ namespace GuildTactics.HexGrid
                 tile.transform.position = layout.ToWorld(cell.Coordinates);
                 var renderer = tile.GetComponent<SpriteRenderer>();
                 renderer.sprite = tileSprite;
-                renderer.color = GroundColor;
+                renderer.color = TerrainColor(cell.Terrain);
                 tiles.Add(cell.Coordinates, renderer);
             }
         }
@@ -98,6 +100,17 @@ namespace GuildTactics.HexGrid
         public void SetTargetCells(IEnumerable<HexCoordinates> coordinates) => SetCells(targets, coordinates);
         public void SetTrapCells(IEnumerable<HexCoordinates> coordinates) => SetCells(traps, coordinates);
 
+        public static Color TerrainColor(TerrainType terrain)
+        {
+            switch (terrain)
+            {
+                case TerrainType.HighGround: return new Color(0.60f, 0.53f, 0.35f);
+                case TerrainType.Blocked: return new Color(0.43f, 0.43f, 0.48f);
+                case TerrainType.Pit: return new Color(0.12f, 0.08f, 0.20f);
+                default: return GroundColor;
+            }
+        }
+
         private void SetCells(HashSet<HexCoordinates> set, IEnumerable<HexCoordinates> coordinates)
         {
             set.Clear();
@@ -113,7 +126,7 @@ namespace GuildTactics.HexGrid
                 : (coordinate == hovered ? HoverColor :
                     (targets.Contains(coordinate.Value) ? TargetColor :
                     (traps.Contains(coordinate.Value) ? TrapColor :
-                    (reachable.Contains(coordinate.Value) ? ReachableColor : GroundColor))));
+                    (reachable.Contains(coordinate.Value) ? ReachableColor : TerrainColor(grid.GetCell(coordinate.Value).Terrain)))));
         }
 
         private void OnDestroy()

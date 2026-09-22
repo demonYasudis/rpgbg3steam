@@ -13,7 +13,7 @@ namespace GuildTactics.HexGrid
             var costs = new Dictionary<HexCoordinates, int>();
             var previous = new Dictionary<HexCoordinates, HexCoordinates>();
             var result = new HexMovementRange(origin, budget, costs, previous);
-            if (!grid.TryGetCell(origin, out var start) || !IsWalkableTerrain(start.Terrain)) return result;
+            if (!grid.TryGetCell(origin, out var start) || !TerrainRules.CanWalk(start.Terrain)) return result;
 
             // Occupancy is ignored only for the origin: it is the moving unit's current cell.
             costs.Add(origin, 0);
@@ -34,7 +34,7 @@ namespace GuildTactics.HexGrid
                 foreach (var neighbor in grid.GetNeighbors(current))
                 {
                     var next = neighbor.Coordinates;
-                    if (visited.Contains(next) || neighbor.IsOccupied || !IsWalkableTerrain(neighbor.Terrain)) continue;
+                    if (visited.Contains(next) || neighbor.IsOccupied || !TerrainRules.CanWalk(neighbor.Terrain)) continue;
                     // Subtract before adding so even int.MaxValue budgets/costs cannot overflow.
                     if (neighbor.MovementCost > budget - currentCost) continue;
                     int candidate = currentCost + neighbor.MovementCost;
@@ -54,7 +54,5 @@ namespace GuildTactics.HexGrid
             HexCoordinates destination, int budget = int.MaxValue) =>
             FindReachable(grid, origin, budget).GetPathTo(destination);
 
-        private static bool IsWalkableTerrain(TerrainType terrain) =>
-            terrain == TerrainType.Ground || terrain == TerrainType.HighGround;
     }
 }

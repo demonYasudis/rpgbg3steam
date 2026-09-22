@@ -998,7 +998,7 @@ Acceptance criteria:
 
 ## WP-09 — Terrain: blocked, high ground and pit
 
-Status: [ ]
+Status: [~]
 
 Goal:
 Add small positional terrain rules.

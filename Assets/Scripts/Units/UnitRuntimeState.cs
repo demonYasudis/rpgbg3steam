@@ -23,11 +23,22 @@ namespace GuildTactics.Units
         internal void BeginTurn() => EvasionBonus = 0;
         internal void SetEvasion(int bonus) => EvasionBonus = bonus;
 
+        /// <summary>A forced one-hex step; falling into a pit is immediately fatal.</summary>
+        internal bool TryPushTo(GridModel grid, HexCoordinates destination)
+        {
+            if (!IsPlacedOn(grid) || Position.DistanceTo(destination) != 1 ||
+                !grid.TryGetCell(destination, out var cell) || !TerrainRules.CanPushInto(cell.Terrain) ||
+                cell.IsOccupied || !grid.TryMoveOccupant(Position, destination, InstanceId)) return false;
+            Position = destination;
+            if (cell.Terrain == TerrainType.Pit) ApplyDamage(CurrentHealth);
+            return true;
+        }
+
         /// <summary>Validated forced movement / blink; does not spend walking points.</summary>
         internal bool TryRelocate(GridModel grid, HexCoordinates destination)
         {
             if (!IsPlacedOn(grid) || !grid.TryGetCell(destination, out var cell) ||
-                !IsWalkable(cell.Terrain) || cell.IsOccupied ||
+                !TerrainRules.CanWalk(cell.Terrain) || cell.IsOccupied ||
                 !grid.TryMoveOccupant(Position, destination, InstanceId)) return false;
             Position = destination;
             return true;
@@ -54,7 +65,7 @@ namespace GuildTactics.Units
             if (team != UnitTeam.Player && team != UnitTeam.Enemy)
                 throw new ArgumentOutOfRangeException(nameof(team));
             unit = null;
-            if (!grid.TryGetCell(position, out var cell) || !IsWalkable(cell.Terrain) ||
+            if (!grid.TryGetCell(position, out var cell) || !TerrainRules.CanWalk(cell.Terrain) ||
                 !grid.TryOccupy(position, instanceId))
                 return false;
             unit = new UnitRuntimeState(grid, instanceId, definition, position, team);
@@ -76,7 +87,7 @@ namespace GuildTactics.Units
             {
                 if (path[index - 1].DistanceTo(path[index]) != 1 ||
                     !visited.Add(path[index]) || !grid.TryGetCell(path[index], out var cell) ||
-                    cell.IsOccupied || !IsWalkable(cell.Terrain))
+                    cell.IsOccupied || !TerrainRules.CanWalk(cell.Terrain))
                     return false;
                 cost += cell.MovementCost;
                 if (cost > Definition.Movement) return false;
@@ -102,7 +113,5 @@ namespace GuildTactics.Units
             return applied;
         }
 
-        private static bool IsWalkable(TerrainType terrain) =>
-            terrain == TerrainType.Ground || terrain == TerrainType.HighGround;
     }
 }

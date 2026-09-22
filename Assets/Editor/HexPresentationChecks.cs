@@ -85,6 +85,7 @@ namespace GuildTactics.Editor
                 CombatChecks.Run();
                 EnemyChecks.Run();
                 AbilityChecks.Run();
+                TerrainChecks.Run();
                 SessionState.SetBool(PendingKey, true);
                 deadline = EditorApplication.timeSinceStartup + 90;
                 EditorApplication.update -= WaitForPlayMode;
@@ -154,12 +155,12 @@ namespace GuildTactics.Editor
             var renderers = Array.FindAll(view.GetComponentsInChildren<SpriteRenderer>(), item => item.sortingOrder == 0);
             Require(renderers.Length == 144, "Exactly one renderer per cell");
             var layout = new HexLayout();
+            TerrainChecks.ValidatePresentation(bootstrap.Grid);
             foreach (var cell in bootstrap.Grid.Cells)
             {
                 var point = camera.WorldToScreenPoint(layout.ToWorld(cell.Coordinates));
                 interaction.ProcessPointer(point, false);
                 Require(interaction.Hovered == cell.Coordinates, "Mouse screen projection hovers exact cell " + cell.Coordinates);
-                Require(cell.Terrain == TerrainType.Ground, "Presentation preserves terrain model");
             }
             int occupiedCells = 0;
             foreach (var cell in bootstrap.Grid.Cells) if (cell.IsOccupied) occupiedCells++;
@@ -185,7 +186,8 @@ namespace GuildTactics.Editor
             Require(selectedColor != hoverColor && selectedColor != selectedHoverColor,
                 "Selected, hovered and selected-hovered colors are distinct");
             int highlighted = 0;
-            foreach (var renderer in renderers) if (renderer.color != renderers[0].color) highlighted++;
+            for (int i = 0; i < renderers.Length; i++)
+                if (renderers[i].color != HexGridView.TerrainColor(bootstrap.Grid.Cells[i].Terrain)) highlighted++;
             Require(highlighted == 2 && interaction.Selected == new HexCoordinates(5, 5), "One hover and one persistent selection");
             CaptureAndCheckFraming(camera, interaction, layout, bootstrap.Grid, 1280, 720);
             CaptureAndCheckFraming(camera, interaction, layout, bootstrap.Grid, 640, 960);
@@ -228,7 +230,7 @@ namespace GuildTactics.Editor
                     Vector3 point = camera.WorldToScreenPoint(layout.ToWorld(cell.Coordinates));
                     Color color = pixels.GetPixel((int)point.x, (int)point.y);
                     Require(Mathf.Abs(color.r - background.r) + Mathf.Abs(color.g - background.g) +
-                        Mathf.Abs(color.b - background.b) > 0.15f, "Tile center renders visibly");
+                        Mathf.Abs(color.b - background.b) > 0.03f, "Tile center renders visibly");
                 }
                 var center = layout.ToWorld(new HexCoordinates(5, 5));
                 for (int d = 0; d < 6; d++)

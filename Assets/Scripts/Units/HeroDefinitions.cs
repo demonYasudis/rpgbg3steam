@@ -12,7 +12,7 @@ namespace GuildTactics.Units
             {
                 new AbilityDefinition("heavy-strike", "Heavy Strike", "Range 1. Weapon hit: +4 damage, -2 accuracy.",
                     AbilityEffect.HeavyStrike, 1, power: 4, attackBonus: -2),
-                new AbilityDefinition("push", "Push", "Range 1. Push one hex straight away; landing must be free ground.",
+                new AbilityDefinition("push", "Push", "Range 1. Push one hex away onto free ground or into a fatal pit.",
                     AbilityEffect.Push, 1)
             }),
             new UnitDefinition("rogue", "Rogue", 5, 4, abilities: new[]
