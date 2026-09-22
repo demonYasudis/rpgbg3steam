@@ -24,6 +24,7 @@ namespace GuildTactics.Combat
             turns.CanSelectAction(attacker) && turns.ActionAvailable &&
             attacker.IsPlacedOn(grid) && target != null && target.IsPlacedOn(grid) &&
             attacker.Team != target.Team && attacker.Position.DistanceTo(target.Position) >= 1 &&
+            turns.CanSee(attacker, target.Position) &&
             attacker.Position.DistanceTo(target.Position) <= attacker.Definition.AttackRange;
 
         public bool TryAttack(UnitRuntimeState attacker, UnitRuntimeState target, out AttackResult result)

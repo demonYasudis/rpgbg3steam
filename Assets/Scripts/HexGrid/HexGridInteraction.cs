@@ -8,7 +8,7 @@ namespace GuildTactics.HexGrid
     {
         private const float CameraPadding = 1.12f;
         private const float CameraDistance = 10f;
-        public const float HudHeight = 304f;
+        public const float HudHeight = 324f;
         private HexGrid grid;
         private HexLayout layout;
         private HexGridView view;
@@ -101,7 +101,19 @@ namespace GuildTactics.HexGrid
             GUI.Label(new Rect(24, 16, 560, 24), "GUILD TACTICS / HEX PROTOTYPE");
             GUI.Label(new Rect(24, 40, 700, 24), "Green: move. Purple: action targets. Orange: trap. End turn: next unit.");
             GUI.Label(new Rect(24, 64, 560, 24),
-                $"Hover: {Hovered?.ToString() ?? "—"} {(Hovered.HasValue ? grid.GetCell(Hovered.Value).Terrain.ToString() : "")}    Selected: {Selected?.ToString() ?? "—"}");
+                $"Hover: {Hovered?.ToString() ?? "—"} {HoveredTerrain()}    Selected: {Selected?.ToString() ?? "—"}");
+            if (view.Visibility != null && GUI.Button(new Rect(24, 298, 280, 22),
+                view.DebugVisibility ? "Vision debug ON: green / blue / black" : "Vision debug OFF"))
+                view.ToggleVisibilityDebug();
+        }
+
+        private string HoveredTerrain()
+        {
+            if (!Hovered.HasValue) return "";
+            if (view.Visibility == null) return grid.GetCell(Hovered.Value).Terrain.ToString();
+            var state = view.Visibility.GetState(Hovered.Value);
+            return view.Visibility.TryGetRememberedTerrain(Hovered.Value, out var terrain)
+                ? state + " / " + terrain : state.ToString();
         }
     }
 }

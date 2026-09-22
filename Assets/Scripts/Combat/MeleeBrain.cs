@@ -17,7 +17,7 @@ namespace GuildTactics.Combat
         }
 
         public static HexCoordinates ChooseDestination(GridModel grid, UnitRuntimeState actor,
-            IReadOnlyList<UnitRuntimeState> targets, int budget)
+            IReadOnlyList<UnitRuntimeState> targets, int budget, TurnManager turns = null)
         {
             var range = HexPathfinder.FindReachable(grid, actor.Position, int.MaxValue);
             IReadOnlyList<HexCoordinates> bestPath = null;
@@ -26,6 +26,7 @@ namespace GuildTactics.Combat
             foreach (var target in targets)
             {
                 if (!target.IsPlacedOn(grid) || target.Team == actor.Team) continue;
+                if (turns != null && !turns.CanSee(actor, target.Position)) continue;
                 foreach (var cell in grid.GetNeighbors(target.Position))
                 {
                     if (!range.Costs.TryGetValue(cell.Coordinates, out int cost) || cost >= bestCost) continue;

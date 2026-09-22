@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using GuildTactics.Visibility;
 
 namespace GuildTactics.HexGrid
 {
@@ -27,6 +28,27 @@ namespace GuildTactics.HexGrid
         private static readonly Color TargetColor = new Color(0.68f, 0.32f, 0.62f);
         private static readonly Color TrapColor = new Color(0.85f, 0.4f, 0.1f);
         public int TileCount => tiles.Count;
+        public FogOfWarSystem Visibility { get; private set; }
+        public bool DebugVisibility { get; private set; }
+
+        public void SetFog(FogOfWarSystem visibility)
+        {
+            if (visibility != null && !ReferenceEquals(visibility.Grid, grid))
+                throw new ArgumentException("View and vision must use the same grid.", nameof(visibility));
+            Visibility = visibility;
+            RefreshAll();
+        }
+
+        public void ToggleVisibilityDebug()
+        {
+            DebugVisibility = !DebugVisibility;
+            RefreshAll();
+        }
+
+        public void RefreshAll()
+        {
+            foreach (var coordinate in tiles.Keys) Refresh(coordinate);
+        }
 
         public void Initialize(HexGrid grid, HexLayout layout)
         {
@@ -121,6 +143,28 @@ namespace GuildTactics.HexGrid
         private void Refresh(HexCoordinates? coordinate)
         {
             if (!coordinate.HasValue || !tiles.TryGetValue(coordinate.Value, out var tile)) return;
+            if (Visibility != null)
+            {
+                var state = Visibility.GetState(coordinate.Value);
+                if (DebugVisibility)
+                {
+                    tile.color = state == CellVisibility.Visible ? new Color(0.2f, 0.7f, 0.3f) :
+                        state == CellVisibility.Explored ? new Color(0.25f, 0.3f, 0.65f) : new Color(0.06f, 0.06f, 0.08f);
+                    return;
+                }
+                if (state == CellVisibility.Unknown)
+                {
+                    tile.color = new Color(0.06f, 0.06f, 0.08f);
+                    return;
+                }
+                if (state == CellVisibility.Explored)
+                {
+                    Visibility.TryGetRememberedTerrain(coordinate.Value, out var terrain);
+                    var remembered = TerrainColor(terrain);
+                    tile.color = new Color(remembered.r * 0.45f, remembered.g * 0.45f, remembered.b * 0.45f);
+                    return;
+                }
+            }
             tile.color = coordinate == selected
                 ? (coordinate == hovered ? SelectedHoverColor : SelectedColor)
                 : (coordinate == hovered ? HoverColor :

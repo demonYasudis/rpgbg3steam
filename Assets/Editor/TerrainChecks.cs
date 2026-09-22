@@ -94,7 +94,7 @@ namespace GuildTactics.Editor
                 view.SetHighlights(null, null);
                 Require(tiles.Select(tile => tile.color).SequenceEqual(before), "Clearing highlight restores terrain");
             }
-            finally { UnityEngine.Object.Destroy(root); }
+            finally { UnityEngine.Object.DestroyImmediate(root); }
         }
 
         private static void Require(bool value, string message)

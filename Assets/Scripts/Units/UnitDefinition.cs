@@ -17,11 +17,12 @@ namespace GuildTactics.Units
         public int DamageDie { get; }
         public int DamageBonus { get; }
         public int AttackRange { get; }
+        public int VisionRange { get; }
         public IReadOnlyList<AbilityDefinition> Abilities { get; }
 
         public UnitDefinition(string id, string displayName, int movement, int initiative = 0,
             int maxHealth = 20, int attack = 4, int defense = 12, int damageDie = 6, int damageBonus = 2,
-            int attackRange = 1, IEnumerable<AbilityDefinition> abilities = null)
+            int attackRange = 1, IEnumerable<AbilityDefinition> abilities = null, int visionRange = 4)
         {
             if (string.IsNullOrWhiteSpace(id))
                 throw new ArgumentException("A definition requires a stable ID.", nameof(id));
@@ -31,6 +32,8 @@ namespace GuildTactics.Units
             if (maxHealth <= 0) throw new ArgumentOutOfRangeException(nameof(maxHealth));
             if (damageDie <= 0) throw new ArgumentOutOfRangeException(nameof(damageDie));
             if (attackRange <= 0) throw new ArgumentOutOfRangeException(nameof(attackRange));
+            if (visionRange < 0) throw new ArgumentOutOfRangeException(nameof(visionRange));
+            VisionRange = visionRange;
             var abilityList = new List<AbilityDefinition>();
             var abilityIds = new HashSet<string>(StringComparer.Ordinal);
             if (abilities != null)

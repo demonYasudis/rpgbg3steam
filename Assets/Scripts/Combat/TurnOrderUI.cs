@@ -27,9 +27,10 @@ namespace GuildTactics.Combat
                 return;
             }
             var text = new StringBuilder("Round " + turns.Round + "  |  ");
+            if (turns.ActiveUnit != null && !controller.IsUnitVisible(turns.ActiveUnit)) text.Append("Enemy turn  |  ");
             foreach (var unit in turns.Order)
             {
-                if (!unit.IsAlive) continue;
+                if (!controller.IsUnitVisible(unit)) continue;
                 if (unit == turns.ActiveUnit) text.Append("> ");
                 text.Append(unit.Definition.DisplayName).Append(" (")
                     .Append(unit.Definition.Initiative).Append(")  ");

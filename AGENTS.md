@@ -1026,7 +1026,7 @@ Acceptance criteria:
 
 ## WP-10 — Fog of war and vision
 
-Status: [ ]
+Status: [~]
 
 Goal:
 Make exploration uncertain.

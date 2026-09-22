@@ -54,6 +54,7 @@ namespace GuildTactics.Abilities
             if (ability == null || !Owns(actor, ability)) return Reject("This unit does not know that ability.", out reason);
             if (!grid.Contains(target) || actor.Position.DistanceTo(target) > ability.Range)
                 return Reject("Target is out of range.", out reason);
+            if (!turns.CanSee(actor, target)) return Reject("Target is outside current vision.", out reason);
             var enemy = EnemyAt(actor, target);
             switch (ability.Effect)
             {
@@ -68,6 +69,7 @@ namespace GuildTactics.Abilities
                     return Reject("Backstab needs another ally next to the enemy.", out reason);
                 case AbilityEffect.Push:
                     return (enemy != null && actor.Position.DistanceTo(target) == 1 &&
+                        turns.CanSee(actor, PushDestination(actor, enemy)) &&
                         FreePushLanding(PushDestination(actor, enemy))) ||
                         Reject("Push needs an adjacent enemy and free ground or a pit behind it.", out reason);
                 case AbilityEffect.Evade:
@@ -140,7 +142,8 @@ namespace GuildTactics.Abilities
             units.Find(unit => unit.Team != actor.Team && unit.Position == target && unit.IsPlacedOn(grid));
 
         private List<UnitRuntimeState> AreaTargets(UnitRuntimeState actor, HexCoordinates target, int radius) =>
-            units.FindAll(unit => unit.Team != actor.Team && unit.IsPlacedOn(grid) && unit.Position.DistanceTo(target) <= radius);
+            units.FindAll(unit => unit.Team != actor.Team && unit.IsPlacedOn(grid) &&
+                turns.CanSee(actor, unit.Position) && unit.Position.DistanceTo(target) <= radius);
 
         private bool FreeGround(HexCoordinates target) => grid.TryGetCell(target, out var cell) &&
             !cell.IsOccupied && TerrainRules.CanWalk(cell.Terrain);

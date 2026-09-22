@@ -41,7 +41,7 @@ namespace GuildTactics.Core
             feedback.Initialize(gridCamera, combatSeed);
             var units = presentation.AddComponent<Units.PlayerUnitController>();
             units.Initialize(Grid, layout, view, interaction, movementSecondsPerStep,
-                new Combat.SeededDice(combatSeed), feedback);
+                new Combat.SeededDice(combatSeed), feedback, enableFog: true);
             presentation.AddComponent<Combat.TurnOrderUI>().Initialize(units);
             presentation.AddComponent<Abilities.ActionBarUI>().Initialize(units);
             Debug.Log($"Guild Tactics: grid ready ({Grid.Width} x {Grid.Height}, {Grid.Cells.Count} cells, {units.Units.Count} heroes, {units.Enemies.Count} enemies, combat seed {combatSeed}).", this);

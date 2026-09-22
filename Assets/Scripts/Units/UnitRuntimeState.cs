@@ -18,6 +18,8 @@ namespace GuildTactics.Units
         public int CurrentHealth { get; private set; }
         public bool IsAlive => CurrentHealth > 0;
         public int EvasionBonus { get; private set; }
+        internal event Action StateChanged;
+        internal bool BelongsTo(GridModel grid) => ReferenceEquals(grid, spawnGrid);
         public int Defense => (int)Math.Min(int.MaxValue, (long)Definition.Defense + EvasionBonus);
 
         internal void BeginTurn() => EvasionBonus = 0;
@@ -31,6 +33,7 @@ namespace GuildTactics.Units
                 cell.IsOccupied || !grid.TryMoveOccupant(Position, destination, InstanceId)) return false;
             Position = destination;
             if (cell.Terrain == TerrainType.Pit) ApplyDamage(CurrentHealth);
+            else StateChanged?.Invoke();
             return true;
         }
 
@@ -41,6 +44,7 @@ namespace GuildTactics.Units
                 !TerrainRules.CanWalk(cell.Terrain) || cell.IsOccupied ||
                 !grid.TryMoveOccupant(Position, destination, InstanceId)) return false;
             Position = destination;
+            StateChanged?.Invoke();
             return true;
         }
 
@@ -96,6 +100,7 @@ namespace GuildTactics.Units
             var destination = path[path.Count - 1];
             if (!grid.TryMoveOccupant(Position, destination, InstanceId)) return false;
             Position = destination;
+            StateChanged?.Invoke();
             return true;
         }
 
@@ -110,6 +115,7 @@ namespace GuildTactics.Units
             int applied = Math.Min(CurrentHealth, amount);
             CurrentHealth -= applied;
             if (!IsAlive) spawnGrid.TryVacate(Position, InstanceId);
+            StateChanged?.Invoke();
             return applied;
         }
 

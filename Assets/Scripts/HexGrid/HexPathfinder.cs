@@ -6,7 +6,8 @@ namespace GuildTactics.HexGrid
     /// <summary>Deterministic Dijkstra search, independent of Unity and presentation.</summary>
     public static class HexPathfinder
     {
-        public static HexMovementRange FindReachable(HexGrid grid, HexCoordinates origin, int budget)
+        public static HexMovementRange FindReachable(HexGrid grid, HexCoordinates origin, int budget,
+            Func<HexCoordinates, bool> canEnter = null)
         {
             if (grid == null) throw new ArgumentNullException(nameof(grid));
             if (budget < 0) throw new ArgumentOutOfRangeException(nameof(budget));
@@ -34,6 +35,7 @@ namespace GuildTactics.HexGrid
                 foreach (var neighbor in grid.GetNeighbors(current))
                 {
                     var next = neighbor.Coordinates;
+                    if (canEnter != null && !canEnter(next)) continue;
                     if (visited.Contains(next) || neighbor.IsOccupied || !TerrainRules.CanWalk(neighbor.Terrain)) continue;
                     // Subtract before adding so even int.MaxValue budgets/costs cannot overflow.
                     if (neighbor.MovementCost > budget - currentCost) continue;

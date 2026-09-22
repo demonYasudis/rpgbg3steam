@@ -20,6 +20,7 @@ namespace GuildTactics.Editor
         private static bool combatChecksStarted;
         private static bool enemyChecksStarted;
         private static bool abilityChecksStarted;
+        private static bool visibilityChecksStarted;
         private static PlayerUnitController sceneUnits;
 
         static HexPresentationChecks()
@@ -86,6 +87,7 @@ namespace GuildTactics.Editor
                 EnemyChecks.Run();
                 AbilityChecks.Run();
                 TerrainChecks.Run();
+                VisibilityChecks.Run();
                 SessionState.SetBool(PendingKey, true);
                 deadline = EditorApplication.timeSinceStartup + 90;
                 EditorApplication.update -= WaitForPlayMode;
@@ -134,7 +136,15 @@ namespace GuildTactics.Editor
                         abilityChecksStarted = true;
                     }
                 }
-                else if (AbilityChecks.PollPresentation()) Finish(null);
+                else if (!visibilityChecksStarted)
+                {
+                    if (AbilityChecks.PollPresentation())
+                    {
+                        VisibilityChecks.BeginPresentation(sceneUnits);
+                        visibilityChecksStarted = true;
+                    }
+                }
+                else if (VisibilityChecks.PollPresentation()) Finish(null);
             }
             catch (Exception exception) { Finish(exception); }
         }
@@ -152,6 +162,9 @@ namespace GuildTactics.Editor
             var camera = new SerializedObject(bootstrap).FindProperty("gridCamera").objectReferenceValue as Camera;
             Require(view != null && view.TileCount == 144 && interaction != null && units != null && camera != null,
                 "144 runtime tiles and gameplay wiring");
+            VisibilityChecks.ValidateInitial(units);
+            // Legacy framing/color checks deliberately inspect all terrain; gameplay fog remains active.
+            view.SetFog(null);
             var renderers = Array.FindAll(view.GetComponentsInChildren<SpriteRenderer>(), item => item.sortingOrder == 0);
             Require(renderers.Length == 144, "Exactly one renderer per cell");
             var layout = new HexLayout();

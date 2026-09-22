@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using GuildTactics.HexGrid;
 using GuildTactics.Units;
 using GuildTactics.Abilities;
+using GuildTactics.Visibility;
 using GridModel = GuildTactics.HexGrid.HexGrid;
 
 namespace GuildTactics.Combat
@@ -14,6 +15,7 @@ namespace GuildTactics.Combat
     {
         private readonly GridModel grid;
         internal GridModel Grid => grid;
+        public FogOfWarSystem Vision { get; }
         private int activeIndex = -1;
         public IReadOnlyList<UnitRuntimeState> Order { get; }
         public UnitRuntimeState ActiveUnit => activeIndex < 0 ? null : Order[activeIndex];
@@ -24,9 +26,12 @@ namespace GuildTactics.Combat
         public TrapField Traps { get; } = new TrapField();
         public IReadOnlyList<TrapHit> LastTrapHits { get; private set; } = Array.Empty<TrapHit>();
 
-        public TurnManager(GridModel grid, IEnumerable<UnitRuntimeState> units)
+        public TurnManager(GridModel grid, IEnumerable<UnitRuntimeState> units, FogOfWarSystem vision = null)
         {
             this.grid = grid ?? throw new ArgumentNullException(nameof(grid));
+            if (vision != null && !ReferenceEquals(vision.Grid, grid))
+                throw new ArgumentException("Vision and turns must use the same grid.", nameof(vision));
+            Vision = vision;
             if (units == null) throw new ArgumentNullException(nameof(units));
             var ordered = new List<UnitRuntimeState>();
             var ids = new HashSet<string>(StringComparer.Ordinal);
@@ -80,12 +85,21 @@ namespace GuildTactics.Combat
         public bool CanSelectAction(UnitRuntimeState unit) =>
             unit != null && unit.IsAlive && ReferenceEquals(unit, ActiveUnit) && State == TurnState.SelectingAction;
 
+        public bool CanSee(UnitRuntimeState unit, HexCoordinates coordinate) =>
+            unit != null && unit.IsPlacedOn(grid) && grid.Contains(coordinate) &&
+            (Vision == null || (unit.Team == UnitTeam.Player ? Vision.IsVisible(coordinate) :
+                unit.Position.DistanceTo(coordinate) <= unit.Definition.VisionRange));
+
+        public HexMovementRange GetMovementRange(UnitRuntimeState unit) =>
+            HexPathfinder.FindReachable(grid, unit.Position, RemainingMovement,
+                Vision != null && unit.Team == UnitTeam.Player ? Vision.IsVisible : (Func<HexCoordinates, bool>)null);
+
         public bool TryBeginMovement(UnitRuntimeState unit, HexCoordinates destination,
             out IReadOnlyList<HexCoordinates> path)
         {
             path = Array.Empty<HexCoordinates>();
             if (!CanSelectAction(unit) || destination == unit.Position) return false;
-            var range = HexPathfinder.FindReachable(grid, unit.Position, RemainingMovement);
+            var range = GetMovementRange(unit);
             var candidate = Traps.LimitPath(unit, range.GetPathTo(destination));
             if (candidate.Count < 2 || !unit.TryMoveAlong(grid, candidate)) return false;
             RemainingMovement -= range.Costs[unit.Position];
