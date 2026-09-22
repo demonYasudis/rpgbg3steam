@@ -8,7 +8,7 @@ namespace GuildTactics.HexGrid
     {
         private const float CameraPadding = 1.12f;
         private const float CameraDistance = 10f;
-        public const float HudHeight = 228f;
+        public const float HudHeight = 304f;
         private HexGrid grid;
         private HexLayout layout;
         private HexGridView view;
@@ -99,7 +99,7 @@ namespace GuildTactics.HexGrid
         {
             if (grid == null) return;
             GUI.Label(new Rect(24, 16, 560, 24), "GUILD TACTICS / HEX PROTOTYPE");
-            GUI.Label(new Rect(24, 40, 700, 24), "Left click: move to green cell / attack adjacent enemy. End turn: next unit.");
+            GUI.Label(new Rect(24, 40, 700, 24), "Green: move. Purple: action targets. Orange: trap. End turn: next unit.");
             GUI.Label(new Rect(24, 64, 560, 24),
                 $"Hover: {Hovered?.ToString() ?? "—"}    Selected: {Selected?.ToString() ?? "—"}");
         }

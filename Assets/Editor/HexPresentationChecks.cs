@@ -19,6 +19,7 @@ namespace GuildTactics.Editor
         private static bool turnChecksStarted;
         private static bool combatChecksStarted;
         private static bool enemyChecksStarted;
+        private static bool abilityChecksStarted;
         private static PlayerUnitController sceneUnits;
 
         static HexPresentationChecks()
@@ -83,6 +84,7 @@ namespace GuildTactics.Editor
                 TurnChecks.Run();
                 CombatChecks.Run();
                 EnemyChecks.Run();
+                AbilityChecks.Run();
                 SessionState.SetBool(PendingKey, true);
                 deadline = EditorApplication.timeSinceStartup + 90;
                 EditorApplication.update -= WaitForPlayMode;
@@ -123,7 +125,15 @@ namespace GuildTactics.Editor
                         enemyChecksStarted = true;
                     }
                 }
-                else if (EnemyChecks.PollPresentation()) Finish(null);
+                else if (!abilityChecksStarted)
+                {
+                    if (EnemyChecks.PollPresentation())
+                    {
+                        AbilityChecks.BeginPresentation(sceneUnits);
+                        abilityChecksStarted = true;
+                    }
+                }
+                else if (AbilityChecks.PollPresentation()) Finish(null);
             }
             catch (Exception exception) { Finish(exception); }
         }

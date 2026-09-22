@@ -17,6 +17,21 @@ namespace GuildTactics.Units
         public UnitTeam Team { get; }
         public int CurrentHealth { get; private set; }
         public bool IsAlive => CurrentHealth > 0;
+        public int EvasionBonus { get; private set; }
+        public int Defense => (int)Math.Min(int.MaxValue, (long)Definition.Defense + EvasionBonus);
+
+        internal void BeginTurn() => EvasionBonus = 0;
+        internal void SetEvasion(int bonus) => EvasionBonus = bonus;
+
+        /// <summary>Validated forced movement / blink; does not spend walking points.</summary>
+        internal bool TryRelocate(GridModel grid, HexCoordinates destination)
+        {
+            if (!IsPlacedOn(grid) || !grid.TryGetCell(destination, out var cell) ||
+                !IsWalkable(cell.Terrain) || cell.IsOccupied ||
+                !grid.TryMoveOccupant(Position, destination, InstanceId)) return false;
+            Position = destination;
+            return true;
+        }
 
         private UnitRuntimeState(GridModel grid, string instanceId, UnitDefinition definition,
             HexCoordinates position, UnitTeam team)

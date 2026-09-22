@@ -952,7 +952,7 @@ At the end of WP-07, the project must contain the first genuinely playable grey-
 
 ## WP-08 — Four classes and eight class abilities
 
-Status: [ ]
+Status: [~]
 
 Goal:
 Give the four heroes distinct tactical identities.

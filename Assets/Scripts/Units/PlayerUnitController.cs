@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using GuildTactics.HexGrid;
 using GuildTactics.Combat;
+using GuildTactics.Abilities;
 using UnityEngine;
 using GridModel = GuildTactics.HexGrid.HexGrid;
 
@@ -33,6 +34,11 @@ namespace GuildTactics.Units
         private Coroutine movementRoutine;
         private Coroutine actionRoutine;
         private CombatSystem combat;
+        private AbilitySystem abilities;
+        public AbilityDefinition SelectedAbility { get; private set; }
+        public bool IsTargetingAttack { get; private set; }
+        public string ActionHint { get; private set; } = "Choose an action or move to a green hex.";
+        public AbilityResult LastAbility { get; private set; }
         private CombatText combatText;
         private bool battleEnabled;
         private bool enemyMoved;
@@ -101,7 +107,11 @@ namespace GuildTactics.Units
             var participants = new List<UnitRuntimeState>(units);
             if (enableBattle) participants.AddRange(enemies);
             Turns = new TurnManager(grid, participants);
-            combat = new CombatSystem(grid, Turns, dice ?? new SeededDice(SeededDice.DefaultSeed));
+            var battleDice = dice ?? new SeededDice(SeededDice.DefaultSeed);
+            combat = new CombatSystem(grid, Turns, battleDice);
+            var abilityParticipants = new List<UnitRuntimeState>(units);
+            abilityParticipants.AddRange(enemies);
+            abilities = new AbilitySystem(grid, Turns, battleDice, abilityParticipants);
             StartNextTurn();
             interaction.CellClicked += HandleCellClicked;
         }
@@ -148,6 +158,7 @@ namespace GuildTactics.Units
             {
                 views[SelectedUnit.InstanceId].SnapTo(layout.ToWorld(SelectedUnit.Position));
                 Turns.TryCompleteMovement(SelectedUnit);
+                ShowTrapFeedback();
                 RefreshSelection();
             }
             else movementRoutine = StartCoroutine(AnimateMovement(SelectedUnit, path));
@@ -181,6 +192,12 @@ namespace GuildTactics.Units
         private void HandleCellClicked(HexCoordinates coordinate)
         {
             if (!CanPlayerAct) return;
+            if (SelectedAbility != null) { TryUseSelectedAbility(coordinate); return; }
+            if (IsTargetingAttack)
+            {
+                if (!TryAttackSelected(coordinate)) ActionHint = "Choose an enemy within basic attack range.";
+                return;
+            }
             if (TrySelectUnit(coordinate)) return;
             if (TryAttackSelected(coordinate)) return;
             if (!TryMoveSelected(coordinate) && SelectedUnit != null)
@@ -198,6 +215,73 @@ namespace GuildTactics.Units
             CurrentRange = !CanPlayerAct ? null :
                 HexPathfinder.FindReachable(grid, SelectedUnit.Position, Turns.RemainingMovement);
             gridView.SetReachableCells(CurrentRange == null ? null : CurrentRange.Costs.Keys);
+            var targets = new List<HexCoordinates>();
+            if (CanPlayerAct && SelectedAbility != null)
+                foreach (var cell in grid.Cells)
+                    if (abilities.CanUse(SelectedUnit, SelectedAbility, cell.Coordinates, out _)) targets.Add(cell.Coordinates);
+            if (CanPlayerAct && IsTargetingAttack)
+                foreach (var enemy in enemies)
+                    if (CanAttack(enemy)) targets.Add(enemy.Position);
+            if (SelectedAbility != null || IsTargetingAttack) gridView.SetReachableCells(null);
+            gridView.SetTargetCells(targets);
+            var traps = new List<HexCoordinates>();
+            foreach (var trap in Turns.Traps.Traps) traps.Add(trap.Position);
+            gridView.SetTrapCells(traps);
+        }
+
+        public bool SelectAbility(AbilityDefinition ability)
+        {
+            if (!CanPlayerAct || !Turns.ActionAvailable || ability == null) return false;
+            bool known = false;
+            foreach (var item in SelectedUnit.Definition.Abilities) if (ReferenceEquals(item, ability)) known = true;
+            if (!known) return false;
+            SelectedAbility = ability;
+            IsTargetingAttack = false;
+            ActionHint = ability.Description;
+            RefreshSelection();
+            return true;
+        }
+
+        public bool SelectBasicAttack()
+        {
+            if (!CanPlayerAct || !Turns.ActionAvailable) return false;
+            SelectedAbility = null;
+            IsTargetingAttack = true;
+            ActionHint = $"Basic attack: range {SelectedUnit.Definition.AttackRange}. Choose a highlighted enemy.";
+            RefreshSelection();
+            return true;
+        }
+
+        public void CancelTargeting()
+        {
+            SelectedAbility = null;
+            IsTargetingAttack = false;
+            ActionHint = "Choose an action or move to a green hex.";
+            if (Turns != null) RefreshSelection();
+        }
+
+        public bool TryUseSelectedAbility(HexCoordinates target)
+        {
+            if (!CanPlayerAct || SelectedAbility == null) return false;
+            if (!abilities.TryUse(SelectedUnit, SelectedAbility, target, out var result, out var reason))
+            { ActionHint = reason; RefreshSelection(); return false; }
+            LastAbility = result;
+            // Relocation is already committed; presentation never applies an ability twice.
+            foreach (var view in views.Values) view.SnapTo(layout.ToWorld(view.State.Position));
+            CancelTargeting();
+            if (combatText != null) combatText.Show(result, layout.ToWorld(result.Position));
+            actionRoutine = StartCoroutine(AnimateAction(SelectedUnit, CombatText.DisplaySeconds));
+            return true;
+        }
+
+        private void ShowTrapFeedback()
+        {
+            if (combatText == null || Turns.LastTrapHits.Count == 0) return;
+            var text = new System.Text.StringBuilder();
+            foreach (var hit in Turns.LastTrapHits)
+                text.Append("TRAP ").Append(hit.Position).Append(": -").Append(hit.Damage)
+                    .Append(hit.Killed ? " HP / DEAD\n" : " HP\n");
+            combatText.ShowMessage(text.ToString(), layout.ToWorld(SelectedUnit.Position));
         }
 
         private IEnumerator AnimateMovement(UnitRuntimeState movingUnit, IReadOnlyList<HexCoordinates> path)
@@ -218,6 +302,7 @@ namespace GuildTactics.Units
             }
             movementRoutine = null;
             Turns.TryCompleteMovement(movingUnit);
+            ShowTrapFeedback();
             RefreshSelection();
         }
 
@@ -242,7 +327,7 @@ namespace GuildTactics.Units
         {
             if (!combat.TryAttack(SelectedUnit, target, out var result)) return false;
             LastAttack = result;
-            RefreshSelection();
+            CancelTargeting();
             if (combatText != null) combatText.Show(result, layout.ToWorld(result.TargetPosition));
             actionRoutine = StartCoroutine(AnimateAction(SelectedUnit, CombatText.DisplaySeconds));
             return true;
@@ -285,6 +370,8 @@ namespace GuildTactics.Units
                 }
             }
             if (Turns.State == TurnState.TurnComplete) { StartNextTurn(); return; }
+            if (SelectedUnit != null && !SelectedUnit.IsAlive)
+            { Turns.TryEndTurn(SelectedUnit); RefreshSelection(); return; }
             if (battleEnabled && SelectedUnit != null && SelectedUnit.Team == UnitTeam.Enemy)
                 AdvanceEnemyTurn();
         }
@@ -309,7 +396,7 @@ namespace GuildTactics.Units
             if (!Turns.TryStartNextTurn()) return;
             SelectedUnit = Turns.ActiveUnit;
             enemyMoved = false;
-            RefreshSelection();
+            CancelTargeting();
         }
 
         private void OnDisable()
@@ -330,7 +417,13 @@ namespace GuildTactics.Units
                 Turns.TryCompleteAction(SelectedUnit);
             }
             CurrentRange = null;
-            if (gridView != null) gridView.SetReachableCells(null);
+            SelectedAbility = null;
+            IsTargetingAttack = false;
+            if (gridView != null)
+            {
+                gridView.SetReachableCells(null);
+                gridView.SetTargetCells(null);
+            }
         }
 
         private void OnEnable()
@@ -342,7 +435,7 @@ namespace GuildTactics.Units
         private void OnGUI()
         {
             if (Turns == null || SelectedUnit == null) return;
-            string status = $"{SelectedUnit.Definition.DisplayName} | HP {SelectedUnit.CurrentHealth}/{SelectedUnit.Definition.MaxHealth} | Move {Turns.RemainingMovement} | Action {(Turns.ActionAvailable ? "ready" : "used")} | {Turns.State}";
+            string status = $"{SelectedUnit.Definition.DisplayName} | HP {SelectedUnit.CurrentHealth}/{SelectedUnit.Definition.MaxHealth} | DEF {SelectedUnit.Defense} | Move {Turns.RemainingMovement} | Action {(Turns.ActionAvailable ? "ready" : "used")} | {Turns.State}";
             GUI.Label(new Rect(24, 88, 760, 24), status);
         }
     }

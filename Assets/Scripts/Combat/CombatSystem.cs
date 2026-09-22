@@ -4,7 +4,7 @@ using GridModel = GuildTactics.HexGrid.HexGrid;
 
 namespace GuildTactics.Combat
 {
-    /// <summary>Validates a melee attack, consumes one action and commits its result exactly once.</summary>
+    /// <summary>Validates a basic attack, consumes one action and commits its result exactly once.</summary>
     public sealed class CombatSystem
     {
         private readonly GridModel grid;
@@ -23,7 +23,8 @@ namespace GuildTactics.Combat
         public bool CanAttack(UnitRuntimeState attacker, UnitRuntimeState target) =>
             turns.CanSelectAction(attacker) && turns.ActionAvailable &&
             attacker.IsPlacedOn(grid) && target != null && target.IsPlacedOn(grid) &&
-            attacker.Team != target.Team && attacker.Position.DistanceTo(target.Position) == 1;
+            attacker.Team != target.Team && attacker.Position.DistanceTo(target.Position) >= 1 &&
+            attacker.Position.DistanceTo(target.Position) <= attacker.Definition.AttackRange;
 
         public bool TryAttack(UnitRuntimeState attacker, UnitRuntimeState target, out AttackResult result)
         {
@@ -31,15 +32,8 @@ namespace GuildTactics.Combat
             if (!CanAttack(attacker, target) || !turns.TryBeginAction(attacker)) return false;
             try
             {
-                int attackRoll = RollChecked(20);
-                bool hit = (long)attackRoll + attacker.Definition.Attack >= target.Definition.Defense;
-                int damageRoll = hit ? RollChecked(attacker.Definition.DamageDie) : 0;
-                int damage = hit ? (int)Math.Max(0L, Math.Min(int.MaxValue,
-                    (long)damageRoll + attacker.Definition.DamageBonus)) : 0;
-                int applied = target.ApplyDamage(damage);
-                result = new AttackResult(target.Position, attackRoll, attacker.Definition.Attack,
-                    target.Definition.Defense, attacker.Definition.DamageDie, damageRoll,
-                    attacker.Definition.DamageBonus, damage, applied, !target.IsAlive);
+                result = PrepareAttack(dice, attacker, target);
+                target.ApplyDamage(result.Damage);
                 // Remain locked until presentation completes. No damage is deferred to that callback.
                 return true;
             }
@@ -52,7 +46,24 @@ namespace GuildTactics.Combat
             }
         }
 
-        private int RollChecked(int sides)
+        // Prepare all rolls before committing any HP (also used for area abilities).
+        internal static AttackResult PrepareAttack(IDice dice, UnitRuntimeState attacker,
+            UnitRuntimeState target, int attackModifier = 0, int damageModifier = 0)
+        {
+            int bonus = Clamp((long)attacker.Definition.Attack + attackModifier);
+            int damageBonus = Clamp((long)attacker.Definition.DamageBonus + damageModifier);
+            int attackRoll = RollChecked(dice, 20);
+            bool hit = (long)attackRoll + bonus >= target.Defense;
+            int damageRoll = hit ? RollChecked(dice, attacker.Definition.DamageDie) : 0;
+            int damage = hit ? (int)Math.Max(0L, Math.Min(int.MaxValue, (long)damageRoll + damageBonus)) : 0;
+            return new AttackResult(target.Position, attackRoll, bonus, target.Defense,
+                attacker.Definition.DamageDie, damageRoll, damageBonus, damage,
+                Math.Min(target.CurrentHealth, damage), damage >= target.CurrentHealth);
+        }
+
+        private static int Clamp(long value) => (int)Math.Max(int.MinValue, Math.Min(int.MaxValue, value));
+
+        private static int RollChecked(IDice dice, int sides)
         {
             int roll = dice.Roll(sides);
             if (roll < 1 || roll > sides)

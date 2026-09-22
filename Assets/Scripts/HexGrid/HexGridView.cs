@@ -21,6 +21,10 @@ namespace GuildTactics.HexGrid
         private HexCoordinates? hovered;
         private HexCoordinates? selected;
         private readonly HashSet<HexCoordinates> reachable = new HashSet<HexCoordinates>();
+        private readonly HashSet<HexCoordinates> targets = new HashSet<HexCoordinates>();
+        private readonly HashSet<HexCoordinates> traps = new HashSet<HexCoordinates>();
+        private static readonly Color TargetColor = new Color(0.68f, 0.32f, 0.62f);
+        private static readonly Color TrapColor = new Color(0.85f, 0.4f, 0.1f);
         public int TileCount => tiles.Count;
 
         public void Initialize(HexGrid grid, HexLayout layout)
@@ -91,13 +95,25 @@ namespace GuildTactics.HexGrid
             foreach (var coordinate in tiles.Keys) Refresh(coordinate);
         }
 
+        public void SetTargetCells(IEnumerable<HexCoordinates> coordinates) => SetCells(targets, coordinates);
+        public void SetTrapCells(IEnumerable<HexCoordinates> coordinates) => SetCells(traps, coordinates);
+
+        private void SetCells(HashSet<HexCoordinates> set, IEnumerable<HexCoordinates> coordinates)
+        {
+            set.Clear();
+            if (coordinates != null) foreach (var coordinate in coordinates) set.Add(coordinate);
+            foreach (var coordinate in tiles.Keys) Refresh(coordinate);
+        }
+
         private void Refresh(HexCoordinates? coordinate)
         {
             if (!coordinate.HasValue || !tiles.TryGetValue(coordinate.Value, out var tile)) return;
             tile.color = coordinate == selected
                 ? (coordinate == hovered ? SelectedHoverColor : SelectedColor)
                 : (coordinate == hovered ? HoverColor :
-                    (reachable.Contains(coordinate.Value) ? ReachableColor : GroundColor));
+                    (targets.Contains(coordinate.Value) ? TargetColor :
+                    (traps.Contains(coordinate.Value) ? TrapColor :
+                    (reachable.Contains(coordinate.Value) ? ReachableColor : GroundColor))));
         }
 
         private void OnDestroy()

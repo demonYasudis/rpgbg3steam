@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using GuildTactics.HexGrid;
 using GuildTactics.Units;
+using GuildTactics.Abilities;
 using GridModel = GuildTactics.HexGrid.HexGrid;
 
 namespace GuildTactics.Combat
@@ -20,6 +21,8 @@ namespace GuildTactics.Combat
         public int Round { get; private set; }
         public int RemainingMovement { get; private set; }
         public bool ActionAvailable { get; private set; }
+        public TrapField Traps { get; } = new TrapField();
+        public IReadOnlyList<TrapHit> LastTrapHits { get; private set; } = Array.Empty<TrapHit>();
 
         public TurnManager(GridModel grid, IEnumerable<UnitRuntimeState> units)
         {
@@ -67,6 +70,7 @@ namespace GuildTactics.Combat
             }
             activeIndex = nextIndex;
             Round = nextRound;
+            ActiveUnit.BeginTurn();
             RemainingMovement = ActiveUnit.Definition.Movement;
             ActionAvailable = true;
             State = TurnState.SelectingAction;
@@ -82,9 +86,10 @@ namespace GuildTactics.Combat
             path = Array.Empty<HexCoordinates>();
             if (!CanSelectAction(unit) || destination == unit.Position) return false;
             var range = HexPathfinder.FindReachable(grid, unit.Position, RemainingMovement);
-            var candidate = range.GetPathTo(destination);
+            var candidate = Traps.LimitPath(unit, range.GetPathTo(destination));
             if (candidate.Count < 2 || !unit.TryMoveAlong(grid, candidate)) return false;
-            RemainingMovement -= range.Costs[destination];
+            RemainingMovement -= range.Costs[unit.Position];
+            LastTrapHits = Traps.TriggerPath(unit, candidate);
             State = TurnState.Moving;
             path = candidate;
             return true;
