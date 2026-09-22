@@ -5,32 +5,44 @@ using GridModel = GuildTactics.HexGrid.HexGrid;
 
 namespace GuildTactics.Units
 {
+    public enum UnitTeam { Player, Enemy }
+
     /// <summary>Mutable expedition state, kept separate from the shared unit definition.</summary>
     public sealed class UnitRuntimeState
     {
+        private readonly GridModel spawnGrid;
         public string InstanceId { get; }
         public UnitDefinition Definition { get; }
         public HexCoordinates Position { get; private set; }
+        public UnitTeam Team { get; }
+        public int CurrentHealth { get; private set; }
+        public bool IsAlive => CurrentHealth > 0;
 
-        private UnitRuntimeState(string instanceId, UnitDefinition definition, HexCoordinates position)
+        private UnitRuntimeState(GridModel grid, string instanceId, UnitDefinition definition,
+            HexCoordinates position, UnitTeam team)
         {
+            spawnGrid = grid;
             InstanceId = instanceId;
             Definition = definition;
             Position = position;
+            Team = team;
+            CurrentHealth = definition.MaxHealth;
         }
 
         public static bool TrySpawn(GridModel grid, string instanceId, UnitDefinition definition,
-            HexCoordinates position, out UnitRuntimeState unit)
+            HexCoordinates position, out UnitRuntimeState unit, UnitTeam team = UnitTeam.Player)
         {
             if (grid == null) throw new ArgumentNullException(nameof(grid));
             if (string.IsNullOrWhiteSpace(instanceId))
                 throw new ArgumentException("A unit requires a stable instance ID.", nameof(instanceId));
             if (definition == null) throw new ArgumentNullException(nameof(definition));
+            if (team != UnitTeam.Player && team != UnitTeam.Enemy)
+                throw new ArgumentOutOfRangeException(nameof(team));
             unit = null;
             if (!grid.TryGetCell(position, out var cell) || !IsWalkable(cell.Terrain) ||
                 !grid.TryOccupy(position, instanceId))
                 return false;
-            unit = new UnitRuntimeState(instanceId, definition, position);
+            unit = new UnitRuntimeState(grid, instanceId, definition, position, team);
             return true;
         }
 
@@ -39,7 +51,7 @@ namespace GuildTactics.Units
         {
             if (grid == null) throw new ArgumentNullException(nameof(grid));
             if (path == null) throw new ArgumentNullException(nameof(path));
-            if (path.Count < 2 || path[0] != Position ||
+            if (!IsAlive || !ReferenceEquals(grid, spawnGrid) || path.Count < 2 || path[0] != Position ||
                 !grid.TryGetCell(Position, out var origin) || origin.OccupantId != InstanceId)
                 return false;
 
@@ -59,6 +71,20 @@ namespace GuildTactics.Units
             if (!grid.TryMoveOccupant(Position, destination, InstanceId)) return false;
             Position = destination;
             return true;
+        }
+
+        internal bool IsPlacedOn(GridModel grid) => IsAlive && ReferenceEquals(grid, spawnGrid) &&
+            grid.TryGetCell(Position, out var cell) && cell.OccupantId == InstanceId;
+
+        // Damage is committed by CombatSystem, never by an animation callback.
+        internal int ApplyDamage(int amount)
+        {
+            if (amount < 0) throw new ArgumentOutOfRangeException(nameof(amount));
+            if (!IsAlive) return 0;
+            int applied = Math.Min(CurrentHealth, amount);
+            CurrentHealth -= applied;
+            if (!IsAlive) spawnGrid.TryVacate(Position, InstanceId);
+            return applied;
         }
 
         private static bool IsWalkable(TerrainType terrain) =>

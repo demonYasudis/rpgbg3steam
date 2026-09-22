@@ -83,8 +83,9 @@ namespace GuildTactics.Editor
             HexGridInteraction interaction, PlayerUnitController controller, Camera camera)
         {
             Require(controller != null && controller.Units.Count == 4, "Four runtime heroes");
-            Require(grid.Cells.Count(cell => cell.IsOccupied) == 4, "Four occupied runtime cells");
-            Require(controller.GetComponentsInChildren<UnitView>().Length == 4, "Four unit views");
+            Require(grid.Cells.Count(cell => cell.IsOccupied) == 4 + controller.Enemies.Count, "Heroes and enemies occupy cells");
+            Require(controller.GetComponentsInChildren<UnitView>().Count(item => item.State.Team == UnitTeam.Player) == 4,
+                "Four hero views");
             var layout = new HexLayout();
             foreach (var unit in controller.Units)
             {

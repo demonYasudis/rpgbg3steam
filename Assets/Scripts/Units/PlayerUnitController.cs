@@ -23,6 +23,7 @@ namespace GuildTactics.Units
         };
 
         private readonly List<UnitRuntimeState> units = new List<UnitRuntimeState>();
+        private readonly List<UnitRuntimeState> enemies = new List<UnitRuntimeState>();
         private readonly Dictionary<string, UnitView> views = new Dictionary<string, UnitView>(StringComparer.Ordinal);
         private GridModel grid;
         private HexLayout layout;
@@ -31,15 +32,26 @@ namespace GuildTactics.Units
         private float secondsPerStep;
         private Coroutine movementRoutine;
         private Coroutine actionRoutine;
+        private CombatSystem combat;
+        private CombatText combatText;
+        private bool battleEnabled;
+        private bool enemyMoved;
+        public BattleOutcome Outcome { get; private set; } = BattleOutcome.Ongoing;
+        public bool CanPlayerAct => isActiveAndEnabled && Outcome == BattleOutcome.Ongoing &&
+            Turns != null && Turns.CanSelectAction(SelectedUnit) && SelectedUnit.Team == UnitTeam.Player &&
+            (!battleEnabled || BattleRules.Evaluate(Turns.Order) == BattleOutcome.Ongoing);
         private const float WaitActionSeconds = 0.35f;
         public TurnManager Turns { get; private set; }
         public IReadOnlyList<UnitRuntimeState> Units { get; private set; }
+        public IReadOnlyList<UnitRuntimeState> Enemies { get; private set; }
+        public AttackResult LastAttack { get; private set; }
         public UnitRuntimeState SelectedUnit { get; private set; }
         public HexMovementRange CurrentRange { get; private set; }
         public bool IsMoving => movementRoutine != null;
 
         public void Initialize(GridModel model, HexLayout hexLayout, HexGridView view,
-            HexGridInteraction gridInteraction, float moveSecondsPerStep)
+            HexGridInteraction gridInteraction, float moveSecondsPerStep, IDice dice = null, CombatText feedback = null,
+            bool enableBattle = true)
         {
             if (grid != null) throw new InvalidOperationException("Unit controller is already initialized.");
             if (float.IsNaN(moveSecondsPerStep) || float.IsInfinity(moveSecondsPerStep) || moveSecondsPerStep < 0)
@@ -49,6 +61,8 @@ namespace GuildTactics.Units
             gridView = view != null ? view : throw new ArgumentNullException(nameof(view));
             interaction = gridInteraction != null ? gridInteraction : throw new ArgumentNullException(nameof(gridInteraction));
             secondsPerStep = moveSecondsPerStep;
+            combatText = feedback;
+            battleEnabled = enableBattle;
 
             var definitions = HeroDefinitions.Defaults;
             if (definitions.Count != SpawnCoordinates.Length)
@@ -57,25 +71,44 @@ namespace GuildTactics.Units
             {
                 for (int index = 0; index < definitions.Count; index++)
                     Spawn("hero-" + definitions[index].Id, definitions[index], SpawnCoordinates[index], HeroColors[index]);
+                // The isolated WP-06 regression fixture retains its stationary target.
+                Spawn("enemy-practice", new UnitDefinition("practice", "Crypt Sentinel", enableBattle ? 3 : 0, 3,
+                    maxHealth: 18, defense: 12), new HexCoordinates(1, 3),
+                    new Color(0.82f, 0.56f, 0.16f), UnitTeam.Enemy);
+                if (enableBattle)
+                {
+                    var guard = new UnitDefinition("crypt-guard", "Crypt Guard", 3, 2,
+                        maxHealth: 16, attack: 3, damageDie: 4, damageBonus: 1);
+                    Spawn("enemy-guard-1", guard, new HexCoordinates(7, 4),
+                        new Color(0.82f, 0.56f, 0.16f), UnitTeam.Enemy);
+                    Spawn("enemy-guard-2", guard, new HexCoordinates(5, 7),
+                        new Color(0.82f, 0.56f, 0.16f), UnitTeam.Enemy);
+                }
             }
             catch
             {
                 foreach (var unit in units) grid.TryVacate(unit.Position, unit.InstanceId);
+                foreach (var enemy in enemies) grid.TryVacate(enemy.Position, enemy.InstanceId);
                 foreach (var unitView in views.Values) Destroy(unitView.gameObject);
                 units.Clear();
+                enemies.Clear();
                 views.Clear();
                 throw;
             }
 
             Units = units.AsReadOnly();
-            Turns = new TurnManager(grid, Units);
+            Enemies = enemies.AsReadOnly();
+            var participants = new List<UnitRuntimeState>(units);
+            if (enableBattle) participants.AddRange(enemies);
+            Turns = new TurnManager(grid, participants);
+            combat = new CombatSystem(grid, Turns, dice ?? new SeededDice(SeededDice.DefaultSeed));
             StartNextTurn();
             interaction.CellClicked += HandleCellClicked;
         }
 
         public bool TrySelectUnit(HexCoordinates coordinate)
         {
-            if (!isActiveAndEnabled || Turns == null || Turns.State != TurnState.SelectingAction) return false;
+            if (!CanPlayerAct) return false;
             UnitRuntimeState found = null;
             foreach (var unit in units)
                 if (unit.Position == coordinate) { found = unit; break; }
@@ -95,9 +128,12 @@ namespace GuildTactics.Units
 
         public bool TryMoveSelected(HexCoordinates destination)
         {
-            if (!isActiveAndEnabled || Turns == null || !Turns.CanSelectAction(SelectedUnit))
-                return false;
+            if (!CanPlayerAct) return false;
+            return BeginMovement(destination);
+        }
 
+        private bool BeginMovement(HexCoordinates destination)
+        {
             // Recalculate immediately before commit so stale highlights never grant permission.
             if (!Turns.TryBeginMovement(SelectedUnit, destination, out var path))
             {
@@ -118,9 +154,10 @@ namespace GuildTactics.Units
             return true;
         }
 
-        private void Spawn(string instanceId, UnitDefinition definition, HexCoordinates coordinate, Color color)
+        private void Spawn(string instanceId, UnitDefinition definition, HexCoordinates coordinate, Color color,
+            UnitTeam team = UnitTeam.Player)
         {
-            if (!UnitRuntimeState.TrySpawn(grid, instanceId, definition, coordinate, out var unit))
+            if (!UnitRuntimeState.TrySpawn(grid, instanceId, definition, coordinate, out var unit, team))
                 throw new InvalidOperationException("Cannot spawn " + instanceId + " at " + coordinate + ".");
             GameObject unitObject = null;
             try
@@ -128,8 +165,9 @@ namespace GuildTactics.Units
                 unitObject = new GameObject(definition.DisplayName + " (" + instanceId + ")");
                 unitObject.transform.SetParent(transform, false);
                 var unitView = unitObject.AddComponent<UnitView>();
-                unitView.Initialize(unit, layout, color);
-                units.Add(unit);
+                unitView.Initialize(unit, layout, color, interaction.GridCamera);
+                if (team == UnitTeam.Player) units.Add(unit);
+                else enemies.Add(unit);
                 views.Add(instanceId, unitView);
             }
             catch
@@ -142,17 +180,22 @@ namespace GuildTactics.Units
 
         private void HandleCellClicked(HexCoordinates coordinate)
         {
-            if (!isActiveAndEnabled || Turns == null || Turns.State != TurnState.SelectingAction) return;
+            if (!CanPlayerAct) return;
             if (TrySelectUnit(coordinate)) return;
+            if (TryAttackSelected(coordinate)) return;
             if (!TryMoveSelected(coordinate) && SelectedUnit != null)
                 interaction.SetSelected(SelectedUnit.Position);
         }
 
         private void RefreshSelection()
         {
-            foreach (var pair in views) pair.Value.SetSelected(SelectedUnit != null && pair.Key == SelectedUnit.InstanceId);
+            foreach (var pair in views)
+            {
+                pair.Value.gameObject.SetActive(pair.Value.State.IsAlive);
+                pair.Value.SetSelected(SelectedUnit != null && pair.Key == SelectedUnit.InstanceId);
+            }
             interaction.SetSelected(SelectedUnit?.Position);
-            CurrentRange = !Turns.CanSelectAction(SelectedUnit) ? null :
+            CurrentRange = !CanPlayerAct ? null :
                 HexPathfinder.FindReachable(grid, SelectedUnit.Position, Turns.RemainingMovement);
             gridView.SetReachableCells(CurrentRange == null ? null : CurrentRange.Costs.Keys);
         }
@@ -180,24 +223,44 @@ namespace GuildTactics.Units
 
         public bool TryEndTurn()
         {
-            if (!isActiveAndEnabled || Turns == null || !Turns.TryEndTurn(SelectedUnit)) return false;
+            if (!CanPlayerAct || !Turns.TryEndTurn(SelectedUnit)) return false;
             RefreshSelection();
             return true;
         }
 
-        // TODO(DEMO): Replace the placeholder Wait action with combat targeting in WP-06.
+        public bool CanAttack(UnitRuntimeState target) => CanPlayerAct && combat != null &&
+            combat.CanAttack(SelectedUnit, target);
+
+        public bool TryAttackSelected(HexCoordinates coordinate)
+        {
+            if (!CanPlayerAct || combat == null) return false;
+            UnitRuntimeState target = enemies.Find(unit => unit.IsAlive && unit.Position == coordinate);
+            return BeginAttack(target);
+        }
+
+        private bool BeginAttack(UnitRuntimeState target)
+        {
+            if (!combat.TryAttack(SelectedUnit, target, out var result)) return false;
+            LastAttack = result;
+            RefreshSelection();
+            if (combatText != null) combatText.Show(result, layout.ToWorld(result.TargetPosition));
+            actionRoutine = StartCoroutine(AnimateAction(SelectedUnit, CombatText.DisplaySeconds));
+            return true;
+        }
+
+        // Retained as an explicit way to spend an unused action and for turn-loop regression checks.
         public bool TryWaitAction()
         {
-            if (!isActiveAndEnabled || Turns == null || !Turns.TryBeginAction(SelectedUnit)) return false;
+            if (!CanPlayerAct || !Turns.TryBeginAction(SelectedUnit)) return false;
             RefreshSelection();
-            actionRoutine = StartCoroutine(AnimateWait(SelectedUnit));
+            actionRoutine = StartCoroutine(AnimateAction(SelectedUnit, WaitActionSeconds));
             return true;
         }
 
-        private IEnumerator AnimateWait(UnitRuntimeState unit)
+        private IEnumerator AnimateAction(UnitRuntimeState unit, float duration)
         {
             float elapsed = 0;
-            while (elapsed < WaitActionSeconds)
+            while (elapsed < duration)
             {
                 elapsed += Time.unscaledDeltaTime;
                 yield return null;
@@ -209,13 +272,43 @@ namespace GuildTactics.Units
 
         private void Update()
         {
-            if (Turns != null && Turns.State == TurnState.TurnComplete) StartNextTurn();
+            if (Turns == null || Outcome != BattleOutcome.Ongoing ||
+                Turns.State == TurnState.Moving || Turns.State == TurnState.ResolvingAction) return;
+            if (battleEnabled)
+            {
+                Outcome = BattleRules.Evaluate(Turns.Order);
+                if (Outcome != BattleOutcome.Ongoing)
+                {
+                    SelectedUnit = null;
+                    RefreshSelection();
+                    return;
+                }
+            }
+            if (Turns.State == TurnState.TurnComplete) { StartNextTurn(); return; }
+            if (battleEnabled && SelectedUnit != null && SelectedUnit.Team == UnitTeam.Enemy)
+                AdvanceEnemyTurn();
+        }
+
+        private void AdvanceEnemyTurn()
+        {
+            var target = MeleeBrain.FindTarget(combat, SelectedUnit, Units);
+            if (target != null && BeginAttack(target)) return;
+            if (!enemyMoved && Turns.ActionAvailable)
+            {
+                enemyMoved = true;
+                var destination = MeleeBrain.ChooseDestination(grid, SelectedUnit, Units, Turns.RemainingMovement);
+                if (destination != SelectedUnit.Position && BeginMovement(destination)) return;
+            }
+            // One movement plan and at most one attack, including unreachable/immobile enemies.
+            Turns.TryEndTurn(SelectedUnit);
+            RefreshSelection();
         }
 
         private void StartNextTurn()
         {
             if (!Turns.TryStartNextTurn()) return;
             SelectedUnit = Turns.ActiveUnit;
+            enemyMoved = false;
             RefreshSelection();
         }
 
@@ -248,8 +341,8 @@ namespace GuildTactics.Units
 
         private void OnGUI()
         {
-            if (Turns == null) return;
-            string status = $"{SelectedUnit.Definition.DisplayName} | Move {Turns.RemainingMovement} | Action {(Turns.ActionAvailable ? "ready" : "used")} | {Turns.State}";
+            if (Turns == null || SelectedUnit == null) return;
+            string status = $"{SelectedUnit.Definition.DisplayName} | HP {SelectedUnit.CurrentHealth}/{SelectedUnit.Definition.MaxHealth} | Move {Turns.RemainingMovement} | Action {(Turns.ActionAvailable ? "ready" : "used")} | {Turns.State}";
             GUI.Label(new Rect(24, 88, 760, 24), status);
         }
     }

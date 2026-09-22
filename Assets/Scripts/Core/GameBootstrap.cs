@@ -7,6 +7,7 @@ namespace GuildTactics.Core
     {
         [SerializeField] private Camera gridCamera;
         [SerializeField, Min(0)] private float movementSecondsPerStep = 0.12f;
+        [SerializeField] private int combatSeed = Combat.SeededDice.DefaultSeed;
         public HexGrid.HexGrid Grid { get; private set; }
 
         private void Awake()
@@ -29,10 +30,13 @@ namespace GuildTactics.Core
             view.Initialize(Grid, layout);
             var interaction = presentation.AddComponent<HexGrid.HexGridInteraction>();
             interaction.Initialize(Grid, layout, view, gridCamera);
+            var feedback = presentation.AddComponent<Combat.CombatText>();
+            feedback.Initialize(gridCamera, combatSeed);
             var units = presentation.AddComponent<Units.PlayerUnitController>();
-            units.Initialize(Grid, layout, view, interaction, movementSecondsPerStep);
+            units.Initialize(Grid, layout, view, interaction, movementSecondsPerStep,
+                new Combat.SeededDice(combatSeed), feedback);
             presentation.AddComponent<Combat.TurnOrderUI>().Initialize(units);
-            Debug.Log($"Guild Tactics: grid ready ({Grid.Width} x {Grid.Height}, {Grid.Cells.Count} cells, {units.Units.Count} heroes).", this);
+            Debug.Log($"Guild Tactics: grid ready ({Grid.Width} x {Grid.Height}, {Grid.Cells.Count} cells, {units.Units.Count} heroes, {units.Enemies.Count} enemies, combat seed {combatSeed}).", this);
         }
     }
 }

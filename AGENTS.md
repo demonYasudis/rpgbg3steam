@@ -887,7 +887,7 @@ Acceptance criteria:
 
 ## WP-06 — Dice service and basic attacks
 
-Status: [ ]
+Status: [~]
 
 Goal:
 Make the first real combat interaction.
@@ -919,7 +919,7 @@ Acceptance criteria:
 
 ## WP-07 — Enemy units and simple melee AI
 
-Status: [ ]
+Status: [~]
 
 Goal:
 Create a playable player-vs-AI combat loop.

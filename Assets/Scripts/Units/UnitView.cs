@@ -12,11 +12,13 @@ namespace GuildTactics.Units
         private const float SelectedScale = 0.72f;
         private Sprite sprite;
         private Texture2D texture;
+        private Camera worldCamera;
         public UnitRuntimeState State { get; private set; }
 
-        public void Initialize(UnitRuntimeState state, HexLayout layout, Color color)
+        public void Initialize(UnitRuntimeState state, HexLayout layout, Color color, Camera camera = null)
         {
             State = state ?? throw new ArgumentNullException(nameof(state));
+            worldCamera = camera;
             if (layout == null) throw new ArgumentNullException(nameof(layout));
             if (sprite != null) throw new InvalidOperationException("Unit view is already initialized.");
 
@@ -57,6 +59,15 @@ namespace GuildTactics.Units
         public void SnapTo(Vector3 position) => transform.position = WithUnitDepth(position);
 
         private static Vector3 WithUnitDepth(Vector3 position) => new Vector3(position.x, position.y, -0.2f);
+
+        private void OnGUI()
+        {
+            if (State == null || !State.IsAlive || worldCamera == null) return;
+            var screen = worldCamera.WorldToScreenPoint(transform.position);
+            if (screen.z <= 0) return;
+            GUI.Label(new Rect(screen.x - 32, Screen.height - screen.y + 12, 80, 24),
+                $"{State.CurrentHealth}/{State.Definition.MaxHealth}");
+        }
 
         private void OnDestroy()
         {

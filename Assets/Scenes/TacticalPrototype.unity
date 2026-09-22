@@ -242,6 +242,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::GuildTactics.Core.GameBootstrap
   gridCamera: {fileID: 545388546}
   movementSecondsPerStep: 0.12
+  combatSeed: 12345
 --- !u!4 &1490691679
 Transform:
   m_ObjectHideFlags: 0

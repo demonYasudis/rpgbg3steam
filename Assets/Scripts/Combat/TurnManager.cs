@@ -12,6 +12,7 @@ namespace GuildTactics.Combat
     public sealed class TurnManager
     {
         private readonly GridModel grid;
+        internal GridModel Grid => grid;
         private int activeIndex = -1;
         public IReadOnlyList<UnitRuntimeState> Order { get; }
         public UnitRuntimeState ActiveUnit => activeIndex < 0 ? null : Order[activeIndex];
@@ -29,7 +30,7 @@ namespace GuildTactics.Combat
             foreach (var unit in units)
             {
                 if (unit == null || !ids.Add(unit.InstanceId) ||
-                    !grid.TryGetCell(unit.Position, out var cell) || cell.OccupantId != unit.InstanceId)
+                    !unit.IsPlacedOn(grid))
                     throw new ArgumentException("Turn participants must be unique units placed on this grid.", nameof(units));
                 // Stable insertion: tied initiative retains the supplied spawn order.
                 int index = ordered.FindIndex(other => other.Definition.Initiative < unit.Definition.Initiative);
@@ -43,8 +44,29 @@ namespace GuildTactics.Combat
         public bool TryStartNextTurn()
         {
             if (State != TurnState.AwaitTurn && State != TurnState.TurnComplete) return false;
-            activeIndex = (activeIndex + 1) % Order.Count;
-            if (activeIndex == 0) Round++;
+            int nextIndex = activeIndex;
+            int nextRound = Round;
+            bool found = false;
+            for (int checkedUnits = 0; checkedUnits < Order.Count; checkedUnits++)
+            {
+                nextIndex = (nextIndex + 1) % Order.Count;
+                if (nextIndex == 0) nextRound++;
+                if (Order[nextIndex].IsAlive)
+                {
+                    found = true;
+                    break;
+                }
+            }
+            if (!found)
+            {
+                activeIndex = -1;
+                RemainingMovement = 0;
+                ActionAvailable = false;
+                State = TurnState.AwaitTurn;
+                return false;
+            }
+            activeIndex = nextIndex;
+            Round = nextRound;
             RemainingMovement = ActiveUnit.Definition.Movement;
             ActionAvailable = true;
             State = TurnState.SelectingAction;
@@ -52,7 +74,7 @@ namespace GuildTactics.Combat
         }
 
         public bool CanSelectAction(UnitRuntimeState unit) =>
-            unit != null && ReferenceEquals(unit, ActiveUnit) && State == TurnState.SelectingAction;
+            unit != null && unit.IsAlive && ReferenceEquals(unit, ActiveUnit) && State == TurnState.SelectingAction;
 
         public bool TryBeginMovement(UnitRuntimeState unit, HexCoordinates destination,
             out IReadOnlyList<HexCoordinates> path)
@@ -92,7 +114,8 @@ namespace GuildTactics.Combat
 
         public bool TryEndTurn(UnitRuntimeState unit)
         {
-            if (!CanSelectAction(unit)) return false;
+            // A unit that died during its turn must still be able to leave the queue.
+            if (unit == null || !ReferenceEquals(unit, ActiveUnit) || State != TurnState.SelectingAction) return false;
             RemainingMovement = 0;
             ActionAvailable = false;
             State = TurnState.TurnComplete;

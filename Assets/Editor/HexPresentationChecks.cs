@@ -17,6 +17,9 @@ namespace GuildTactics.Editor
         private static int playFrames;
         private static double deadline;
         private static bool turnChecksStarted;
+        private static bool combatChecksStarted;
+        private static bool enemyChecksStarted;
+        private static PlayerUnitController sceneUnits;
 
         static HexPresentationChecks()
         {
@@ -78,6 +81,8 @@ namespace GuildTactics.Editor
                 HexPathfindingChecks.Run();
                 UnitMovementChecks.Run();
                 TurnChecks.Run();
+                CombatChecks.Run();
+                EnemyChecks.Run();
                 SessionState.SetBool(PendingKey, true);
                 deadline = EditorApplication.timeSinceStartup + 90;
                 EditorApplication.update -= WaitForPlayMode;
@@ -102,7 +107,23 @@ namespace GuildTactics.Editor
                     ValidatePlayingScene();
                     turnChecksStarted = true;
                 }
-                else if (TurnChecks.PollPresentation()) Finish(null);
+                else if (!combatChecksStarted)
+                {
+                    if (TurnChecks.PollPresentation())
+                    {
+                        CombatChecks.BeginPresentation(sceneUnits);
+                        combatChecksStarted = true;
+                    }
+                }
+                else if (!enemyChecksStarted)
+                {
+                    if (CombatChecks.PollPresentation())
+                    {
+                        EnemyChecks.BeginPresentation(sceneUnits);
+                        enemyChecksStarted = true;
+                    }
+                }
+                else if (EnemyChecks.PollPresentation()) Finish(null);
             }
             catch (Exception exception) { Finish(exception); }
         }
@@ -116,6 +137,7 @@ namespace GuildTactics.Editor
             var view = bootstrap.GetComponentInChildren<HexGridView>();
             var interaction = bootstrap.GetComponentInChildren<HexGridInteraction>();
             var units = bootstrap.GetComponentInChildren<PlayerUnitController>();
+            sceneUnits = units;
             var camera = new SerializedObject(bootstrap).FindProperty("gridCamera").objectReferenceValue as Camera;
             Require(view != null && view.TileCount == 144 && interaction != null && units != null && camera != null,
                 "144 runtime tiles and gameplay wiring");
@@ -131,7 +153,7 @@ namespace GuildTactics.Editor
             }
             int occupiedCells = 0;
             foreach (var cell in bootstrap.Grid.Cells) if (cell.IsOccupied) occupiedCells++;
-            Require(occupiedCells == 4, "Only four hero cells occupied");
+            Require(occupiedCells == 7, "Four heroes and three enemies occupy cells");
             // Temporarily detach gameplay input to test the isolated cell-selection layer.
             units.enabled = false;
             interaction.SetSelected(new HexCoordinates(5, 5));
