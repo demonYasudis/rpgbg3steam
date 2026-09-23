@@ -37,7 +37,8 @@ namespace GuildTactics.HexGrid
             gridCamera.transform.rotation = Quaternion.identity;
             // Reserve screen space above the map for the prototype readout.
             float usableHeight = Mathf.Clamp01(1f - HudHeight / Mathf.Max(1, gridCamera.pixelHeight));
-            usableHeight = Mathf.Max(0.25f, usableHeight);
+            // Keep framing consistent with the HUD input exclusion even in short windows.
+            usableHeight = Mathf.Max(1f / Mathf.Max(1, gridCamera.pixelHeight), usableHeight);
             gridCamera.orthographicSize = Mathf.Max(bounds.extents.y / usableHeight,
                 bounds.extents.x / Mathf.Max(0.01f, gridCamera.aspect)) * CameraPadding;
             gridCamera.transform.position = bounds.center + new Vector3(0,

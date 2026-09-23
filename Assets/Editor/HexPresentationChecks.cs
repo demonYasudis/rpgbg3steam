@@ -245,6 +245,7 @@ namespace GuildTactics.Editor
             for (int i = 0; i < renderers.Length; i++)
                 if (renderers[i].color != HexGridView.TerrainColor(grid.Cells[i].Terrain)) highlighted++;
             Require(highlighted == 2 && interaction.Selected == new HexCoordinates(5, 5), "One hover and one persistent selection");
+            CaptureAndCheckFraming(camera, interaction, layout, grid, 640, 480);
             CaptureAndCheckFraming(camera, interaction, layout, grid, 1280, 720);
             CaptureAndCheckFraming(camera, interaction, layout, grid, 640, 960);
             Debug.Log("WP-02 Play Mode checks passed: saved scene, 144 renderers, all 144 mouse projections, highlights, outside/focus, landscape/portrait framing and rendered pixels.");
@@ -284,6 +285,8 @@ namespace GuildTactics.Editor
                 foreach (var cell in grid.Cells)
                 {
                     Vector3 point = camera.WorldToScreenPoint(layout.ToWorld(cell.Coordinates));
+                    interaction.ProcessPointer(point, false);
+                    Require(interaction.Hovered == cell.Coordinates, "Rendered cell remains below HUD and selectable");
                     Color color = pixels.GetPixel((int)point.x, (int)point.y);
                     Require(Mathf.Abs(color.r - background.r) + Mathf.Abs(color.g - background.g) +
                         Mathf.Abs(color.b - background.b) > 0.03f, "Tile center renders visibly");
@@ -292,6 +295,10 @@ namespace GuildTactics.Editor
                 for (int d = 0; d < 6; d++)
                 {
                     var neighbor = layout.ToWorld(new HexCoordinates(5, 5).GetNeighbor(d));
+                    // Subpixel gutters are not guaranteed to cover a pixel at small window sizes.
+                    float projectedGap = Vector3.Distance(camera.WorldToScreenPoint(center),
+                        camera.WorldToScreenPoint(neighbor)) * 0.06f;
+                    if (projectedGap < 1.5f) continue;
                     var edgePoint = camera.WorldToScreenPoint((center + neighbor) * 0.5f);
                     var edgeColor = pixels.GetPixel((int)edgePoint.x, (int)edgePoint.y);
                     Require(Mathf.Abs(edgeColor.r - background.r) + Mathf.Abs(edgeColor.g - background.g) +
@@ -316,6 +323,7 @@ namespace GuildTactics.Editor
             SessionState.SetBool(PendingKey, false);
             EditorApplication.update -= WaitForPlayMode;
             if (exception != null) Debug.LogException(exception);
+            else Debug.Log("ALL UNITY CHECKS PASSED (WP-00 through WP-15).");
             EditorApplication.Exit(exception == null ? 0 : 1);
         }
 
