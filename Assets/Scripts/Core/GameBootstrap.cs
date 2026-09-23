@@ -8,18 +8,28 @@ namespace GuildTactics.Core
         [SerializeField] private Camera gridCamera;
         [SerializeField, Min(0)] private float movementSecondsPerStep = 0.12f;
         [SerializeField] private int combatSeed = Combat.SeededDice.DefaultSeed;
+        [SerializeField] private string dungeonSeed = "crypt-1";
+        [SerializeField] private Generation.DungeonGenerationConfig dungeonConfig = new Generation.DungeonGenerationConfig();
+        [SerializeField] private Generation.EncounterConfig encounterConfig = new Generation.EncounterConfig();
         public HexGrid.HexGrid Grid { get; private set; }
+        public Generation.DungeonMap Dungeon { get; private set; }
+        private System.Collections.Generic.IReadOnlyList<Generation.EnemyPlacement> encounter;
 
         private void Awake()
         {
-            Grid = new HexGrid.HexGrid();
-            // Fixed terrain demonstration; seeded generation belongs to WP-11.
-            Grid.GetCell(new HexGrid.HexCoordinates(1, 4)).Terrain = HexGrid.TerrainType.Pit;
-            Grid.GetCell(new HexGrid.HexCoordinates(6, 6)).Terrain = HexGrid.TerrainType.Pit;
-            for (int r = 3; r <= 5; r++)
-                Grid.GetCell(new HexGrid.HexCoordinates(4, r)).Terrain = HexGrid.TerrainType.Blocked;
-            Grid.GetCell(new HexGrid.HexCoordinates(3, 3)).Terrain = HexGrid.TerrainType.HighGround;
-            Grid.GetCell(new HexGrid.HexCoordinates(3, 4)).Terrain = HexGrid.TerrainType.HighGround;
+            try
+            {
+                Dungeon = Generation.DungeonGenerator.Generate(dungeonSeed, dungeonConfig);
+                encounter = Generation.EncounterGenerator.Generate(Dungeon, encounterConfig);
+            }
+            catch (System.ArgumentException exception)
+            {
+                Debug.LogWarning("Invalid generation settings; using safe defaults. " + exception.Message, this);
+                Dungeon = Generation.DungeonGenerator.Generate("crypt-1");
+                encounter = Generation.EncounterGenerator.Generate(Dungeon);
+            }
+            Grid = Dungeon.Grid;
+            Debug.Log($"Dungeon seed {Dungeon.Seed}; fallback {Dungeon.UsedFallback}; objective candidate {Dungeon.Objective}.", this);
         }
 
         private void Start()
@@ -41,10 +51,19 @@ namespace GuildTactics.Core
             feedback.Initialize(gridCamera, combatSeed);
             var units = presentation.AddComponent<Units.PlayerUnitController>();
             units.Initialize(Grid, layout, view, interaction, movementSecondsPerStep,
-                new Combat.SeededDice(combatSeed), feedback, enableFog: true);
+                new Combat.SeededDice(combatSeed), feedback, enableFog: true,
+                playerSpawns: Dungeon.PlayerSpawns, encounter: encounter, expeditionMap: Dungeon);
             presentation.AddComponent<Combat.TurnOrderUI>().Initialize(units);
             presentation.AddComponent<Abilities.ActionBarUI>().Initialize(units);
+            presentation.AddComponent<Expeditions.ExpeditionUI>().Initialize(units, layout, gridCamera);
             Debug.Log($"Guild Tactics: grid ready ({Grid.Width} x {Grid.Height}, {Grid.Cells.Count} cells, {units.Units.Count} heroes, {units.Enemies.Count} enemies, combat seed {combatSeed}).", this);
+        }
+
+        private void OnGUI()
+        {
+            if (Dungeon != null)
+                GUI.Label(new Rect(24, Screen.height - 28, Screen.width - 48, 24),
+                    $"Dungeon seed: {Dungeon.Seed}" + (Dungeon.UsedFallback ? " (fallback)" : ""));
         }
     }
 }

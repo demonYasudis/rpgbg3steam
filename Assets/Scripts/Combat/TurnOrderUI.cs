@@ -18,9 +18,9 @@ namespace GuildTactics.Combat
 
         private void OnGUI()
         {
-            if (controller == null || controller.Turns == null) return;
+            if (controller == null || controller.Turns == null || controller.Expedition?.Result != null) return;
             var turns = controller.Turns;
-            if (controller.Outcome != BattleOutcome.Ongoing)
+            if (controller.Outcome != BattleOutcome.Ongoing && controller.Expedition == null)
             {
                 GUI.Label(new Rect(24, 112, Screen.width - 48, 40),
                     controller.Outcome == BattleOutcome.Victory ? "VICTORY - All enemies defeated" : "DEFEAT - The party has fallen");

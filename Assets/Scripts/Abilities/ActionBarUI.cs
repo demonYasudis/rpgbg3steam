@@ -13,7 +13,7 @@ namespace GuildTactics.Abilities
 
         private void OnGUI()
         {
-            if (controller == null || !controller.IsUnitVisible(controller.SelectedUnit)) return;
+            if (controller == null || controller.Expedition?.Result != null || !controller.IsUnitVisible(controller.SelectedUnit)) return;
             bool previous = GUI.enabled;
             float width = Mathf.Max(40, (Screen.width - 60) / 4f);
             GUI.enabled = previous && controller.CanPlayerAct;

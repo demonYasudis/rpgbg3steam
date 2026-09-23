@@ -1052,7 +1052,7 @@ Acceptance criteria:
 
 ## WP-11 — Seeded procedural tactical map v1
 
-Status: [ ]
+Status: [~]
 
 Goal:
 Generate a valid playable 12x12 dungeon.
@@ -1085,7 +1085,7 @@ Acceptance criteria:
 
 ## WP-12 — Procedural encounter placement
 
-Status: [ ]
+Status: [~]
 
 Goal:
 Populate generated maps with varied but valid encounters.
@@ -1111,7 +1111,7 @@ Acceptance criteria:
 
 ## WP-13 — Chest, simple loot and extraction
 
-Status: [ ]
+Status: [~]
 
 Goal:
 Create a complete expedition inside the tactical scene.

@@ -21,6 +21,8 @@ namespace GuildTactics.Editor
         private static bool enemyChecksStarted;
         private static bool abilityChecksStarted;
         private static bool visibilityChecksStarted;
+        private static bool expeditionChecksStarted;
+        private static bool expeditionChecksComplete;
         private static PlayerUnitController sceneUnits;
 
         static HexPresentationChecks()
@@ -88,6 +90,8 @@ namespace GuildTactics.Editor
                 AbilityChecks.Run();
                 TerrainChecks.Run();
                 VisibilityChecks.Run();
+                GenerationChecks.Run();
+                ExpeditionChecks.Run();
                 SessionState.SetBool(PendingKey, true);
                 deadline = EditorApplication.timeSinceStartup + 90;
                 EditorApplication.update -= WaitForPlayMode;
@@ -107,6 +111,24 @@ namespace GuildTactics.Editor
             if (!EditorApplication.isPlaying || ++playFrames < 10) return;
             try
             {
+                if (!expeditionChecksStarted)
+                {
+                    foreach (var root in UnityEngine.SceneManagement.SceneManager.GetActiveScene().GetRootGameObjects())
+                        if (root.TryGetComponent<GameBootstrap>(out var bootstrap))
+                        {
+                            GenerationChecks.ValidatePresentation(bootstrap);
+                            var camera = new SerializedObject(bootstrap).FindProperty("gridCamera").objectReferenceValue as Camera;
+                            ExpeditionChecks.BeginPresentation(camera);
+                            expeditionChecksStarted = true;
+                            return;
+                        }
+                    throw new InvalidOperationException("Missing saved scene bootstrap.");
+                }
+                if (!expeditionChecksComplete)
+                {
+                    expeditionChecksComplete = ExpeditionChecks.PollPresentation();
+                    return;
+                }
                 if (!turnChecksStarted)
                 {
                     ValidatePlayingScene();
@@ -155,11 +177,30 @@ namespace GuildTactics.Editor
             foreach (var root in UnityEngine.SceneManagement.SceneManager.GetActiveScene().GetRootGameObjects())
                 if (root.TryGetComponent<GameBootstrap>(out var candidate)) bootstrap = candidate;
             Require(bootstrap != null && bootstrap.Grid != null, "Saved scene bootstrapped");
-            var view = bootstrap.GetComponentInChildren<HexGridView>();
-            var interaction = bootstrap.GetComponentInChildren<HexGridInteraction>();
-            var units = bootstrap.GetComponentInChildren<PlayerUnitController>();
-            sceneUnits = units;
+            GenerationChecks.ValidatePresentation(bootstrap);
             var camera = new SerializedObject(bootstrap).FindProperty("gridCamera").objectReferenceValue as Camera;
+            // Check the generated scene above, then isolate legacy scripts that depend on exact coordinates.
+            UnityEngine.Object.DestroyImmediate(bootstrap.GetComponentInChildren<HexGridView>().gameObject);
+            var grid = new GridModel();
+            grid.GetCell(new HexCoordinates(1, 4)).Terrain = TerrainType.Pit;
+            grid.GetCell(new HexCoordinates(6, 6)).Terrain = TerrainType.Pit;
+            for (int r = 3; r <= 5; r++) grid.GetCell(new HexCoordinates(4, r)).Terrain = TerrainType.Blocked;
+            grid.GetCell(new HexCoordinates(3, 3)).Terrain = TerrainType.HighGround;
+            grid.GetCell(new HexCoordinates(3, 4)).Terrain = TerrainType.HighGround;
+            var fixture = new GameObject("Legacy fixed-map checks");
+            fixture.transform.SetParent(bootstrap.transform, false);
+            var fixtureLayout = new HexLayout();
+            var view = fixture.AddComponent<HexGridView>();
+            view.Initialize(grid, fixtureLayout);
+            var interaction = fixture.AddComponent<HexGridInteraction>();
+            interaction.Initialize(grid, fixtureLayout, view, camera);
+            var feedback = fixture.AddComponent<GuildTactics.Combat.CombatText>();
+            feedback.Initialize(camera, GuildTactics.Combat.SeededDice.DefaultSeed);
+            var units = fixture.AddComponent<PlayerUnitController>();
+            units.Initialize(grid, fixtureLayout, view, interaction, 0.12f, feedback: feedback, enableFog: true);
+            fixture.AddComponent<GuildTactics.Combat.TurnOrderUI>().Initialize(units);
+            fixture.AddComponent<GuildTactics.Abilities.ActionBarUI>().Initialize(units);
+            sceneUnits = units;
             Require(view != null && view.TileCount == 144 && interaction != null && units != null && camera != null,
                 "144 runtime tiles and gameplay wiring");
             VisibilityChecks.ValidateInitial(units);
@@ -168,15 +209,15 @@ namespace GuildTactics.Editor
             var renderers = Array.FindAll(view.GetComponentsInChildren<SpriteRenderer>(), item => item.sortingOrder == 0);
             Require(renderers.Length == 144, "Exactly one renderer per cell");
             var layout = new HexLayout();
-            TerrainChecks.ValidatePresentation(bootstrap.Grid);
-            foreach (var cell in bootstrap.Grid.Cells)
+            TerrainChecks.ValidatePresentation(grid);
+            foreach (var cell in grid.Cells)
             {
                 var point = camera.WorldToScreenPoint(layout.ToWorld(cell.Coordinates));
                 interaction.ProcessPointer(point, false);
                 Require(interaction.Hovered == cell.Coordinates, "Mouse screen projection hovers exact cell " + cell.Coordinates);
             }
             int occupiedCells = 0;
-            foreach (var cell in bootstrap.Grid.Cells) if (cell.IsOccupied) occupiedCells++;
+            foreach (var cell in grid.Cells) if (cell.IsOccupied) occupiedCells++;
             Require(occupiedCells == 7, "Four heroes and three enemies occupy cells");
             // Temporarily detach gameplay input to test the isolated cell-selection layer.
             units.enabled = false;
@@ -200,17 +241,17 @@ namespace GuildTactics.Editor
                 "Selected, hovered and selected-hovered colors are distinct");
             int highlighted = 0;
             for (int i = 0; i < renderers.Length; i++)
-                if (renderers[i].color != HexGridView.TerrainColor(bootstrap.Grid.Cells[i].Terrain)) highlighted++;
+                if (renderers[i].color != HexGridView.TerrainColor(grid.Cells[i].Terrain)) highlighted++;
             Require(highlighted == 2 && interaction.Selected == new HexCoordinates(5, 5), "One hover and one persistent selection");
-            CaptureAndCheckFraming(camera, interaction, layout, bootstrap.Grid, 1280, 720);
-            CaptureAndCheckFraming(camera, interaction, layout, bootstrap.Grid, 640, 960);
+            CaptureAndCheckFraming(camera, interaction, layout, grid, 1280, 720);
+            CaptureAndCheckFraming(camera, interaction, layout, grid, 640, 960);
             Debug.Log("WP-02 Play Mode checks passed: saved scene, 144 renderers, all 144 mouse projections, highlights, outside/focus, landscape/portrait framing and rendered pixels.");
             units.enabled = true;
-            UnitMovementChecks.ValidatePresentation(bootstrap.Grid, view, interaction, units, camera);
-            CaptureAndCheckFraming(camera, interaction, layout, bootstrap.Grid, 1280, 720, "wp03");
-            CaptureAndCheckFraming(camera, interaction, layout, bootstrap.Grid, 640, 960, "wp03");
-            CaptureAndCheckFraming(camera, interaction, layout, bootstrap.Grid, 1280, 720, "wp04");
-            CaptureAndCheckFraming(camera, interaction, layout, bootstrap.Grid, 640, 960, "wp04");
+            UnitMovementChecks.ValidatePresentation(grid, view, interaction, units, camera);
+            CaptureAndCheckFraming(camera, interaction, layout, grid, 1280, 720, "wp03");
+            CaptureAndCheckFraming(camera, interaction, layout, grid, 640, 960, "wp03");
+            CaptureAndCheckFraming(camera, interaction, layout, grid, 1280, 720, "wp04");
+            CaptureAndCheckFraming(camera, interaction, layout, grid, 640, 960, "wp04");
             TurnChecks.BeginPresentation(units);
         }
 

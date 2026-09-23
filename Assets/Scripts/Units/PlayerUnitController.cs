@@ -44,9 +44,12 @@ namespace GuildTactics.Units
         private bool battleEnabled;
         private bool enemyMoved;
         public BattleOutcome Outcome { get; private set; } = BattleOutcome.Ongoing;
-        public bool CanPlayerAct => isActiveAndEnabled && Outcome == BattleOutcome.Ongoing &&
+        public Expeditions.ExpeditionRun Expedition { get; private set; }
+        public bool CanPlayerAct => isActiveAndEnabled && Expedition?.Result == null &&
+            (Outcome == BattleOutcome.Ongoing || (Outcome == BattleOutcome.Victory && Expedition != null)) &&
             Turns != null && Turns.CanSelectAction(SelectedUnit) && SelectedUnit.Team == UnitTeam.Player &&
-            (!battleEnabled || BattleRules.Evaluate(Turns.Order) == BattleOutcome.Ongoing);
+            (!battleEnabled || BattleRules.Evaluate(Turns.Order) == BattleOutcome.Ongoing ||
+                (Expedition != null && BattleRules.Evaluate(Turns.Order) == BattleOutcome.Victory));
         private const float WaitActionSeconds = 0.35f;
         public TurnManager Turns { get; private set; }
         public FogOfWarSystem Visibility => Turns?.Vision;
@@ -60,7 +63,9 @@ namespace GuildTactics.Units
 
         public void Initialize(GridModel model, HexLayout hexLayout, HexGridView view,
             HexGridInteraction gridInteraction, float moveSecondsPerStep, IDice dice = null, CombatText feedback = null,
-            bool enableBattle = true, bool enableFog = false)
+            bool enableBattle = true, bool enableFog = false,
+            IReadOnlyList<HexCoordinates> playerSpawns = null,
+            IReadOnlyList<Generation.EnemyPlacement> encounter = null, Generation.DungeonMap expeditionMap = null)
         {
             if (grid != null) throw new InvalidOperationException("Unit controller is already initialized.");
             if (float.IsNaN(moveSecondsPerStep) || float.IsInfinity(moveSecondsPerStep) || moveSecondsPerStep < 0)
@@ -74,24 +79,35 @@ namespace GuildTactics.Units
             battleEnabled = enableBattle;
 
             var definitions = HeroDefinitions.Defaults;
-            if (definitions.Count != SpawnCoordinates.Length)
+            var spawnPositions = playerSpawns ?? SpawnCoordinates;
+            if (definitions.Count != spawnPositions.Count)
                 throw new InvalidOperationException("The prototype requires exactly four hero definitions.");
             try
             {
                 for (int index = 0; index < definitions.Count; index++)
-                    Spawn("hero-" + definitions[index].Id, definitions[index], SpawnCoordinates[index], HeroColors[index]);
-                // The isolated WP-06 regression fixture retains its stationary target.
-                Spawn("enemy-practice", new UnitDefinition("practice", "Crypt Sentinel", enableBattle ? 3 : 0, 3,
-                    maxHealth: 18, defense: 12), new HexCoordinates(1, 3),
-                    new Color(0.82f, 0.56f, 0.16f), UnitTeam.Enemy);
-                if (enableBattle)
+                    Spawn("hero-" + definitions[index].Id, definitions[index], spawnPositions[index], HeroColors[index]);
+                if (encounter != null)
                 {
-                    var guard = new UnitDefinition("crypt-guard", "Crypt Guard", 3, 2,
-                        maxHealth: 16, attack: 3, damageDie: 4, damageBonus: 1);
-                    Spawn("enemy-guard-1", guard, new HexCoordinates(7, 4),
+                    for (int index = 0; index < encounter.Count; index++)
+                        Spawn("enemy-generated-" + index, encounter[index].Archetype.Unit, encounter[index].Position,
+                            encounter[index].Archetype.IsMiniBoss ? new Color(0.85f, 0.2f, 0.15f) :
+                            new Color(0.82f, 0.56f, 0.16f), UnitTeam.Enemy);
+                }
+                else
+                {
+                    // The isolated WP-06 regression fixture retains its stationary target.
+                    Spawn("enemy-practice", new UnitDefinition("practice", "Crypt Sentinel", enableBattle ? 3 : 0, 3,
+                        maxHealth: 18, defense: 12), new HexCoordinates(1, 3),
                         new Color(0.82f, 0.56f, 0.16f), UnitTeam.Enemy);
-                    Spawn("enemy-guard-2", guard, new HexCoordinates(5, 7),
-                        new Color(0.82f, 0.56f, 0.16f), UnitTeam.Enemy);
+                    if (enableBattle)
+                    {
+                        var guard = new UnitDefinition("crypt-guard", "Crypt Guard", 3, 2,
+                            maxHealth: 16, attack: 3, damageDie: 4, damageBonus: 1);
+                        Spawn("enemy-guard-1", guard, new HexCoordinates(7, 4),
+                            new Color(0.82f, 0.56f, 0.16f), UnitTeam.Enemy);
+                        Spawn("enemy-guard-2", guard, new HexCoordinates(5, 7),
+                            new Color(0.82f, 0.56f, 0.16f), UnitTeam.Enemy);
+                    }
                 }
             }
             catch
@@ -110,6 +126,7 @@ namespace GuildTactics.Units
             var participants = new List<UnitRuntimeState>(units);
             if (enableBattle) participants.AddRange(enemies);
             Turns = new TurnManager(grid, participants, enableFog ? new FogOfWarSystem(grid, units) : null);
+            if (expeditionMap != null) Expedition = new Expeditions.ExpeditionRun(expeditionMap, Turns);
             gridView.SetFog(Visibility);
             var battleDice = dice ?? new SeededDice(SeededDice.DefaultSeed);
             combat = new CombatSystem(grid, Turns, battleDice);
@@ -336,6 +353,22 @@ namespace GuildTactics.Units
             return true;
         }
 
+        public bool TryOpenChest()
+        {
+            if (!CanPlayerAct || Expedition == null || !Expedition.TryOpenChest(SelectedUnit)) return false;
+            CancelTargeting();
+            ActionHint = $"Chest opened: {Expedition.CollectedGold} gold and {Expedition.CollectedItems.Count} items. Return to EXIT after combat.";
+            return true;
+        }
+
+        public bool TryExtract()
+        {
+            if (!CanPlayerAct || Expedition == null || !Expedition.TryExtract(SelectedUnit)) return false;
+            SelectedUnit = null;
+            CancelTargeting();
+            return true;
+        }
+
         public bool CanAttack(UnitRuntimeState target) => CanPlayerAct && combat != null &&
             combat.CanAttack(SelectedUnit, target);
 
@@ -382,12 +415,14 @@ namespace GuildTactics.Units
         private void Update()
         {
             if (Turns != null && Visibility != null && Visibility.Revision != visibilityRevision) RefreshSelection();
-            if (Turns == null || Outcome != BattleOutcome.Ongoing ||
+            if (Turns == null || Expedition?.Result != null ||
+                (Outcome != BattleOutcome.Ongoing && !(Outcome == BattleOutcome.Victory && Expedition != null)) ||
                 Turns.State == TurnState.Moving || Turns.State == TurnState.ResolvingAction) return;
             if (battleEnabled)
             {
                 Outcome = BattleRules.Evaluate(Turns.Order);
-                if (Outcome != BattleOutcome.Ongoing)
+                Expedition?.RefreshOutcome();
+                if (Outcome == BattleOutcome.Defeat || (Outcome == BattleOutcome.Victory && Expedition == null))
                 {
                     SelectedUnit = null;
                     RefreshSelection();

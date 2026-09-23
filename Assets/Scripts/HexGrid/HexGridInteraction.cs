@@ -8,7 +8,7 @@ namespace GuildTactics.HexGrid
     {
         private const float CameraPadding = 1.12f;
         private const float CameraDistance = 10f;
-        public const float HudHeight = 324f;
+        public const float HudHeight = 386f;
         private HexGrid grid;
         private HexLayout layout;
         private HexGridView view;
