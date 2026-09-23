@@ -13,10 +13,12 @@ namespace GuildTactics.Expeditions
         public int Health { get; }
         public int MaxHealth { get; }
         public bool Survived => Health > 0;
-        internal AdventurerResult(UnitRuntimeState unit)
+        public bool BodyRecovered { get; }
+        internal AdventurerResult(UnitRuntimeState unit, bool bodyRecovered)
         {
             InstanceId = unit.InstanceId; DefinitionId = unit.Definition.Id;
             Name = unit.Definition.DisplayName; Health = unit.CurrentHealth; MaxHealth = unit.Definition.MaxHealth;
+            BodyRecovered = !Survived && bodyRecovered;
         }
     }
 
@@ -30,12 +32,14 @@ namespace GuildTactics.Expeditions
         public IReadOnlyList<AdventurerResult> Adventurers { get; }
 
         internal ExpeditionResult(int seed, ExpeditionOutcome outcome, int gold,
-            IEnumerable<ItemDefinition> items, IEnumerable<UnitRuntimeState> party)
+            IEnumerable<ItemDefinition> items, IEnumerable<UnitRuntimeState> party,
+            ISet<string> recoveredBodies = null)
         {
             Seed = seed; Outcome = outcome; Gold = gold;
             Items = new List<ItemDefinition>(items).AsReadOnly();
             var snapshots = new List<AdventurerResult>();
-            foreach (var unit in party) snapshots.Add(new AdventurerResult(unit));
+            foreach (var unit in party) snapshots.Add(new AdventurerResult(unit,
+                outcome == ExpeditionOutcome.Extracted && recoveredBodies != null && recoveredBodies.Contains(unit.InstanceId)));
             Adventurers = snapshots.AsReadOnly();
         }
     }

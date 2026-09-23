@@ -1139,7 +1139,7 @@ Acceptance criteria:
 
 ## WP-14 — Guild state and roster screen
 
-Status: [ ]
+Status: [~]
 
 Goal:
 Create the first meta-loop outside combat.
@@ -1165,7 +1165,7 @@ Acceptance criteria:
 
 ## WP-15 — Death, corpse recovery and resurrection v1
 
-Status: [ ]
+Status: [~]
 
 Goal:
 Make character loss meaningful.

@@ -65,7 +65,8 @@ namespace GuildTactics.Units
             HexGridInteraction gridInteraction, float moveSecondsPerStep, IDice dice = null, CombatText feedback = null,
             bool enableBattle = true, bool enableFog = false,
             IReadOnlyList<HexCoordinates> playerSpawns = null,
-            IReadOnlyList<Generation.EnemyPlacement> encounter = null, Generation.DungeonMap expeditionMap = null)
+            IReadOnlyList<Generation.EnemyPlacement> encounter = null, Generation.DungeonMap expeditionMap = null,
+            IReadOnlyList<Meta.GuildAdventurer> guildParty = null)
         {
             if (grid != null) throw new InvalidOperationException("Unit controller is already initialized.");
             if (float.IsNaN(moveSecondsPerStep) || float.IsInfinity(moveSecondsPerStep) || moveSecondsPerStep < 0)
@@ -82,10 +83,26 @@ namespace GuildTactics.Units
             var spawnPositions = playerSpawns ?? SpawnCoordinates;
             if (definitions.Count != spawnPositions.Count)
                 throw new InvalidOperationException("The prototype requires exactly four hero definitions.");
+            if (guildParty != null)
+            {
+                var ids = new HashSet<string>();
+                if (guildParty.Count != 4) throw new ArgumentException("Select exactly four adventurers.");
+                foreach (var adventurer in guildParty)
+                    if (adventurer == null || adventurer.Status != Meta.AdventurerStatus.Alive ||
+                        adventurer.Health <= 0 || !ids.Add(adventurer.Id))
+                        throw new ArgumentException("Party must contain distinct living adventurers.");
+            }
             try
             {
                 for (int index = 0; index < definitions.Count; index++)
-                    Spawn("hero-" + definitions[index].Id, definitions[index], spawnPositions[index], HeroColors[index]);
+                {
+                    var adventurer = guildParty?[index];
+                    var definition = adventurer?.Definition ?? definitions[index];
+                    int colorIndex = 0;
+                    for (int c = 0; c < definitions.Count; c++) if (definitions[c].Id == definition.Id) colorIndex = c;
+                    Spawn(adventurer?.Id ?? "hero-" + definition.Id, definition, spawnPositions[index], HeroColors[colorIndex]);
+                    if (adventurer != null) units[index].ApplyDamage(definition.MaxHealth - adventurer.Health);
+                }
                 if (encounter != null)
                 {
                     for (int index = 0; index < encounter.Count; index++)
@@ -361,9 +378,9 @@ namespace GuildTactics.Units
             return true;
         }
 
-        public bool TryExtract()
+        public bool TryExtract(bool confirmAbandonment = false)
         {
-            if (!CanPlayerAct || Expedition == null || !Expedition.TryExtract(SelectedUnit)) return false;
+            if (!CanPlayerAct || Expedition == null || !Expedition.TryExtract(SelectedUnit, confirmAbandonment)) return false;
             SelectedUnit = null;
             CancelTargeting();
             return true;

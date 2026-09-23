@@ -92,6 +92,7 @@ namespace GuildTactics.Editor
                 VisibilityChecks.Run();
                 GenerationChecks.Run();
                 ExpeditionChecks.Run();
+                GuildChecks.Run();
                 SessionState.SetBool(PendingKey, true);
                 deadline = EditorApplication.timeSinceStartup + 90;
                 EditorApplication.update -= WaitForPlayMode;
@@ -116,6 +117,7 @@ namespace GuildTactics.Editor
                     foreach (var root in UnityEngine.SceneManagement.SceneManager.GetActiveScene().GetRootGameObjects())
                         if (root.TryGetComponent<GameBootstrap>(out var bootstrap))
                         {
+                            GuildChecks.ValidatePresentation(bootstrap);
                             GenerationChecks.ValidatePresentation(bootstrap);
                             var camera = new SerializedObject(bootstrap).FindProperty("gridCamera").objectReferenceValue as Camera;
                             ExpeditionChecks.BeginPresentation(camera);

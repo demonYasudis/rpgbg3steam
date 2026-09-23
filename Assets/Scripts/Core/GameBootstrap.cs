@@ -14,8 +14,17 @@ namespace GuildTactics.Core
         public HexGrid.HexGrid Grid { get; private set; }
         public Generation.DungeonMap Dungeon { get; private set; }
         private System.Collections.Generic.IReadOnlyList<Generation.EnemyPlacement> encounter;
+        private GameObject presentation;
+        public Meta.GuildState Guild { get; private set; }
+        public Units.PlayerUnitController ActiveController { get; private set; }
 
         private void Awake()
+        {
+            Guild = new Meta.GuildState();
+            GenerateDungeon();
+        }
+
+        private void GenerateDungeon()
         {
             try
             {
@@ -40,8 +49,42 @@ namespace GuildTactics.Core
                 enabled = false;
                 return;
             }
+            gameObject.AddComponent<Meta.GuildUI>().Initialize(this);
+        }
+
+        public bool TryLaunchExpedition()
+        {
+            if (gridCamera == null || !Guild.CanLaunch || presentation != null) return false;
+            var party = Guild.BeginExpedition();
+            try
+            {
+                GenerateDungeon();
+                CreateBattle(party);
+                Guild.AttachRun(ActiveController.Expedition);
+                return true;
+            }
+            catch
+            {
+                if (presentation != null) { presentation.SetActive(false); Destroy(presentation); }
+                presentation = null; ActiveController = null;
+                Guild.CancelLaunch();
+                throw;
+            }
+        }
+
+        public bool TryReturnToGuild()
+        {
+            if (!Guild.TryReturn()) return false;
+            presentation.SetActive(false);
+            Destroy(presentation);
+            presentation = null; ActiveController = null;
+            return true;
+        }
+
+        private void CreateBattle(System.Collections.Generic.IReadOnlyList<Meta.GuildAdventurer> party)
+        {
             var layout = new HexGrid.HexLayout();
-            var presentation = new GameObject("Hex Grid");
+            presentation = new GameObject("Hex Grid");
             presentation.transform.SetParent(transform, false);
             var view = presentation.AddComponent<HexGrid.HexGridView>();
             view.Initialize(Grid, layout);
@@ -52,16 +95,17 @@ namespace GuildTactics.Core
             var units = presentation.AddComponent<Units.PlayerUnitController>();
             units.Initialize(Grid, layout, view, interaction, movementSecondsPerStep,
                 new Combat.SeededDice(combatSeed), feedback, enableFog: true,
-                playerSpawns: Dungeon.PlayerSpawns, encounter: encounter, expeditionMap: Dungeon);
+                playerSpawns: Dungeon.PlayerSpawns, encounter: encounter, expeditionMap: Dungeon, guildParty: party);
+            ActiveController = units;
             presentation.AddComponent<Combat.TurnOrderUI>().Initialize(units);
             presentation.AddComponent<Abilities.ActionBarUI>().Initialize(units);
-            presentation.AddComponent<Expeditions.ExpeditionUI>().Initialize(units, layout, gridCamera);
+            presentation.AddComponent<Expeditions.ExpeditionUI>().Initialize(units, layout, gridCamera, this);
             Debug.Log($"Guild Tactics: grid ready ({Grid.Width} x {Grid.Height}, {Grid.Cells.Count} cells, {units.Units.Count} heroes, {units.Enemies.Count} enemies, combat seed {combatSeed}).", this);
         }
 
         private void OnGUI()
         {
-            if (Dungeon != null)
+            if (Dungeon != null && Guild.IsAway)
                 GUI.Label(new Rect(24, Screen.height - 28, Screen.width - 48, 24),
                     $"Dungeon seed: {Dungeon.Seed}" + (Dungeon.UsedFallback ? " (fallback)" : ""));
         }

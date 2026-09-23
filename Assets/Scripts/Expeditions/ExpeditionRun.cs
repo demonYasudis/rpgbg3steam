@@ -19,6 +19,24 @@ namespace GuildTactics.Expeditions
         public int CollectedGold { get; private set; }
         public IReadOnlyList<ItemDefinition> CollectedItems { get; private set; } = Array.Empty<ItemDefinition>();
         public ExpeditionResult Result { get; private set; }
+        public IReadOnlyList<UnitRuntimeState> Party { get; }
+
+        public IReadOnlyList<AdventurerBody> Bodies
+        {
+            get
+            {
+                var bodies = new List<AdventurerBody>();
+                var reachable = DungeonValidator.Distances(turns.Grid, Extraction);
+                foreach (var unit in party)
+                    if (!unit.IsAlive) bodies.Add(new AdventurerBody(unit.InstanceId, unit.Position,
+                        reachable.ContainsKey(unit.Position)));
+                return bodies.AsReadOnly();
+            }
+        }
+        public bool HasUnrecoverableBodies
+        {
+            get { foreach (var body in Bodies) if (!body.Recoverable) return true; return false; }
+        }
 
         public ExpeditionRun(DungeonMap map, TurnManager turns)
         {
@@ -27,6 +45,7 @@ namespace GuildTactics.Expeditions
             if (!ReferenceEquals(map.Grid, turns.Grid)) throw new ArgumentException("Expedition and turns must share a grid.");
             foreach (var unit in turns.Order) if (unit.Team == UnitTeam.Player) party.Add(unit);
             if (party.Count != 4) throw new ArgumentException("An expedition requires four adventurers.");
+            Party = party.AsReadOnly();
             seed = map.Seed; Chest = map.Objective; Extraction = map.PlayerSpawns[0];
             if (Chest == Extraction || !DungeonValidator.Distances(map.Grid, Extraction).ContainsKey(Chest))
                 throw new ArgumentException("Chest and extraction must be distinct and connected.");
@@ -59,11 +78,14 @@ namespace GuildTactics.Expeditions
         public bool CanExtract(UnitRuntimeState actor) => CanInteract(actor) && ChestOpened &&
             actor.Position == Extraction && BattleRules.Evaluate(turns.Order) == BattleOutcome.Victory;
 
-        public bool TryExtract(UnitRuntimeState actor)
+        public bool TryExtract(UnitRuntimeState actor, bool confirmAbandonment = false)
         {
-            if (!CanExtract(actor)) return false;
+            if (!CanExtract(actor) || (HasUnrecoverableBodies && !confirmAbandonment)) return false;
             // One survivor reaching the entrance brings out the entire surviving party.
-            Result = new ExpeditionResult(seed, ExpeditionOutcome.Extracted, CollectedGold, CollectedItems, party);
+            // The cleared area allows automatic recovery of every body connected to the exit.
+            var recovered = new HashSet<string>();
+            foreach (var body in Bodies) if (body.Recoverable) recovered.Add(body.InstanceId);
+            Result = new ExpeditionResult(seed, ExpeditionOutcome.Extracted, CollectedGold, CollectedItems, party, recovered);
             return true;
         }
 
@@ -73,5 +95,14 @@ namespace GuildTactics.Expeditions
             if (BattleRules.Evaluate(turns.Order) == BattleOutcome.Defeat)
                 Result = new ExpeditionResult(seed, ExpeditionOutcome.Defeated, 0, Array.Empty<ItemDefinition>(), party);
         }
+    }
+
+    public sealed class AdventurerBody
+    {
+        public string InstanceId { get; }
+        public HexCoordinates Position { get; }
+        public bool Recoverable { get; }
+        internal AdventurerBody(string id, HexCoordinates position, bool recoverable)
+        { InstanceId = id; Position = position; Recoverable = recoverable; }
     }
 }

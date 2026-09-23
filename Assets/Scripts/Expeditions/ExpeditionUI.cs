@@ -13,13 +13,16 @@ namespace GuildTactics.Expeditions
         private PlayerUnitController controller;
         private HexLayout layout;
         private Camera worldCamera;
+        private Core.GameBootstrap bootstrap;
+        private bool confirmingAbandonment;
 
-        public void Initialize(PlayerUnitController units, HexLayout hexLayout, Camera camera)
+        public void Initialize(PlayerUnitController units, HexLayout hexLayout, Camera camera, Core.GameBootstrap owner = null)
         {
             controller = units != null ? units : throw new ArgumentNullException(nameof(units));
             if (units.Expedition == null) throw new ArgumentException("Controller needs an expedition.");
             layout = hexLayout ?? throw new ArgumentNullException(nameof(hexLayout));
             worldCamera = camera != null ? camera : throw new ArgumentNullException(nameof(camera));
+            bootstrap = owner;
         }
 
         private void OnGUI()
@@ -29,6 +32,15 @@ namespace GuildTactics.Expeditions
             if (run.Result != null) { DrawResult(run.Result); return; }
             DrawMarker(run.Chest, run.ChestOpened ? "EMPTY" : "CHEST");
             DrawMarker(run.Extraction, "EXIT");
+            foreach (var body in run.Bodies) DrawMarker(body.Position, body.Recoverable ? "BODY" : "LOST");
+            if (confirmingAbandonment)
+            {
+                GUI.Box(new Rect(20, 322, Screen.width - 40, 64), "Unreachable bodies will be permanently lost.");
+                if (GUI.Button(new Rect(24, 350, 220, 30), "Confirm permanent loss"))
+                { controller.TryExtract(true); confirmingAbandonment = false; }
+                if (GUI.Button(new Rect(256, 350, 100, 30), "Cancel")) confirmingAbandonment = false;
+                return;
+            }
             string goal = !run.ChestOpened ? "Find CHEST. Open it from the same or an adjacent visible hex (1 action)." :
                 controller.Outcome == BattleOutcome.Victory ? "Area cleared. Bring one survivor to EXIT to extract the party." :
                 "Loot collected. Defeat remaining enemies, then return to EXIT.";
@@ -37,7 +49,11 @@ namespace GuildTactics.Expeditions
             GUI.enabled = previous && controller.CanPlayerAct && run.CanOpenChest(controller.SelectedUnit);
             if (GUI.Button(new Rect(24, 352, 140, 28), "Open chest")) controller.TryOpenChest();
             GUI.enabled = previous && controller.CanPlayerAct && run.CanExtract(controller.SelectedUnit);
-            if (GUI.Button(new Rect(176, 352, 140, 28), "Extract party")) controller.TryExtract();
+            if (GUI.Button(new Rect(176, 352, 140, 28), "Extract party"))
+            {
+                if (run.HasUnrecoverableBodies) confirmingAbandonment = true;
+                else controller.TryExtract();
+            }
             GUI.enabled = previous;
             GUI.Label(new Rect(328, 354, Screen.width - 352, 24),
                 $"Loot: {run.CollectedGold} gold / {run.CollectedItems.Count} items");
@@ -52,7 +68,7 @@ namespace GuildTactics.Expeditions
             GUI.Box(new Rect(point.x - 30, y - 12, 60, 24), label);
         }
 
-        private static void DrawResult(ExpeditionResult result)
+        private void DrawResult(ExpeditionResult result)
         {
             var text = new StringBuilder(result.Outcome == ExpeditionOutcome.Extracted ?
                 "EXPEDITION COMPLETE" : "EXPEDITION LOST");
@@ -66,11 +82,12 @@ namespace GuildTactics.Expeditions
                 else text.Append("healing consumable, ").Append(item.Healing).Append(" HP");
             }
             foreach (var unit in result.Adventurers)
-                text.Append("\n").Append(unit.Name).Append(unit.Survived ? $": {unit.Health}/{unit.MaxHealth} HP" : ": DEAD");
-            text.Append("\nRewards are expedition data; equipment and guild storage come later.");
-            text.Append("\nStop and restart Play for a new expedition.");
+                text.Append("\n").Append(unit.InstanceId).Append(unit.Survived ? $": {unit.Health}/{unit.MaxHealth} HP" :
+                    unit.BodyRecovered ? ": DEAD — body recovered" : ": PERMANENTLY LOST");
+            text.Append("\nRecovered bodies can be resurrected in the guild for 30 gold.");
             GUI.Box(new Rect(20, 84, Screen.width - 40, 210), "");
             GUI.Label(new Rect(32, 92, Screen.width - 64, 200), text.ToString());
+            if (bootstrap != null && GUI.Button(new Rect(32, 304, 200, 32), "Return to guild")) bootstrap.TryReturnToGuild();
         }
     }
 }
