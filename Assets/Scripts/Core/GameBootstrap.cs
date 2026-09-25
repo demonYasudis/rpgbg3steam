@@ -9,6 +9,7 @@ namespace GuildTactics.Core
         [SerializeField, Min(0)] private float movementSecondsPerStep = 0.12f;
         [SerializeField] private int combatSeed = Combat.SeededDice.DefaultSeed;
         [SerializeField] private string dungeonSeed = "crypt-1";
+        [SerializeField] private bool debugMode;
         [SerializeField] private Generation.DungeonGenerationConfig dungeonConfig = new Generation.DungeonGenerationConfig();
         [SerializeField] private Generation.EncounterConfig encounterConfig = new Generation.EncounterConfig();
         public HexGrid.HexGrid Grid { get; private set; }
@@ -17,10 +18,18 @@ namespace GuildTactics.Core
         private GameObject presentation;
         public Meta.GuildState Guild { get; private set; }
         public Units.PlayerUnitController ActiveController { get; private set; }
+        public Expeditions.ExpeditionSelection Expeditions { get; private set; }
+        public bool DebugMode => debugMode;
 
         private void Awake()
         {
             Guild = new Meta.GuildState();
+            try { Expeditions = new Expeditions.ExpeditionSelection(dungeonSeed); }
+            catch (System.ArgumentException)
+            {
+                Debug.LogWarning("Empty dungeon seed; using crypt-1.", this);
+                Expeditions = new Expeditions.ExpeditionSelection("crypt-1");
+            }
             GenerateDungeon();
         }
 
@@ -28,13 +37,14 @@ namespace GuildTactics.Core
         {
             try
             {
-                Dungeon = Generation.DungeonGenerator.Generate(dungeonSeed, dungeonConfig);
-                encounter = Generation.EncounterGenerator.Generate(Dungeon, encounterConfig);
+                Dungeon = Generation.DungeonGenerator.Generate(Expeditions.NextSeed, dungeonConfig);
+                encounter = Generation.EncounterGenerator.Generate(Dungeon,
+                    debugMode ? encounterConfig : Expeditions.Selected.CreateEncounterConfig());
             }
             catch (System.ArgumentException exception)
             {
                 Debug.LogWarning("Invalid generation settings; using safe defaults. " + exception.Message, this);
-                Dungeon = Generation.DungeonGenerator.Generate("crypt-1");
+                Dungeon = Generation.DungeonGenerator.Generate(Expeditions.NextSeed);
                 encounter = Generation.EncounterGenerator.Generate(Dungeon);
             }
             Grid = Dungeon.Grid;
@@ -61,6 +71,7 @@ namespace GuildTactics.Core
                 GenerateDungeon();
                 CreateBattle(party);
                 Guild.AttachRun(ActiveController.Expedition);
+                Expeditions.RecordLaunch();
                 return true;
             }
             catch
@@ -81,6 +92,15 @@ namespace GuildTactics.Core
             return true;
         }
 
+        public bool TrySelectExpedition(int index) => !Guild.IsAway && Expeditions.TrySelect(index);
+
+        public bool TryStartNewGuild()
+        {
+            if (Guild.IsAway) return false;
+            Guild = new Meta.GuildState();
+            return true;
+        }
+
         private void CreateBattle(System.Collections.Generic.IReadOnlyList<Meta.GuildAdventurer> party)
         {
             var layout = new HexGrid.HexLayout();
@@ -90,6 +110,7 @@ namespace GuildTactics.Core
             view.Initialize(Grid, layout);
             var interaction = presentation.AddComponent<HexGrid.HexGridInteraction>();
             interaction.Initialize(Grid, layout, view, gridCamera);
+            interaction.DebugMode = debugMode;
             var feedback = presentation.AddComponent<Combat.CombatText>();
             feedback.Initialize(gridCamera, combatSeed);
             var units = presentation.AddComponent<Units.PlayerUnitController>();
@@ -105,9 +126,9 @@ namespace GuildTactics.Core
 
         private void OnGUI()
         {
-            if (Dungeon != null && Guild.IsAway)
+            if (debugMode && Dungeon != null && Guild.IsAway)
                 GUI.Label(new Rect(24, Screen.height - 28, Screen.width - 48, 24),
-                    $"Dungeon seed: {Dungeon.Seed}" + (Dungeon.UsedFallback ? " (fallback)" : ""));
+                    $"Dungeon seed: {Dungeon.Seed} | Combat seed: {combatSeed}" + (Dungeon.UsedFallback ? " (fallback)" : ""));
         }
     }
 }

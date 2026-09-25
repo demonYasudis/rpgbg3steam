@@ -93,6 +93,7 @@ namespace GuildTactics.Editor
                 GenerationChecks.Run();
                 ExpeditionChecks.Run();
                 GuildChecks.Run();
+                ExpeditionSelectionChecks.Run();
                 SessionState.SetBool(PendingKey, true);
                 deadline = EditorApplication.timeSinceStartup + 90;
                 EditorApplication.update -= WaitForPlayMode;
@@ -118,6 +119,7 @@ namespace GuildTactics.Editor
                         if (root.TryGetComponent<GameBootstrap>(out var bootstrap))
                         {
                             GuildChecks.ValidatePresentation(bootstrap);
+                            ExpeditionSelectionChecks.ValidatePresentation(bootstrap);
                             GenerationChecks.ValidatePresentation(bootstrap);
                             var camera = new SerializedObject(bootstrap).FindProperty("gridCamera").objectReferenceValue as Camera;
                             ExpeditionChecks.BeginPresentation(camera);
@@ -323,7 +325,7 @@ namespace GuildTactics.Editor
             SessionState.SetBool(PendingKey, false);
             EditorApplication.update -= WaitForPlayMode;
             if (exception != null) Debug.LogException(exception);
-            else Debug.Log("ALL UNITY CHECKS PASSED (WP-00 through WP-15).");
+            else Debug.Log("ALL UNITY CHECKS PASSED (WP-00 through WP-17).");
             EditorApplication.Exit(exception == null ? 0 : 1);
         }
 

@@ -45,7 +45,8 @@ namespace GuildTactics.Units
         private bool enemyMoved;
         public BattleOutcome Outcome { get; private set; } = BattleOutcome.Ongoing;
         public Expeditions.ExpeditionRun Expedition { get; private set; }
-        public bool CanPlayerAct => isActiveAndEnabled && Expedition?.Result == null &&
+        public bool InterfaceBlocked { get; set; }
+        public bool CanPlayerAct => !InterfaceBlocked && isActiveAndEnabled && Expedition?.Result == null &&
             (Outcome == BattleOutcome.Ongoing || (Outcome == BattleOutcome.Victory && Expedition != null)) &&
             Turns != null && Turns.CanSelectAction(SelectedUnit) && SelectedUnit.Team == UnitTeam.Player &&
             (!battleEnabled || BattleRules.Evaluate(Turns.Order) == BattleOutcome.Ongoing ||
@@ -240,7 +241,26 @@ namespace GuildTactics.Units
             if (TrySelectUnit(coordinate)) return;
             if (TryAttackSelected(coordinate)) return;
             if (!TryMoveSelected(coordinate) && SelectedUnit != null)
+            {
                 interaction.SetSelected(SelectedUnit.Position);
+                ActionHint = InvalidDestinationHint(coordinate);
+            }
+        }
+
+        private string InvalidDestinationHint(HexCoordinates coordinate)
+        {
+            if (Visibility != null && !Visibility.IsVisible(coordinate)) return "Explore closer first: this hex is outside current vision.";
+            var cell = grid.GetCell(coordinate);
+            if (!TerrainRules.CanWalk(cell.Terrain)) return "Cannot walk onto walls or pits.";
+            if (cell.IsOccupied)
+            {
+                foreach (var unit in units)
+                    if (unit.IsAlive && unit.Position == coordinate) return "That ally acts on their own turn. Choose a free green hex.";
+                return !Turns.ActionAvailable ? "Action already used. Move or end your turn." :
+                    $"Enemy out of reach. Basic attack range: {SelectedUnit.Definition.AttackRange}. Move closer.";
+            }
+            return Turns.RemainingMovement == 0 ? "No movement left. Use an action or end your turn." :
+                "No path within your movement allowance. Choose a green hex.";
         }
 
         private void RefreshSelection()
@@ -431,6 +451,7 @@ namespace GuildTactics.Units
 
         private void Update()
         {
+            if (InterfaceBlocked) return;
             if (Turns != null && Visibility != null && Visibility.Revision != visibilityRevision) RefreshSelection();
             if (Turns == null || Expedition?.Result != null ||
                 (Outcome != BattleOutcome.Ongoing && !(Outcome == BattleOutcome.Victory && Expedition != null)) ||
@@ -511,9 +532,10 @@ namespace GuildTactics.Units
 
         private void OnGUI()
         {
-            if (Turns == null || !IsUnitVisible(SelectedUnit)) return;
-            string status = $"{SelectedUnit.Definition.DisplayName} | HP {SelectedUnit.CurrentHealth}/{SelectedUnit.Definition.MaxHealth} | DEF {SelectedUnit.Defense} | Move {Turns.RemainingMovement} | Action {(Turns.ActionAvailable ? "ready" : "used")} | {Turns.State}";
-            GUI.Label(new Rect(24, 88, 760, 24), status);
+            if (Turns == null || Expedition?.Result != null || !IsUnitVisible(SelectedUnit)) return;
+            string status = $"HP {SelectedUnit.CurrentHealth}/{SelectedUnit.Definition.MaxHealth}   Defense {SelectedUnit.Defense}   Move {Turns.RemainingMovement}   Action {(Turns.ActionAvailable ? "ready" : "used")}";
+            GUI.Label(new Rect(16, 32, Screen.width - 32, 24), new GUIContent(status,
+                "HP: health. Defense: attack total needed to hit. Move: hex movement points. One attack or ability per turn."));
         }
 
         private void OnDestroy() => Visibility?.Dispose();

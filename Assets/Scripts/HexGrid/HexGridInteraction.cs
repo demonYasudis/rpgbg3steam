@@ -8,7 +8,8 @@ namespace GuildTactics.HexGrid
     {
         private const float CameraPadding = 1.12f;
         private const float CameraDistance = 10f;
-        public const float HudHeight = 386f;
+        public const float HudHeight = 230f;
+        public bool DebugMode { get; set; }
         private HexGrid grid;
         private HexLayout layout;
         private HexGridView view;
@@ -98,13 +99,11 @@ namespace GuildTactics.HexGrid
 
         private void OnGUI()
         {
-            if (grid == null) return;
-            GUI.Label(new Rect(24, 16, 560, 24), "GUILD TACTICS / HEX PROTOTYPE");
-            GUI.Label(new Rect(24, 40, 700, 24), "Green: move. Purple: action targets. Orange: trap. End turn: next unit.");
-            GUI.Label(new Rect(24, 64, 560, 24),
-                $"Hover: {Hovered?.ToString() ?? "—"} {HoveredTerrain()}    Selected: {Selected?.ToString() ?? "—"}");
-            if (view.Visibility != null && GUI.Button(new Rect(24, 298, 280, 22),
-                view.DebugVisibility ? "Vision debug ON: green / blue / black" : "Vision debug OFF"))
+            if (grid == null || !DebugMode) return;
+            GUI.Label(new Rect(16, Screen.height - 52, Screen.width - 200, 22),
+                $"Hover: {Hovered?.ToString() ?? "—"} {HoveredTerrain()}");
+            if (view.Visibility != null && GUI.Button(new Rect(Screen.width - 170, Screen.height - 52, 154, 22),
+                view.DebugVisibility ? "Vision debug ON" : "Vision debug OFF"))
                 view.ToggleVisibilityDebug();
         }
 

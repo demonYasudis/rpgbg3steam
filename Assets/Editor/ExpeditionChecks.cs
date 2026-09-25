@@ -72,6 +72,24 @@ namespace GuildTactics.Editor
         [MenuItem("Tools/Guild Tactics/Validate Expedition")]
         public static void Run()
         {
+            using (var retreat = new Fixture(42))
+            {
+                Require(!retreat.Run.TryRetreat(false), "Retreat requires confirmation");
+                retreat.Actor.TryRelocate(retreat.Map.Grid, retreat.Run.Chest);
+                Require(retreat.Run.TryOpenChest(retreat.Actor), "Collect loot before retreat");
+                retreat.Actor.ApplyDamage(3);
+                retreat.Party[1].ApplyDamage(retreat.Party[1].CurrentHealth);
+                Require(retreat.Run.TryRetreat(true) && !retreat.Run.TryRetreat(true), "Retreat commits once");
+                var result = retreat.Run.Result;
+                Require(result.Outcome == ExpeditionOutcome.Retreated && result.Gold == 0 && result.Items.Count == 0 &&
+                    result.Adventurers.Single(a => a.InstanceId == retreat.Actor.InstanceId).Health == 17 &&
+                    result.Adventurers.All(a => !a.BodyRecovered), "Retreat preserves wounds but loses loot and bodies");
+            }
+            using (var busy = new Fixture(43))
+            {
+                busy.Turns.TryBeginAction(busy.Actor);
+                Require(!busy.Run.TryRetreat(true), "Cannot retreat during action resolution");
+            }
             var rewards = new HashSet<string>();
             for (int seed = 0; seed < 50; seed++)
             {

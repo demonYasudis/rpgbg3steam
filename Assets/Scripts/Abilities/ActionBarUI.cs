@@ -13,24 +13,27 @@ namespace GuildTactics.Abilities
 
         private void OnGUI()
         {
-            if (controller == null || controller.Expedition?.Result != null || !controller.IsUnitVisible(controller.SelectedUnit)) return;
+            if (controller == null || controller.InterfaceBlocked || controller.Expedition?.Result != null || !controller.IsUnitVisible(controller.SelectedUnit)) return;
             bool previous = GUI.enabled;
-            float width = Mathf.Max(40, (Screen.width - 60) / 4f);
+            float width = Mathf.Max(40, (Screen.width - 44) / 4f);
             GUI.enabled = previous && controller.CanPlayerAct;
-            if (GUI.Button(new Rect(24, 222, width, 28), "Move / cancel")) controller.CancelTargeting();
+            if (GUI.Button(new Rect(16, 96, width, 28), new GUIContent("Move / cancel", "Click a green hex to move. Cancel a selected attack or ability."))) controller.CancelTargeting();
             GUI.enabled = GUI.enabled && controller.Turns.ActionAvailable;
-            if (GUI.Button(new Rect(28 + width, 222, width, 28),
-                controller.IsTargetingAttack ? "> Basic attack" : "Basic attack")) controller.SelectBasicAttack();
+            if (GUI.Button(new Rect(20 + width, 96, width, 28), new GUIContent(
+                controller.IsTargetingAttack ? "> Basic attack" : "Basic attack",
+                $"Range {controller.SelectedUnit.Definition.AttackRange}. Roll d20 + attack against defense; costs one action."))) controller.SelectBasicAttack();
             var unit = controller.SelectedUnit;
             for (int i = 0; i < unit.Definition.Abilities.Count; i++)
             {
                 var ability = unit.Definition.Abilities[i];
                 string label = (controller.SelectedAbility == ability ? "> " : "") + ability.Name;
-                if (GUI.Button(new Rect(32 + 2 * width + i * (width + 4), 222, width, 28), label))
+                if (GUI.Button(new Rect(24 + 2 * width + i * (width + 4), 96, width, 28), new GUIContent(label, ability.Description)))
                     controller.SelectAbility(ability);
             }
             GUI.enabled = previous;
-            GUI.Label(new Rect(24, 254, Screen.width - 48, 42), controller.ActionHint);
+            GUI.Label(new Rect(16, 128, Screen.width - 32, 40),
+                string.IsNullOrEmpty(GUI.tooltip) ? controller.ActionHint : GUI.tooltip,
+                new GUIStyle(GUI.skin.label) { wordWrap = true });
         }
     }
 }

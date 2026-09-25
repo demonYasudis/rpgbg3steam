@@ -3,7 +3,7 @@ using GuildTactics.Units;
 
 namespace GuildTactics.Expeditions
 {
-    public enum ExpeditionOutcome { Extracted, Defeated }
+    public enum ExpeditionOutcome { Extracted, Defeated, Retreated }
 
     public sealed class AdventurerResult
     {

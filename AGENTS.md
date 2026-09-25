@@ -1191,7 +1191,7 @@ Acceptance criteria:
 
 ## WP-16 — Expedition selection and repeatable dungeon loop
 
-Status: [ ]
+Status: [~]
 
 Goal:
 Turn the prototype into the basic demo game loop.
@@ -1222,7 +1222,7 @@ At the end of WP-16, the core Demo v0.1 loop exists.
 
 ## WP-17 — Demo UX pass
 
-Status: [ ]
+Status: [~]
 
 Goal:
 Make the game understandable without developer knowledge.

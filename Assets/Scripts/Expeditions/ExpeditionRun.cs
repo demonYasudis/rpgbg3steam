@@ -95,6 +95,14 @@ namespace GuildTactics.Expeditions
             if (BattleRules.Evaluate(turns.Order) == BattleOutcome.Defeat)
                 Result = new ExpeditionResult(seed, ExpeditionOutcome.Defeated, 0, Array.Empty<ItemDefinition>(), party);
         }
+
+        // Retreat preserves living adventurers and their wounds, but forfeits loot and bodies.
+        public bool TryRetreat(bool confirmed)
+        {
+            if (!confirmed || Result != null || !CanInteract(turns.ActiveUnit)) return false;
+            Result = new ExpeditionResult(seed, ExpeditionOutcome.Retreated, 0, Array.Empty<ItemDefinition>(), party);
+            return true;
+        }
     }
 
     public sealed class AdventurerBody

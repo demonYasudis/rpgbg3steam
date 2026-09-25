@@ -17,6 +17,7 @@ namespace GuildTactics.Combat
         private float boxHeight = 52;
         public AttackResult LastResult { get; private set; }
         public bool IsShowing => remaining > 0;
+        public string LastMessage => text;
 
         public void Initialize(Camera camera, int combatSeed)
         {
@@ -79,7 +80,6 @@ namespace GuildTactics.Combat
 
         private void OnGUI()
         {
-            GUI.Label(new Rect(24, 192, Screen.width - 48, 24), $"Combat seed: {seed} | Each attack / ability costs one action.");
             if (!IsShowing || worldCamera == null) return;
             Vector3 screen = worldCamera.WorldToScreenPoint(position);
             if (screen.z <= 0) return;

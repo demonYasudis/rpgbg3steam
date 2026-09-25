@@ -135,9 +135,12 @@ namespace GuildTactics.Editor
         public static void ValidatePresentation(GameBootstrap bootstrap)
         {
             Require(!bootstrap.Guild.IsAway && bootstrap.ActiveController == null, "Scene starts at guild");
+            int firstSeed = bootstrap.Expeditions.NextSeed;
             bootstrap.Guild.TryToggleSelection("warrior-1"); bootstrap.Guild.TryToggleSelection("warrior-2");
             Require(bootstrap.TryLaunchExpedition() && !bootstrap.TryLaunchExpedition(), "Launch and duplicate lock");
             var controller = bootstrap.ActiveController;
+            Require(bootstrap.Dungeon.Seed == firstSeed && bootstrap.Expeditions.LaunchedCount == 1 &&
+                !bootstrap.TrySelectExpedition(0), "Launch consumes one seed and locks selection");
             Require(controller.Units.Any(u => u.InstanceId == "warrior-2"), "Controller spawns selected reserve");
             foreach (var enemy in controller.Enemies) enemy.ApplyDamage(enemy.CurrentHealth);
             var turns = controller.Turns;
@@ -158,6 +161,8 @@ namespace GuildTactics.Editor
             Require(!controller.gameObject.activeSelf && bootstrap.ActiveController == null, "Old battle disabled immediately");
             bootstrap.Guild.TryResurrect(dead.InstanceId); bootstrap.Guild.TryToggleSelection(dead.InstanceId);
             Require(bootstrap.TryLaunchExpedition(), "Launch second battle without restarting Play");
+            Require(bootstrap.Dungeon.Seed != firstSeed && bootstrap.Expeditions.LaunchedCount == 2,
+                "Second expedition uses a fresh seed");
             Require(bootstrap.ActiveController != controller && bootstrap.ActiveController.Units.First(u => u.InstanceId == actor.InstanceId).CurrentHealth == actor.CurrentHealth,
                 "New controller retains guild health");
         }

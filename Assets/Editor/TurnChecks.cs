@@ -87,6 +87,13 @@ namespace GuildTactics.Editor
         {
             controller = units;
             actor = units.SelectedUnit;
+            units.InterfaceBlocked = true;
+            Require(!units.TryEndTurn() && !units.TryMoveSelected(actor.Position), "Modal blocks commands");
+            units.InterfaceBlocked = false;
+            var input = units.GetComponent<HexGridInteraction>();
+            var blocked = units.Turns.Grid.Cells.First(c => c.Terrain == TerrainType.Blocked);
+            input.ProcessPointer(input.GridCamera.WorldToScreenPoint(new HexLayout().ToWorld(blocked.Coordinates)), true);
+            Require(units.ActionHint != "Choose an action or move to a green hex.", "Invalid click has explanation");
             Require(units.GetComponent<TurnOrderUI>() != null, "Turn UI wired in saved scene");
             foreach (var other in units.Units.Where(unit => unit != actor))
                 Require(!units.TrySelectUnit(other.Position), "Cannot select inactive hero");

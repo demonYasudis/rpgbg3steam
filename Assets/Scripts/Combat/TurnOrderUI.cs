@@ -35,13 +35,19 @@ namespace GuildTactics.Combat
                 text.Append(unit.Definition.DisplayName).Append(" (")
                     .Append(unit.Definition.Initiative).Append(")  ");
             }
-            GUI.Label(new Rect(24, 112, Screen.width - 48, 40), text.ToString());
+            var active = turns.ActiveUnit;
+            string title = active == null ? "Preparing next turn" : active.Team == UnitTeam.Enemy ? "ENEMY TURN — please wait" :
+                "YOUR TURN — " + active.Definition.DisplayName;
+            GUI.Label(new Rect(16, 6, Screen.width - 170, 26), new GUIContent(title + "  |  Round " + turns.Round, text.ToString()),
+                new GUIStyle(GUI.skin.label) { fontSize = 16, fontStyle = FontStyle.Bold });
             bool previousEnabled = GUI.enabled;
+            if (controller.InterfaceBlocked) return;
             GUI.enabled = previousEnabled && controller.CanPlayerAct;
-            if (GUI.Button(new Rect(24, 158, 140, 28), "End turn")) controller.TryEndTurn();
+            if (GUI.Button(new Rect(16, 60, 110, 28), new GUIContent("End turn", "Finish this hero's turn, even if movement or action remain."))) controller.TryEndTurn();
             GUI.enabled = GUI.enabled && turns.ActionAvailable && turns.State == TurnState.SelectingAction;
-            if (GUI.Button(new Rect(176, 158, 180, 28), "Wait (skip action)")) controller.TryWaitAction();
+            if (GUI.Button(new Rect(134, 60, 110, 28), new GUIContent("Wait", "Spend your action without attacking. You may still move."))) controller.TryWaitAction();
             GUI.enabled = previousEnabled;
+            GUI.Label(new Rect(254, 61, Screen.width - 270, 26), "Gold hex: active hero · Green: move · Purple: target");
         }
     }
 }
