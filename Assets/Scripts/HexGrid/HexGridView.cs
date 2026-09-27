@@ -19,6 +19,8 @@ namespace GuildTactics.HexGrid
             new Dictionary<HexCoordinates, SpriteRenderer>();
         private Sprite tileSprite;
         private Texture2D tileTexture;
+        private readonly Dictionary<TerrainType, Sprite> terrainSprites = new Dictionary<TerrainType, Sprite>();
+        private readonly List<Texture2D> terrainTextures = new List<Texture2D>();
         private HexGrid grid;
         private HexCoordinates? hovered;
         private HexCoordinates? selected;
@@ -86,6 +88,26 @@ namespace GuildTactics.HexGrid
             tileSprite = Sprite.Create(tileTexture, new Rect(0, 0, TextureSize, TextureSize),
                 new Vector2(0.5f, 0.5f), TextureSize / (2f * layout.Radius), 0, SpriteMeshType.FullRect);
             tileSprite.name = "Placeholder Hex";
+            foreach (TerrainType terrain in Enum.GetValues(typeof(TerrainType)))
+            {
+                var textured = (Color32[])pixels.Clone();
+                for (int y = 0; y < TextureSize; y++)
+                    for (int x = 0; x < TextureSize; x++)
+                    {
+                        int px = x / 4, py = y / 4;
+                        bool mortar = py % 8 == 0 || (px + (py / 8 % 2) * 5) % 11 == 0;
+                        byte shade = mortar ? (byte)130 : (byte)(220 + (px * 7 + py * 11) % 3 * 12);
+                        if (terrain == TerrainType.Blocked) shade = py % 6 == 0 || (px + py / 6 * 4) % 9 == 0 ? (byte)95 : (byte)245;
+                        if (terrain == TerrainType.HighGround) shade = py % 5 == 0 ? (byte)130 : (byte)245;
+                        if (terrain == TerrainType.Pit) shade = px < 5 || px > 26 || py < 5 || py > 26 ? (byte)220 : (byte)55;
+                        textured[y * TextureSize + x] = new Color32(shade, shade, shade, pixels[y * TextureSize + x].a);
+                    }
+                var art = new Texture2D(TextureSize, TextureSize, TextureFormat.RGBA32, false)
+                { name = "Crypt " + terrain, filterMode = FilterMode.Point, wrapMode = TextureWrapMode.Clamp };
+                art.SetPixels32(textured); art.Apply(false, true); terrainTextures.Add(art);
+                terrainSprites.Add(terrain, Sprite.Create(art, new Rect(0, 0, TextureSize, TextureSize),
+                    new Vector2(0.5f, 0.5f), TextureSize / (2f * layout.Radius), 0, SpriteMeshType.FullRect));
+            }
 
             foreach (var cell in grid.Cells)
             {
@@ -93,7 +115,7 @@ namespace GuildTactics.HexGrid
                 tile.transform.SetParent(transform, false);
                 tile.transform.position = layout.ToWorld(cell.Coordinates);
                 var renderer = tile.GetComponent<SpriteRenderer>();
-                renderer.sprite = tileSprite;
+                renderer.sprite = terrainSprites[cell.Terrain];
                 renderer.color = TerrainColor(cell.Terrain);
                 tiles.Add(cell.Coordinates, renderer);
             }
@@ -143,23 +165,27 @@ namespace GuildTactics.HexGrid
         private void Refresh(HexCoordinates? coordinate)
         {
             if (!coordinate.HasValue || !tiles.TryGetValue(coordinate.Value, out var tile)) return;
+            tile.sprite = terrainSprites[grid.GetCell(coordinate.Value).Terrain];
             if (Visibility != null)
             {
                 var state = Visibility.GetState(coordinate.Value);
                 if (DebugVisibility)
                 {
+                    tile.sprite = tileSprite;
                     tile.color = state == CellVisibility.Visible ? new Color(0.2f, 0.7f, 0.3f) :
                         state == CellVisibility.Explored ? new Color(0.25f, 0.3f, 0.65f) : new Color(0.06f, 0.06f, 0.08f);
                     return;
                 }
                 if (state == CellVisibility.Unknown)
                 {
+                    tile.sprite = tileSprite;
                     tile.color = new Color(0.06f, 0.06f, 0.08f);
                     return;
                 }
                 if (state == CellVisibility.Explored)
                 {
                     Visibility.TryGetRememberedTerrain(coordinate.Value, out var terrain);
+                    tile.sprite = terrainSprites[terrain];
                     var remembered = TerrainColor(terrain);
                     tile.color = new Color(remembered.r * 0.45f, remembered.g * 0.45f, remembered.b * 0.45f);
                     return;
@@ -175,6 +201,10 @@ namespace GuildTactics.HexGrid
 
         private void OnDestroy()
         {
+            foreach (var art in terrainSprites.Values)
+                if (Application.isPlaying) Destroy(art); else DestroyImmediate(art);
+            foreach (var art in terrainTextures)
+                if (Application.isPlaying) Destroy(art); else DestroyImmediate(art);
             if (Application.isPlaying)
             {
                 if (tileSprite != null) Destroy(tileSprite);

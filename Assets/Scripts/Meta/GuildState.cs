@@ -34,6 +34,7 @@ namespace GuildTactics.Meta
         public int Gold { get; private set; }
         public bool IsAway => activeParty != null;
         public bool CanLaunch => !IsAway && selected.Count == PartySize;
+        public event Action Changed;
 
         public GuildState(int startingGold = 100)
         {
@@ -54,9 +55,9 @@ namespace GuildTactics.Meta
             if (IsAway) return false;
             var adventurer = roster.Find(a => a.Id == id);
             if (adventurer == null || adventurer.Status != AdventurerStatus.Alive) return false;
-            if (selected.Remove(id)) return true;
+            if (selected.Remove(id)) { Changed?.Invoke(); return true; }
             if (selected.Count == PartySize) return false;
-            selected.Add(id); return true;
+            selected.Add(id); Changed?.Invoke(); return true;
         }
 
         public IReadOnlyList<GuildAdventurer> BeginExpedition()
@@ -104,6 +105,7 @@ namespace GuildTactics.Meta
             }
             Gold = newGold; inventory.AddRange(result.Items);
             activeRun = null; activeParty = null;
+            Changed?.Invoke();
             return true;
         }
 
@@ -115,6 +117,7 @@ namespace GuildTactics.Meta
             Gold -= ResurrectionCost;
             adventurer.Health = adventurer.Definition.MaxHealth;
             adventurer.Status = AdventurerStatus.Alive;
+            Changed?.Invoke();
             return true;
         }
 
@@ -123,7 +126,43 @@ namespace GuildTactics.Meta
             var adventurer = roster.Find(a => a.Id == id);
             if (IsAway || adventurer == null || adventurer.Status != AdventurerStatus.Alive ||
                 adventurer.Health == adventurer.Definition.MaxHealth || Gold < HealingCost) return false;
-            Gold -= HealingCost; adventurer.Health = adventurer.Definition.MaxHealth; return true;
+            Gold -= HealingCost; adventurer.Health = adventurer.Definition.MaxHealth; Changed?.Invoke(); return true;
+        }
+
+        internal static GuildState Restore(GuildSaveData data)
+        {
+            if (data == null || data.version != GuildSaveData.CurrentVersion || data.gold < 0 ||
+                data.roster == null || data.roster.Length != 8 || data.selected == null ||
+                data.selected.Length > PartySize || data.items == null || data.items.Length > 100000)
+                throw new ArgumentException("Invalid guild save.");
+            var guild = new GuildState(data.gold);
+            var seen = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var saved in data.roster)
+            {
+                var hero = saved == null ? null : guild.roster.Find(a => a.Id == saved.id);
+                if (hero == null || !seen.Add(saved.id) || saved.definition != hero.Definition.Id ||
+                    saved.status < 0 || saved.status > (int)AdventurerStatus.Lost ||
+                    saved.health < 0 || saved.health > hero.Definition.MaxHealth ||
+                    ((saved.status == (int)AdventurerStatus.Alive) != (saved.health > 0)))
+                    throw new ArgumentException("Invalid saved adventurer.");
+                hero.Health = saved.health; hero.Status = (AdventurerStatus)saved.status;
+            }
+            guild.selected.Clear(); seen.Clear();
+            foreach (var id in data.selected)
+            {
+                var hero = guild.roster.Find(a => a.Id == id);
+                if (hero == null || hero.Status != AdventurerStatus.Alive || !seen.Add(id))
+                    throw new ArgumentException("Invalid saved party.");
+                guild.selected.Add(id);
+            }
+            foreach (var id in data.items)
+            {
+                ItemDefinition found = null;
+                foreach (var item in ItemDefinitions.All) if (item.Id == id) found = item;
+                if (found == null) throw new ArgumentException("Unknown saved item.");
+                guild.inventory.Add(found);
+            }
+            return guild;
         }
     }
 }

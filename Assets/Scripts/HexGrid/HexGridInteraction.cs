@@ -35,6 +35,8 @@ namespace GuildTactics.HexGrid
         {
             var bounds = layout.GetBounds(grid);
             gridCamera.orthographic = true;
+            gridCamera.backgroundColor = new Color(0.035f, 0.04f, 0.065f);
+            gridCamera.allowMSAA = false;
             gridCamera.transform.rotation = Quaternion.identity;
             // Reserve screen space above the map for the prototype readout.
             float usableHeight = Mathf.Clamp01(1f - HudHeight / Mathf.Max(1, gridCamera.pixelHeight));
@@ -42,6 +44,11 @@ namespace GuildTactics.HexGrid
             usableHeight = Mathf.Max(1f / Mathf.Max(1, gridCamera.pixelHeight), usableHeight);
             gridCamera.orthographicSize = Mathf.Max(bounds.extents.y / usableHeight,
                 bounds.extents.x / Mathf.Max(0.01f, gridCamera.aspect)) * CameraPadding;
+            // Whole screen pixels per 16px unit texel where the full board fits.
+            // Short windows retain fit-to-board with nearest filtering instead of cropping cells.
+            float texelScale = gridCamera.pixelHeight / (2f * gridCamera.orthographicSize * 16f);
+            if (texelScale >= 1f)
+                gridCamera.orthographicSize = gridCamera.pixelHeight / (32f * Mathf.Floor(texelScale));
             gridCamera.transform.position = bounds.center + new Vector3(0,
                 gridCamera.orthographicSize * (1f - usableHeight), -CameraDistance);
             previousAspect = gridCamera.aspect;

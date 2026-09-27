@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 
 namespace GuildTactics.Core
 {
@@ -20,6 +20,8 @@ namespace GuildTactics.Core
         public Units.PlayerUnitController ActiveController { get; private set; }
         public Expeditions.ExpeditionSelection Expeditions { get; private set; }
         public bool DebugMode => debugMode;
+        private Meta.GuildSaveStore saveStore;
+        public string SaveMessage { get; private set; }
 
         private void Awake()
         {
@@ -30,6 +32,15 @@ namespace GuildTactics.Core
                 Debug.LogWarning("Empty dungeon seed; using crypt-1.", this);
                 Expeditions = new Expeditions.ExpeditionSelection("crypt-1");
             }
+            // Batch validation uses isolated stores and must never touch a player's save.
+            if (!Application.isBatchMode)
+            {
+                saveStore = new Meta.GuildSaveStore(System.IO.Path.Combine(Application.persistentDataPath, "guild-v1.json"));
+                if (saveStore.TryLoad(out var savedGuild, out var savedExpeditions, out var message))
+                { Guild = savedGuild; Expeditions = savedExpeditions; }
+                SaveMessage = message;
+            }
+            Guild.Changed += SaveProgress;
             GenerateDungeon();
         }
 
@@ -65,6 +76,7 @@ namespace GuildTactics.Core
         public bool TryLaunchExpedition()
         {
             if (gridCamera == null || !Guild.CanLaunch || presentation != null) return false;
+            SaveProgress();
             var party = Guild.BeginExpedition();
             try
             {
@@ -92,14 +104,31 @@ namespace GuildTactics.Core
             return true;
         }
 
-        public bool TrySelectExpedition(int index) => !Guild.IsAway && Expeditions.TrySelect(index);
+        public bool TrySelectExpedition(int index)
+        {
+            if (Guild.IsAway || index == Expeditions.SelectedIndex || !Expeditions.TrySelect(index)) return false;
+            SaveProgress(); return true;
+        }
 
         public bool TryStartNewGuild()
         {
             if (Guild.IsAway) return false;
+            Guild.Changed -= SaveProgress;
             Guild = new Meta.GuildState();
+            Expeditions = new Expeditions.ExpeditionSelection(Expeditions.InitialSeed, 1, 0);
+            Guild.Changed += SaveProgress;
+            SaveProgress();
             return true;
         }
+
+        private void SaveProgress()
+        {
+            if (saveStore == null || Guild.IsAway) return;
+            saveStore.TrySave(Guild, Expeditions, out var message);
+            SaveMessage = message;
+        }
+
+        private void OnDestroy() { if (Guild != null) Guild.Changed -= SaveProgress; }
 
         private void CreateBattle(System.Collections.Generic.IReadOnlyList<Meta.GuildAdventurer> party)
         {

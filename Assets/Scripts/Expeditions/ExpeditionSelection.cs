@@ -28,12 +28,19 @@ namespace GuildTactics.Expeditions
             new ExpeditionOffer("Deep crypt", "Dangerous · 3–5 enemies · possible keeper", 10, 3, 5, 20)
         });
         private readonly int initialSeed;
+        public int InitialSeed => initialSeed;
         public int SelectedIndex { get; private set; } = 1;
         public int LaunchedCount { get; private set; }
         public ExpeditionOffer Selected => Offers[SelectedIndex];
         // Odd increment visits distinct int seeds before wrapping. No global Unity random state.
         public int NextSeed => unchecked(initialSeed + LaunchedCount * (int)0x9E3779B9);
         public ExpeditionSelection(string seed) => initialSeed = GenerationRandom.ParseSeed(seed);
+        public ExpeditionSelection(int seed, int selectedIndex, int launchedCount)
+        {
+            if (selectedIndex < 0 || selectedIndex >= Offers.Count || launchedCount < 0)
+                throw new ArgumentException("Invalid expedition progression.");
+            initialSeed = seed; SelectedIndex = selectedIndex; LaunchedCount = launchedCount;
+        }
         public bool TrySelect(int index)
         {
             if (index < 0 || index >= Offers.Count) return false;

@@ -29,7 +29,7 @@ namespace GuildTactics.Meta
             GUI.Box(new Rect(12, 12, Screen.width - 24, Screen.height - 24), "ADVENTURERS' GUILD");
             float width = Mathf.Max(320, Screen.width - 64);
             scroll = GUI.BeginScrollView(new Rect(24, 44, Screen.width - 48, Screen.height - 64), scroll,
-                new Rect(0, 0, width, 856));
+                new Rect(0, 0, width, 930));
             GUI.Label(new Rect(0, 0, width, 26), $"Gold: {guild.Gold} | Party: {guild.SelectedIds.Count}/4 | Stored items: {guild.Inventory.Count}");
             GUI.Label(new Rect(0, 28, width, 26), "Choose four living adventurers. Wounds persist; healing costs 5 gold.");
             bool previous = GUI.enabled;
@@ -81,6 +81,9 @@ namespace GuildTactics.Meta
             }
             GUI.Label(new Rect(0, 730, width, 60), items.ToString());
             if (GUI.Button(new Rect(0, 804, 180, 32), "New guild...")) confirmingNewGuild = true;
+            GUI.Label(new Rect(0, 846, width, 72), bootstrap.SaveMessage ??
+                "Guild progress saves automatically. Quitting during an expedition restores the guild before departure.",
+                new GUIStyle(GUI.skin.label) { wordWrap = true });
             GUI.EndScrollView();
         }
     }

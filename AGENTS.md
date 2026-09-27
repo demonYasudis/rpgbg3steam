@@ -1249,7 +1249,7 @@ Acceptance criteria:
 
 ## WP-18 — Pixel-art presentation pass
 
-Status: [ ]
+Status: [x]
 
 Goal:
 Replace the grey-box feel with a coherent dark visual prototype.
@@ -1274,7 +1274,7 @@ Acceptance criteria:
 
 ## WP-19 — Save/load for demo progression
 
-Status: [ ]
+Status: [x]
 
 Goal:
 Persist the guild between game launches.

@@ -7,9 +7,12 @@ namespace GuildTactics.Units
     /// <summary>Procedural placeholder presentation for one unit.</summary>
     public sealed class UnitView : MonoBehaviour
     {
-        private const int TextureSize = 64;
-        private const float NormalScale = 0.90f;
-        private const float SelectedScale = 1.05f;
+        private const int TextureSize = CryptPixelArt.Size;
+        private const float NormalScale = 1f;
+        private const float SelectedScale = 1f;
+        private SpriteRenderer unitRenderer;
+        private int lastHealth;
+        private float hitUntil, movingUntil;
         private Sprite sprite;
         private Texture2D texture;
         private Camera worldCamera;
@@ -29,25 +32,15 @@ namespace GuildTactics.Units
                 name = state.Definition.DisplayName + " Placeholder", filterMode = FilterMode.Point,
                 wrapMode = TextureWrapMode.Clamp
             };
-            var pixels = new Color32[TextureSize * TextureSize];
-            float radius = TextureSize * 0.46f;
-            Vector2 center = Vector2.one * (TextureSize - 1) * 0.5f;
-            Color32 fill = color;
-            Color32 border = new Color32(28, 31, 38, 255);
-            for (int y = 0; y < TextureSize; y++)
-                for (int x = 0; x < TextureSize; x++)
-                {
-                    float distance = Vector2.Distance(new Vector2(x, y), center);
-                    pixels[y * TextureSize + x] = distance <= radius
-                        ? (distance >= radius - 5 ? border : fill)
-                        : new Color32(0, 0, 0, 0);
-                }
+            var pixels = CryptPixelArt.Draw(state.Definition.Id, color);
             texture.SetPixels32(pixels);
             texture.Apply(false, true);
             sprite = Sprite.Create(texture, new Rect(0, 0, TextureSize, TextureSize),
                 new Vector2(0.5f, 0.5f), TextureSize);
             sprite.name = state.Definition.DisplayName + " Placeholder";
             var renderer = gameObject.AddComponent<SpriteRenderer>();
+            unitRenderer = renderer;
+            lastHealth = state.CurrentHealth;
             renderer.sprite = sprite;
             renderer.sortingOrder = 10;
             transform.localScale = Vector3.one * NormalScale;
@@ -57,10 +50,21 @@ namespace GuildTactics.Units
         public void SetSelected(bool selected) =>
             transform.localScale = Vector3.one * (selected ? SelectedScale : NormalScale);
 
-        public void SetWorldPosition(Vector3 position) => transform.position = WithUnitDepth(position);
+        public void SetWorldPosition(Vector3 position)
+        { movingUntil = Time.unscaledTime + 0.08f; transform.position = WithUnitDepth(position); }
         public void SnapTo(Vector3 position) => transform.position = WithUnitDepth(position);
 
         private static Vector3 WithUnitDepth(Vector3 position) => new Vector3(position.x, position.y, -0.2f);
+
+        private void Update()
+        {
+            if (State == null || unitRenderer == null) return;
+            if (State.CurrentHealth < lastHealth) hitUntil = Time.unscaledTime + 0.18f;
+            lastHealth = State.CurrentHealth;
+            unitRenderer.color = Time.unscaledTime < hitUntil ? new Color(1f, 0.4f, 0.35f) : Color.white;
+            // Discrete two-pose walk; no scaling or smoothing of the source pixels.
+            unitRenderer.flipX = Time.unscaledTime < movingUntil && (int)(Time.unscaledTime * 10) % 2 == 0;
+        }
 
         private void OnGUI()
         {
@@ -83,9 +87,6 @@ namespace GuildTactics.Units
                 GUI.Label(new Rect(screen.x - width / 2, y + pixelsPerUnit * 0.45f + 5, width, 16),
                     $"{State.CurrentHealth}/{State.Definition.MaxHealth}",
                     new GUIStyle(GUI.skin.label) { alignment = TextAnchor.MiddleCenter, fontSize = 10 });
-            if (pixelsPerUnit >= 14)
-                GUI.Label(new Rect(screen.x - 12, y - 9, 24, 18), State.Definition.DisplayName.Substring(0, 1),
-                    new GUIStyle(GUI.skin.label) { alignment = TextAnchor.MiddleCenter, fontSize = 11, fontStyle = FontStyle.Bold });
         }
 
         private void OnDestroy()
