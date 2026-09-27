@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 
 namespace GuildTactics.Core
 {
@@ -25,6 +25,7 @@ namespace GuildTactics.Core
 
         private void Awake()
         {
+            if (!Application.isBatchMode) Localization.LoadPreference();
             Guild = new Meta.GuildState();
             try { Expeditions = new Expeditions.ExpeditionSelection(dungeonSeed); }
             catch (System.ArgumentException)
@@ -155,9 +156,22 @@ namespace GuildTactics.Core
 
         private void OnGUI()
         {
+            // HexGridInteraction excludes these buttons from battlefield clicks.
+            int previousDepth = GUI.depth;
+            GUI.depth = -100;
+            bool previousEnabled = GUI.enabled;
+            GUI.enabled = true;
+            float x = Screen.width - 112;
+            float y = Screen.height - 25;
+            if (GUI.Toggle(new Rect(x, y, 50, 22), Localization.Language == InterfaceLanguage.Russian, "RU", GUI.skin.button))
+                if (Localization.Language != InterfaceLanguage.Russian) Localization.SetLanguage(InterfaceLanguage.Russian);
+            if (GUI.Toggle(new Rect(x + 54, y, 50, 22), Localization.Language == InterfaceLanguage.English, "EN", GUI.skin.button))
+                if (Localization.Language != InterfaceLanguage.English) Localization.SetLanguage(InterfaceLanguage.English);
+            GUI.enabled = previousEnabled;
+            GUI.depth = previousDepth;
             if (debugMode && Dungeon != null && Guild.IsAway)
                 GUI.Label(new Rect(24, Screen.height - 28, Screen.width - 48, 24),
-                    $"Dungeon seed: {Dungeon.Seed} | Combat seed: {combatSeed}" + (Dungeon.UsedFallback ? " (fallback)" : ""));
+                    Localization.F("Dungeon seed: {0} | Combat seed: {1}", Dungeon.Seed, combatSeed) + (Dungeon.UsedFallback ? Localization.T(" (fallback)") : ""));
         }
     }
 }

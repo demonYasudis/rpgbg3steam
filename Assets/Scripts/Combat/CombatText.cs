@@ -17,7 +17,7 @@ namespace GuildTactics.Combat
         private float boxHeight = 52;
         public AttackResult LastResult { get; private set; }
         public bool IsShowing => remaining > 0;
-        public string LastMessage => text;
+        public string LastMessage => Core.Localization.CombatMessage(text);
 
         public void Initialize(Camera camera, int combatSeed)
         {
@@ -98,10 +98,12 @@ namespace GuildTactics.Combat
                 GUI.color = previous;
             }
             float width = Mathf.Min(470, Screen.width);
+            var style = new GUIStyle(GUI.skin.box) { wordWrap = true };
+            float height = Mathf.Max(boxHeight, style.CalcHeight(new GUIContent(LastMessage), width));
             float x = Mathf.Clamp(screen.x - width * 0.5f, 0, Mathf.Max(0, Screen.width - width));
-            float y = Mathf.Clamp(Screen.height - screen.y - boxHeight - 18 - 25 * (1 - remaining / DisplaySeconds),
-                0, Mathf.Max(0, Screen.height - boxHeight));
-            GUI.Box(new Rect(x, y, width, boxHeight), text);
+            float y = Mathf.Clamp(Screen.height - screen.y - height - 18 - 25 * (1 - remaining / DisplaySeconds),
+                0, Mathf.Max(0, Screen.height - height));
+            GUI.Box(new Rect(x, y, width, height), LastMessage, style);
         }
     }
 }

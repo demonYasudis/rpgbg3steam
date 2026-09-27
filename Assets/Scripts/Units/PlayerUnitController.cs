@@ -1,3 +1,4 @@
+using L = GuildTactics.Core.Localization;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -38,7 +39,8 @@ namespace GuildTactics.Units
         private AbilitySystem abilities;
         public AbilityDefinition SelectedAbility { get; private set; }
         public bool IsTargetingAttack { get; private set; }
-        public string ActionHint { get; private set; } = "Choose an action or move to a green hex.";
+        private Func<string> actionHint = () => "Choose an action or move to a green hex.";
+        public string ActionHint => L.T(actionHint());
         public AbilityResult LastAbility { get; private set; }
         private CombatText combatText;
         private bool battleEnabled;
@@ -235,7 +237,7 @@ namespace GuildTactics.Units
             if (SelectedAbility != null) { TryUseSelectedAbility(coordinate); return; }
             if (IsTargetingAttack)
             {
-                if (!TryAttackSelected(coordinate)) ActionHint = "Choose an enemy within basic attack range.";
+                if (!TryAttackSelected(coordinate)) actionHint = () => "Choose an enemy within basic attack range.";
                 return;
             }
             if (TrySelectUnit(coordinate)) return;
@@ -243,23 +245,23 @@ namespace GuildTactics.Units
             if (!TryMoveSelected(coordinate) && SelectedUnit != null)
             {
                 interaction.SetSelected(SelectedUnit.Position);
-                ActionHint = InvalidDestinationHint(coordinate);
+                actionHint = InvalidDestinationHint(coordinate);
             }
         }
 
-        private string InvalidDestinationHint(HexCoordinates coordinate)
+        private Func<string> InvalidDestinationHint(HexCoordinates coordinate)
         {
-            if (Visibility != null && !Visibility.IsVisible(coordinate)) return "Explore closer first: this hex is outside current vision.";
+            if (Visibility != null && !Visibility.IsVisible(coordinate)) return () => "Explore closer first: this hex is outside current vision.";
             var cell = grid.GetCell(coordinate);
-            if (!TerrainRules.CanWalk(cell.Terrain)) return "Cannot walk onto walls or pits.";
+            if (!TerrainRules.CanWalk(cell.Terrain)) return () => "Cannot walk onto walls or pits.";
             if (cell.IsOccupied)
             {
                 foreach (var unit in units)
-                    if (unit.IsAlive && unit.Position == coordinate) return "That ally acts on their own turn. Choose a free green hex.";
-                return !Turns.ActionAvailable ? "Action already used. Move or end your turn." :
-                    $"Enemy out of reach. Basic attack range: {SelectedUnit.Definition.AttackRange}. Move closer.";
+                    if (unit.IsAlive && unit.Position == coordinate) return () => "That ally acts on their own turn. Choose a free green hex.";
+                return () => !Turns.ActionAvailable ? "Action already used. Move or end your turn." :
+                    L.F("Enemy out of reach. Basic attack range: {0}. Move closer.", SelectedUnit.Definition.AttackRange);
             }
-            return Turns.RemainingMovement == 0 ? "No movement left. Use an action or end your turn." :
+            return () => Turns.RemainingMovement == 0 ? "No movement left. Use an action or end your turn." :
                 "No path within your movement allowance. Choose a green hex.";
         }
 
@@ -308,7 +310,7 @@ namespace GuildTactics.Units
             if (!known) return false;
             SelectedAbility = ability;
             IsTargetingAttack = false;
-            ActionHint = ability.Description;
+            actionHint = () => ability.Description;
             RefreshSelection();
             return true;
         }
@@ -318,7 +320,7 @@ namespace GuildTactics.Units
             if (!CanPlayerAct || !Turns.ActionAvailable) return false;
             SelectedAbility = null;
             IsTargetingAttack = true;
-            ActionHint = $"Basic attack: range {SelectedUnit.Definition.AttackRange}. Choose a highlighted enemy.";
+            actionHint = () => L.F("Basic attack: range {0}. Choose a highlighted enemy.", SelectedUnit.Definition.AttackRange);
             RefreshSelection();
             return true;
         }
@@ -327,7 +329,7 @@ namespace GuildTactics.Units
         {
             SelectedAbility = null;
             IsTargetingAttack = false;
-            ActionHint = "Choose an action or move to a green hex.";
+            actionHint = () => "Choose an action or move to a green hex.";
             if (Turns != null) RefreshSelection();
         }
 
@@ -335,7 +337,7 @@ namespace GuildTactics.Units
         {
             if (!CanPlayerAct || SelectedAbility == null) return false;
             if (!abilities.TryUse(SelectedUnit, SelectedAbility, target, out var result, out var reason))
-            { ActionHint = reason; RefreshSelection(); return false; }
+            { actionHint = () => reason; RefreshSelection(); return false; }
             LastAbility = result;
             // Relocation is already committed; presentation never applies an ability twice.
             foreach (var view in views.Values) view.SnapTo(layout.ToWorld(view.State.Position));
@@ -394,7 +396,7 @@ namespace GuildTactics.Units
         {
             if (!CanPlayerAct || Expedition == null || !Expedition.TryOpenChest(SelectedUnit)) return false;
             CancelTargeting();
-            ActionHint = $"Chest opened: {Expedition.CollectedGold} gold and {Expedition.CollectedItems.Count} items. Return to EXIT after combat.";
+            actionHint = () => L.F("Chest opened: {0} gold and {1} items. Return to EXIT after combat.", Expedition.CollectedGold, Expedition.CollectedItems.Count);
             return true;
         }
 
@@ -533,9 +535,9 @@ namespace GuildTactics.Units
         private void OnGUI()
         {
             if (Turns == null || Expedition?.Result != null || !IsUnitVisible(SelectedUnit)) return;
-            string status = $"HP {SelectedUnit.CurrentHealth}/{SelectedUnit.Definition.MaxHealth}   Defense {SelectedUnit.Defense}   Move {Turns.RemainingMovement}   Action {(Turns.ActionAvailable ? "ready" : "used")}";
+            string status = L.F("HP {0}/{1}   Defense {2}   Move {3}   Action {4}", SelectedUnit.CurrentHealth, SelectedUnit.Definition.MaxHealth, SelectedUnit.Defense, Turns.RemainingMovement, L.T(Turns.ActionAvailable ? "ready" : "used"));
             GUI.Label(new Rect(16, 32, Screen.width - 32, 24), new GUIContent(status,
-                "HP: health. Defense: attack total needed to hit. Move: hex movement points. One attack or ability per turn."));
+                L.T("HP: health. Defense: attack total needed to hit. Move: hex movement points. One attack or ability per turn.")));
         }
 
         private void OnDestroy() => Visibility?.Dispose();

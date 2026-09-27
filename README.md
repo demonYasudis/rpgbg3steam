@@ -162,3 +162,11 @@ New guild... внизу гильдии создаёт новый состав п
 Debug Mode в Inspector показывает seed и переключатель обзора; в этом режиме
 Encounter Config из Inspector заменяет сложность выбранного похода. В обычной игре
 действуют параметры выбранного похода, отладочные данные скрыты.
+
+## Язык интерфейса / Interface language
+
+Кнопки **RU / EN** в правом нижнем углу переключают язык сразу на всех экранах: гильдия, бой, подсказки и результаты экспедиции. При первом запуске выбран русский. Выбор сохраняется между запусками отдельно от прогресса гильдии. **EN** возвращает исходные английские тексты.
+
+Use **RU / EN** in the bottom-right corner to switch all interface screens instantly. Russian is the first-launch default; the chosen language persists independently of guild saves. **EN** uses the original English text. Content IDs and save files are unchanged.
+
+Проверка переводов: `Tools > Guild Tactics > Validate Interface Languages`. Batch: `-batchmode -nographics -quit -executeMethod GuildTactics.Editor.LocalizationChecks.RunBatch` (также проверяет способности, гильдию, выбор экспедиций и сохранения).

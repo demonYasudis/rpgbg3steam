@@ -1,3 +1,4 @@
+using L = GuildTactics.Core.Localization;
 using System;
 using GuildTactics.Units;
 using UnityEngine;
@@ -15,19 +16,20 @@ namespace GuildTactics.Abilities
         {
             if (controller == null || controller.InterfaceBlocked || controller.Expedition?.Result != null || !controller.IsUnitVisible(controller.SelectedUnit)) return;
             bool previous = GUI.enabled;
+            var buttonStyle = new GUIStyle(GUI.skin.button) { wordWrap = true, fontSize = Screen.width < 900 ? 10 : 12 };
             float width = Mathf.Max(40, (Screen.width - 44) / 4f);
             GUI.enabled = previous && controller.CanPlayerAct;
-            if (GUI.Button(new Rect(16, 96, width, 28), new GUIContent("Move / cancel", "Click a green hex to move. Cancel a selected attack or ability."))) controller.CancelTargeting();
+            if (GUI.Button(new Rect(16, 96, width, 28), new GUIContent(L.T("Move / cancel"), L.T("Click a green hex to move. Cancel a selected attack or ability.")), buttonStyle)) controller.CancelTargeting();
             GUI.enabled = GUI.enabled && controller.Turns.ActionAvailable;
             if (GUI.Button(new Rect(20 + width, 96, width, 28), new GUIContent(
-                controller.IsTargetingAttack ? "> Basic attack" : "Basic attack",
-                $"Range {controller.SelectedUnit.Definition.AttackRange}. Roll d20 + attack against defense; costs one action."))) controller.SelectBasicAttack();
+                controller.IsTargetingAttack ? L.T("> Basic attack") : L.T("Basic attack"),
+                L.F("Range {0}. Roll d20 + attack against defense; costs one action.", controller.SelectedUnit.Definition.AttackRange)), buttonStyle)) controller.SelectBasicAttack();
             var unit = controller.SelectedUnit;
             for (int i = 0; i < unit.Definition.Abilities.Count; i++)
             {
                 var ability = unit.Definition.Abilities[i];
-                string label = (controller.SelectedAbility == ability ? "> " : "") + ability.Name;
-                if (GUI.Button(new Rect(24 + 2 * width + i * (width + 4), 96, width, 28), new GUIContent(label, ability.Description)))
+                string label = (controller.SelectedAbility == ability ? "> " : "") + L.T(ability.Name);
+                if (GUI.Button(new Rect(24 + 2 * width + i * (width + 4), 96, width, 28), new GUIContent(label, L.T(ability.Description)), buttonStyle))
                     controller.SelectAbility(ability);
             }
             GUI.enabled = previous;

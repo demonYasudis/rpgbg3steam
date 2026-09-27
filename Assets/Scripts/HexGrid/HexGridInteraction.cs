@@ -67,7 +67,8 @@ namespace GuildTactics.HexGrid
         public void ProcessPointer(Vector2 screenPosition, bool clicked, bool pointerAvailable = true)
         {
             Hovered = null;
-            if (pointerAvailable && screenPosition.y < gridCamera.pixelRect.yMax - HudHeight &&
+            bool overLanguageButtons = screenPosition.x >= Screen.width - 112 && screenPosition.y <= 28;
+            if (pointerAvailable && !overLanguageButtons && screenPosition.y < gridCamera.pixelRect.yMax - HudHeight &&
                 gridCamera.pixelRect.Contains(screenPosition))
             {
                 var ray = gridCamera.ScreenPointToRay(screenPosition);
@@ -108,19 +109,19 @@ namespace GuildTactics.HexGrid
         {
             if (grid == null || !DebugMode) return;
             GUI.Label(new Rect(16, Screen.height - 52, Screen.width - 200, 22),
-                $"Hover: {Hovered?.ToString() ?? "—"} {HoveredTerrain()}");
+                Core.Localization.F("Hover: {0} {1}", Hovered?.ToString() ?? "—", HoveredTerrain()));
             if (view.Visibility != null && GUI.Button(new Rect(Screen.width - 170, Screen.height - 52, 154, 22),
-                view.DebugVisibility ? "Vision debug ON" : "Vision debug OFF"))
+                Core.Localization.T(view.DebugVisibility ? "Vision debug ON" : "Vision debug OFF")))
                 view.ToggleVisibilityDebug();
         }
 
         private string HoveredTerrain()
         {
             if (!Hovered.HasValue) return "";
-            if (view.Visibility == null) return grid.GetCell(Hovered.Value).Terrain.ToString();
+            if (view.Visibility == null) return Core.Localization.T(grid.GetCell(Hovered.Value).Terrain.ToString());
             var state = view.Visibility.GetState(Hovered.Value);
             return view.Visibility.TryGetRememberedTerrain(Hovered.Value, out var terrain)
-                ? state + " / " + terrain : state.ToString();
+                ? Core.Localization.T(state.ToString()) + " / " + Core.Localization.T(terrain.ToString()) : Core.Localization.T(state.ToString());
         }
     }
 }
