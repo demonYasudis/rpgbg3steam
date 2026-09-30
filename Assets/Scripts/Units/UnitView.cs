@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace GuildTactics.Units
 {
-    /// <summary>Procedural placeholder presentation for one unit.</summary>
+    /// <summary>Sprite-sheet presentation with a procedural fallback for unknown content.</summary>
     public sealed class UnitView : MonoBehaviour
     {
         private const int TextureSize = CryptPixelArt.Size;
@@ -17,6 +17,9 @@ namespace GuildTactics.Units
         private Texture2D texture;
         private Camera worldCamera;
         private PlayerUnitController controller;
+        private UnitSpriteSheet sheet;
+        private float actionStarted = -10f, hitStarted;
+        private UnitSpriteSheet.Pose actionPose;
         public UnitRuntimeState State { get; private set; }
 
         public void Initialize(UnitRuntimeState state, HexLayout layout, Color color, Camera camera = null)
@@ -25,23 +28,27 @@ namespace GuildTactics.Units
             worldCamera = camera;
             controller = GetComponentInParent<PlayerUnitController>();
             if (layout == null) throw new ArgumentNullException(nameof(layout));
-            if (sprite != null) throw new InvalidOperationException("Unit view is already initialized.");
+            if (unitRenderer != null) throw new InvalidOperationException("Unit view is already initialized.");
 
-            texture = new Texture2D(TextureSize, TextureSize, TextureFormat.RGBA32, false)
+            sheet = UnitSpriteSheet.Load(state.Definition.Id);
+            if (sheet == null)
             {
-                name = state.Definition.DisplayName + " Placeholder", filterMode = FilterMode.Point,
-                wrapMode = TextureWrapMode.Clamp
-            };
-            var pixels = CryptPixelArt.Draw(state.Definition.Id, color);
-            texture.SetPixels32(pixels);
-            texture.Apply(false, true);
-            sprite = Sprite.Create(texture, new Rect(0, 0, TextureSize, TextureSize),
-                new Vector2(0.5f, 0.5f), TextureSize);
-            sprite.name = state.Definition.DisplayName + " Placeholder";
+                texture = new Texture2D(TextureSize, TextureSize, TextureFormat.RGBA32, false)
+                {
+                    name = state.Definition.DisplayName + " Placeholder", filterMode = FilterMode.Point,
+                    wrapMode = TextureWrapMode.Clamp
+                };
+                var pixels = CryptPixelArt.Draw(state.Definition.Id, color);
+                texture.SetPixels32(pixels);
+                texture.Apply(false, true);
+                sprite = Sprite.Create(texture, new Rect(0, 0, TextureSize, TextureSize),
+                    new Vector2(0.5f, 0.5f), TextureSize);
+                sprite.name = state.Definition.DisplayName + " Placeholder";
+            }
             var renderer = gameObject.AddComponent<SpriteRenderer>();
             unitRenderer = renderer;
             lastHealth = state.CurrentHealth;
-            renderer.sprite = sprite;
+            renderer.sprite = sheet != null ? sheet.Frame(UnitSpriteSheet.Pose.Idle, 0) : sprite;
             renderer.sortingOrder = 10;
             transform.localScale = Vector3.one * NormalScale;
             SnapTo(layout.ToWorld(state.Position));
@@ -51,19 +58,38 @@ namespace GuildTactics.Units
             transform.localScale = Vector3.one * (selected ? SelectedScale : NormalScale);
 
         public void SetWorldPosition(Vector3 position)
-        { movingUntil = Time.unscaledTime + 0.08f; transform.position = WithUnitDepth(position); }
+        {
+            float dx = position.x - transform.position.x;
+            if (Mathf.Abs(dx) > 0.0001f) unitRenderer.flipX = dx < 0;
+            movingUntil = Time.unscaledTime + 0.08f;
+            transform.position = WithUnitDepth(position);
+        }
         public void SnapTo(Vector3 position) => transform.position = WithUnitDepth(position);
+
+        public void PlayAction(Vector3 target, bool defend = false)
+        {
+            if (Mathf.Abs(target.x - transform.position.x) > 0.001f)
+                unitRenderer.flipX = target.x < transform.position.x;
+            actionPose = defend ? UnitSpriteSheet.Pose.Defend : UnitSpriteSheet.Pose.Attack;
+            actionStarted = Time.unscaledTime;
+        }
 
         private static Vector3 WithUnitDepth(Vector3 position) => new Vector3(position.x, position.y, -0.2f);
 
         private void Update()
         {
             if (State == null || unitRenderer == null) return;
-            if (State.CurrentHealth < lastHealth) hitUntil = Time.unscaledTime + 0.18f;
+            if (State.CurrentHealth < lastHealth)
+            { hitStarted = Time.unscaledTime; hitUntil = hitStarted + 0.4f; }
             lastHealth = State.CurrentHealth;
             unitRenderer.color = Time.unscaledTime < hitUntil ? new Color(1f, 0.4f, 0.35f) : Color.white;
-            // Discrete two-pose walk; no scaling or smoothing of the source pixels.
-            unitRenderer.flipX = Time.unscaledTime < movingUntil && (int)(Time.unscaledTime * 10) % 2 == 0;
+            if (sheet != null)
+            {
+                float now = Time.unscaledTime;
+                unitRenderer.sprite = now < hitUntil ? sheet.Frame(UnitSpriteSheet.Pose.Hit, now - hitStarted, false)
+                    : now - actionStarted < 0.8f ? sheet.Frame(actionPose, now - actionStarted, false)
+                    : sheet.Frame(now < movingUntil ? UnitSpriteSheet.Pose.Walk : UnitSpriteSheet.Pose.Idle, now);
+            }
         }
 
         private void OnGUI()
@@ -75,6 +101,9 @@ namespace GuildTactics.Units
             float pixelsPerUnit = worldCamera.pixelHeight / (2f * worldCamera.orthographicSize);
             float width = Mathf.Clamp(pixelsPerUnit * 1.25f, 8, 44);
             float y = Screen.height - screen.y;
+            // Zoomed maps contain offscreen units; their bars must not paint over the HUD.
+            if (screen.x < 0 || screen.x > Screen.width || y < HexGridInteraction.HudHeight ||
+                y + pixelsPerUnit * 0.45f + 21 > Screen.height - 32) return;
             var previous = GUI.color;
             GUI.color = Color.black;
             GUI.DrawTexture(new Rect(screen.x - width / 2, y + pixelsPerUnit * 0.45f, width, 5), Texture2D.whiteTexture);
@@ -91,6 +120,7 @@ namespace GuildTactics.Units
 
         private void OnDestroy()
         {
+            sheet?.Dispose();
             if (Application.isPlaying)
             {
                 if (sprite != null) Destroy(sprite);

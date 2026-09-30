@@ -200,6 +200,7 @@ namespace GuildTactics.Editor
             view.Initialize(grid, fixtureLayout);
             var interaction = fixture.AddComponent<HexGridInteraction>();
             interaction.Initialize(grid, fixtureLayout, view, camera);
+            interaction.FrameCamera(); // This fixture checks every cell in overview mode.
             var feedback = fixture.AddComponent<GuildTactics.Combat.CombatText>();
             feedback.Initialize(camera, GuildTactics.Combat.SeededDice.DefaultSeed);
             var units = fixture.AddComponent<PlayerUnitController>();

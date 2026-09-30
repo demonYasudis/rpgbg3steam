@@ -53,6 +53,9 @@ namespace GuildTactics.Core
         }
         private static readonly Dictionary<string, string> Russian = new Dictionary<string, string>(StringComparer.Ordinal)
         {
+            { "Map overview", "Вся карта" },
+            { "Character detail", "Персонажи" },
+            { "Wheel: zoom | Right drag: pan", "Колесо: масштаб | ПКМ + движение: камера" },
             { "Gold: {0} | Party: {1}/4 | Stored items: {2}", "Золото: {0} | Отряд: {1}/4 | На складе: {2}" },
             { "Dungeon seed: {0} | Combat seed: {1}", "Сид подземелья: {0} | Сид боя: {1}" },
             { " (fallback)", " (резервная карта)" },

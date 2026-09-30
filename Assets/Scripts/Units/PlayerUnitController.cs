@@ -339,6 +339,8 @@ namespace GuildTactics.Units
             if (!abilities.TryUse(SelectedUnit, SelectedAbility, target, out var result, out var reason))
             { actionHint = () => reason; RefreshSelection(); return false; }
             LastAbility = result;
+            views[SelectedUnit.InstanceId].PlayAction(layout.ToWorld(target),
+                SelectedAbility.Effect == AbilityEffect.Evade);
             // Relocation is already committed; presentation never applies an ability twice.
             foreach (var view in views.Values) view.SnapTo(layout.ToWorld(view.State.Position));
             CancelTargeting();
@@ -423,6 +425,7 @@ namespace GuildTactics.Units
             bool showFeedback = target != null && (Visibility == null || Visibility.IsVisible(target.Position));
             if (!combat.TryAttack(SelectedUnit, target, out var result)) return false;
             LastAttack = result;
+            views[SelectedUnit.InstanceId].PlayAction(layout.ToWorld(result.TargetPosition));
             CancelTargeting();
             if (combatText != null && showFeedback) combatText.Show(result, layout.ToWorld(result.TargetPosition));
             actionRoutine = StartCoroutine(AnimateAction(SelectedUnit, CombatText.DisplaySeconds));

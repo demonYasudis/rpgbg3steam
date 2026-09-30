@@ -5,13 +5,27 @@ namespace GuildTactics.Core
     /// <summary>Owns the grid and wires the prototype presentation explicitly.</summary>
     public sealed class GameBootstrap : MonoBehaviour
     {
-        [SerializeField] private Camera gridCamera;
-        [SerializeField, Min(0)] private float movementSecondsPerStep = 0.12f;
-        [SerializeField] private int combatSeed = Combat.SeededDice.DefaultSeed;
-        [SerializeField] private string dungeonSeed = "crypt-1";
-        [SerializeField] private bool debugMode;
-        [SerializeField] private Generation.DungeonGenerationConfig dungeonConfig = new Generation.DungeonGenerationConfig();
-        [SerializeField] private Generation.EncounterConfig encounterConfig = new Generation.EncounterConfig();
+        [SerializeField] 
+        private Camera gridCamera;
+
+        [SerializeField, Min(0)] 
+        private float movementSecondsPerStep = 0.12f;
+
+        [SerializeField]
+        private int combatSeed = Combat.SeededDice.DefaultSeed;
+
+        [SerializeField]
+        private string dungeonSeed = "crypt-1";
+
+        [SerializeField]
+        private bool debugMode;
+
+        [SerializeField]
+        private Generation.DungeonGenerationConfig dungeonConfig = new Generation.DungeonGenerationConfig();
+
+        [SerializeField]
+        private Generation.EncounterConfig encounterConfig = new Generation.EncounterConfig();
+
         public HexGrid.HexGrid Grid { get; private set; }
         public Generation.DungeonMap Dungeon { get; private set; }
         private System.Collections.Generic.IReadOnlyList<Generation.EnemyPlacement> encounter;
@@ -65,19 +79,23 @@ namespace GuildTactics.Core
 
         private void Start()
         {
-            if (gridCamera == null)
+            if (gridCamera is null)
             {
                 Debug.LogError("Assign the battlefield camera to GameBootstrap.", this);
                 enabled = false;
                 return;
             }
+
             gameObject.AddComponent<Meta.GuildUI>().Initialize(this);
         }
 
         public bool TryLaunchExpedition()
         {
-            if (gridCamera == null || !Guild.CanLaunch || presentation != null) return false;
+            if (gridCamera == null || !Guild.CanLaunch || presentation != null) 
+                return false;
+
             SaveProgress();
+
             var party = Guild.BeginExpedition();
             try
             {
@@ -98,7 +116,8 @@ namespace GuildTactics.Core
 
         public bool TryReturnToGuild()
         {
-            if (!Guild.TryReturn()) return false;
+            if (!Guild.TryReturn()) 
+                return false;
             presentation.SetActive(false);
             Destroy(presentation);
             presentation = null; ActiveController = null;
@@ -107,17 +126,26 @@ namespace GuildTactics.Core
 
         public bool TrySelectExpedition(int index)
         {
-            if (Guild.IsAway || index == Expeditions.SelectedIndex || !Expeditions.TrySelect(index)) return false;
-            SaveProgress(); return true;
+            if (Guild.IsAway || index == Expeditions.SelectedIndex || !Expeditions.TrySelect(index)) 
+                return false;
+            
+            SaveProgress(); 
+            
+            return true;
         }
 
         public bool TryStartNewGuild()
         {
-            if (Guild.IsAway) return false;
+            if (Guild.IsAway) 
+                return false;
+
             Guild.Changed -= SaveProgress;
             Guild = new Meta.GuildState();
+
             Expeditions = new Expeditions.ExpeditionSelection(Expeditions.InitialSeed, 1, 0);
+
             Guild.Changed += SaveProgress;
+
             SaveProgress();
             return true;
         }
@@ -129,7 +157,10 @@ namespace GuildTactics.Core
             SaveMessage = message;
         }
 
-        private void OnDestroy() { if (Guild != null) Guild.Changed -= SaveProgress; }
+        private void OnDestroy() 
+        { 
+            if (Guild != null) Guild.Changed -= SaveProgress; 
+        }
 
         private void CreateBattle(System.Collections.Generic.IReadOnlyList<Meta.GuildAdventurer> party)
         {
