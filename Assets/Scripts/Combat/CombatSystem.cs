@@ -51,14 +51,14 @@ namespace GuildTactics.Combat
         internal static AttackResult PrepareAttack(IDice dice, UnitRuntimeState attacker,
             UnitRuntimeState target, int attackModifier = 0, int damageModifier = 0)
         {
-            int bonus = Clamp((long)attacker.Definition.Attack + attackModifier);
+            int bonus = Clamp((long)attacker.Attack + attackModifier);
             int damageBonus = Clamp((long)attacker.Definition.DamageBonus + damageModifier);
             int attackRoll = RollChecked(dice, 20);
             bool hit = (long)attackRoll + bonus >= target.Defense;
-            int damageRoll = hit ? RollChecked(dice, attacker.Definition.DamageDie) : 0;
+            int damageRoll = hit ? RollChecked(dice, attacker.DamageDie) : 0;
             int damage = hit ? (int)Math.Max(0L, Math.Min(int.MaxValue, (long)damageRoll + damageBonus)) : 0;
             return new AttackResult(target.Position, attackRoll, bonus, target.Defense,
-                attacker.Definition.DamageDie, damageRoll, damageBonus, damage,
+                attacker.DamageDie, damageRoll, damageBonus, damage,
                 Math.Min(target.CurrentHealth, damage), damage >= target.CurrentHealth);
         }
 

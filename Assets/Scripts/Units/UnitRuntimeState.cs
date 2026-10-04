@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using GuildTactics.HexGrid;
+using GuildTactics.Expeditions;
 using GridModel = GuildTactics.HexGrid.HexGrid;
 
 namespace GuildTactics.Units
@@ -20,7 +21,27 @@ namespace GuildTactics.Units
         public int EvasionBonus { get; private set; }
         internal event Action StateChanged;
         internal bool BelongsTo(GridModel grid) => ReferenceEquals(grid, spawnGrid);
-        public int Defense => (int)Math.Min(int.MaxValue, (long)Definition.Defense + EvasionBonus);
+        public ItemDefinition Weapon { get; private set; }
+        public ItemDefinition Armor { get; private set; }
+        public int HealingPotions { get; private set; }
+        public int Attack => (int)Math.Min(int.MaxValue, (long)Definition.Attack + (Weapon?.AttackBonus ?? 0));
+        public int DamageDie => Weapon?.DamageDie ?? Definition.DamageDie;
+        public int Defense => (int)Math.Min(int.MaxValue, (long)Definition.Defense + EvasionBonus + (Armor?.DefenseBonus ?? 0));
+
+        internal void SetLoadout(ItemDefinition weapon, ItemDefinition armor, int healingPotions)
+        {
+            if (Team != UnitTeam.Player || (weapon != null && weapon.Category != ItemCategory.Weapon) ||
+                (armor != null && armor.Category != ItemCategory.Armor) || healingPotions < 0 || healingPotions > Meta.GuildState.MaximumHealingPotions)
+                throw new ArgumentException("Invalid unit loadout.");
+            Weapon = weapon; Armor = armor; HealingPotions = healingPotions;
+        }
+
+        internal int DrinkHealingPotion()
+        {
+            if (!IsAlive || HealingPotions == 0 || CurrentHealth >= Definition.MaxHealth) return 0;
+            int healed = Math.Min(ItemDefinitions.HealingDraught.Healing, Definition.MaxHealth - CurrentHealth);
+            HealingPotions--; CurrentHealth += healed; StateChanged?.Invoke(); return healed;
+        }
 
         internal void BeginTurn() => EvasionBonus = 0;
         internal void SetEvasion(int bonus) => EvasionBonus = bonus;

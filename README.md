@@ -170,3 +170,10 @@ Encounter Config из Inspector заменяет сложность выбран
 Use **RU / EN** in the bottom-right corner to switch all interface screens instantly. Russian is the first-launch default; the chosen language persists independently of guild saves. **EN** uses the original English text. Content IDs and save files are unchanged.
 
 Проверка переводов: `Tools > Guild Tactics > Validate Interface Languages`. Batch: `-batchmode -nographics -quit -executeMethod GuildTactics.Editor.LocalizationChecks.RunBatch` (также проверяет способности, гильдию, выбор экспедиций и сохранения).
+
+Equipment and consumables (WP-21/22): after finding loot, scroll down in the guild
+screen to equip a hero with one weapon and armor and assign up to two healing
+potions. The Potion action heals its owner by up to 8 HP and spends the turn's action.
+Survivors keep remaining supplies; recovered bodies return equipment to storage;
+lost heroes lose carried items. Save schema 2 automatically reads schema 1 saves.
+Unity acceptance is pending; see Docs/TECHNICAL_NOTES.md and Docs/DEMO_V02_ROADMAP.md.

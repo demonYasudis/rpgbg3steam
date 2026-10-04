@@ -14,11 +14,13 @@ namespace GuildTactics.Expeditions
         public int MaxHealth { get; }
         public bool Survived => Health > 0;
         public bool BodyRecovered { get; }
+        public int HealingPotions { get; }
         internal AdventurerResult(UnitRuntimeState unit, bool bodyRecovered)
         {
             InstanceId = unit.InstanceId; DefinitionId = unit.Definition.Id;
             Name = unit.Definition.DisplayName; Health = unit.CurrentHealth; MaxHealth = unit.Definition.MaxHealth;
             BodyRecovered = !Survived && bodyRecovered;
+            HealingPotions = unit.HealingPotions;
         }
     }
 

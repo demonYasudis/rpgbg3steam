@@ -53,6 +53,21 @@ namespace GuildTactics.Core
         }
         private static readonly Dictionary<string, string> Russian = new Dictionary<string, string>(StringComparer.Ordinal)
         {
+            { "Storage:\n", "Склад:\n" },
+            { "Previous hero", "Предыдущий герой" },
+            { "Next hero", "Следующий герой" },
+            { "Loadout: ", "Снаряжение: " },
+            { "None", "Нет" },
+            { "ATK {0} | DEF {1} | Damage d{2}+{3} | Potions {4}/2", "АТК {0} | ЗАЩ {1} | Урон d{2}+{3} | Зелья {4}/2" },
+            { "Weapon: {0}. Equip: ATK {1} -> {2}, d{3} -> d{4} (stock {5})", "Оружие: {0}. Замена: АТК {1} → {2}, d{3} → d{4} (склад: {5})" },
+            { "Armor: {0}. Equip: DEF {1} -> {2} (stock {3})", "Броня: {0}. Замена: ЗАЩ {1} → {2} (склад: {3})" },
+            { "Equip weapon", "Надеть оружие" }, { "Remove weapon", "Снять оружие" },
+            { "Equip armor", "Надеть броню" }, { "Remove armor", "Снять броню" },
+            { "Give potion", "Выдать зелье" }, { "Return potion", "Вернуть зелье" },
+            { "Potion ({0})", "Зелье ({0})" },
+            { "Heal yourself up to 8 HP for one action. Needs a potion and missing health.", "Восстановить себе до 8 ОЗ за одно действие. Нужны зелье и неполное здоровье." },
+            { "Healed {0} HP. One potion and one action spent.", "Восстановлено {0} ОЗ. Потрачены одно зелье и действие." },
+            { "Equip living heroes before departure. Items must be in storage.\nSurvivors keep their loadout. Recovered bodies return items to storage; lost heroes lose their gear.\nPotions heal only their owner, up to 8 HP, for one action.", "Снаряжайте живых героев до похода. Предметы должны быть на складе.\nВыжившие сохраняют снаряжение. С возвращённого тела вещи идут на склад; с потерянным героем они пропадают.\nЗелье лечит только владельца, до 8 ОЗ, за одно действие." },
             { "Map overview", "Вся карта" },
             { "Character detail", "Персонажи" },
             { "Wheel: zoom | Right drag: pan", "Колесо: масштаб | ПКМ + движение: камера" },

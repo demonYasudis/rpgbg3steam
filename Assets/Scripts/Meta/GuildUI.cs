@@ -11,6 +11,7 @@ namespace GuildTactics.Meta
         private GameBootstrap bootstrap;
         private Vector2 scroll;
         private bool confirmingNewGuild;
+        private int loadoutIndex;
         public void Initialize(GameBootstrap owner) => bootstrap = owner != null ? owner : throw new ArgumentNullException(nameof(owner));
 
         private void OnGUI()
@@ -30,7 +31,7 @@ namespace GuildTactics.Meta
             GUI.Box(new Rect(12, 12, Screen.width - 24, Screen.height - 24), L.T("ADVENTURERS' GUILD"));
             float width = Mathf.Max(320, Screen.width - 64);
             scroll = GUI.BeginScrollView(new Rect(24, 44, Screen.width - 48, Screen.height - 64), scroll,
-                new Rect(0, 0, width, 930));
+                new Rect(0, 0, width, 1330));
             GUI.Label(new Rect(0, 0, width, 26), L.F("Gold: {0} | Party: {1}/4 | Stored items: {2}", guild.Gold, guild.SelectedIds.Count, guild.Inventory.Count));
             GUI.Label(new Rect(0, 28, width, 26), L.T("Choose four living adventurers. Wounds persist; healing costs 5 gold."));
             bool previous = GUI.enabled;
@@ -73,7 +74,7 @@ namespace GuildTactics.Meta
             if (!guild.CanLaunch) GUI.Label(new Rect(300, 554, width - 300, 46), L.T("Select four living adventurers to depart."), new GUIStyle(GUI.skin.label) { wordWrap = true });
             GUI.Label(new Rect(0, 610, width, 52), L.T("Successful extraction recovers bodies on reachable ground.\nBodies in pits and all bodies after defeat are permanently lost."));
             GUI.Label(new Rect(0, 668, width, 52), L.T("Select replacements from the reserve when someone dies.\nFewer than four living heroes: resurrect recovered bodies or start a new guild."));
-            var items = new System.Text.StringBuilder(L.T("Storage (equipment use comes later):\n"));
+            var items = new System.Text.StringBuilder(L.T("Storage:\n"));
             foreach (var definition in Expeditions.ItemDefinitions.All)
             {
                 int count = 0;
@@ -81,11 +82,49 @@ namespace GuildTactics.Meta
                 items.Append(L.T(definition.Name)).Append(" x").Append(count).Append("; ");
             }
             GUI.Label(new Rect(0, 730, width, 60), items.ToString());
-            if (GUI.Button(new Rect(0, 804, 180, 32), L.T("New guild..."))) confirmingNewGuild = true;
-            GUI.Label(new Rect(0, 846, width, 72), L.SaveMessage(bootstrap.SaveMessage) ??
+            DrawLoadout(guild, width, previous);
+            if (GUI.Button(new Rect(0, 1204, 180, 32), L.T("New guild..."))) confirmingNewGuild = true;
+            GUI.Label(new Rect(0, 1246, width, 72), L.SaveMessage(bootstrap.SaveMessage) ??
                 L.T("Guild progress saves automatically. Quitting during an expedition restores the guild before departure."),
                 new GUIStyle(GUI.skin.label) { wordWrap = true });
             GUI.EndScrollView();
+        }
+
+        private void DrawLoadout(GuildState guild, float width, bool previous)
+        {
+            float half = (width - 8) / 2;
+            if (GUI.Button(new Rect(0, 804, half, 28), L.T("Previous hero"))) loadoutIndex = (loadoutIndex + guild.Roster.Count - 1) % guild.Roster.Count;
+            if (GUI.Button(new Rect(half + 8, 804, half, 28), L.T("Next hero"))) loadoutIndex = (loadoutIndex + 1) % guild.Roster.Count;
+            var hero = guild.Roster[loadoutIndex];
+            GUI.Label(new Rect(0, 840, width, 24), L.T("Loadout: ") + L.AdventurerName(hero.Id));
+            GUI.Label(new Rect(0, 866, width, 24), L.F("ATK {0} | DEF {1} | Damage d{2}+{3} | Potions {4}/2",
+                hero.Attack, hero.Defense, hero.DamageDie, hero.Definition.DamageBonus, hero.HealingPotions));
+            var weapon = Expeditions.ItemDefinitions.Weapon;
+            var armor = Expeditions.ItemDefinitions.Armor;
+            int weapons = 0, armors = 0, potions = 0;
+            foreach (var item in guild.Inventory)
+            { if (item == weapon) weapons++; if (item == armor) armors++; if (item == Expeditions.ItemDefinitions.HealingDraught) potions++; }
+            GUI.Label(new Rect(0, 894, width, 40), L.F("Weapon: {0}. Equip: ATK {1} -> {2}, d{3} -> d{4} (stock {5})",
+                hero.Weapon == null ? L.T("None") : L.T(hero.Weapon.Name), hero.Attack,
+                hero.Definition.Attack + weapon.AttackBonus, hero.DamageDie, weapon.DamageDie, weapons), new GUIStyle(GUI.skin.label) { wordWrap = true });
+            bool alive = previous && hero.Status == AdventurerStatus.Alive;
+            GUI.enabled = alive && weapons > 0 && hero.Weapon != weapon;
+            if (GUI.Button(new Rect(0, 936, half, 28), L.T("Equip weapon"))) guild.TryEquip(hero.Id, weapon.Id);
+            GUI.enabled = alive && hero.Weapon != null;
+            if (GUI.Button(new Rect(half + 8, 936, half, 28), L.T("Remove weapon"))) guild.TryUnequip(hero.Id, Expeditions.ItemCategory.Weapon);
+            GUI.enabled = previous;
+            GUI.Label(new Rect(0, 970, width, 40), L.F("Armor: {0}. Equip: DEF {1} -> {2} (stock {3})",
+                hero.Armor == null ? L.T("None") : L.T(hero.Armor.Name), hero.Defense, hero.Definition.Defense + armor.DefenseBonus, armors), new GUIStyle(GUI.skin.label) { wordWrap = true });
+            GUI.enabled = alive && armors > 0 && hero.Armor != armor;
+            if (GUI.Button(new Rect(0, 1012, half, 28), L.T("Equip armor"))) guild.TryEquip(hero.Id, armor.Id);
+            GUI.enabled = alive && hero.Armor != null;
+            if (GUI.Button(new Rect(half + 8, 1012, half, 28), L.T("Remove armor"))) guild.TryUnequip(hero.Id, Expeditions.ItemCategory.Armor);
+            GUI.enabled = alive && potions > 0 && hero.HealingPotions < GuildState.MaximumHealingPotions;
+            if (GUI.Button(new Rect(0, 1048, half, 28), L.T("Give potion"))) guild.TryTransferPotion(hero.Id, true);
+            GUI.enabled = alive && hero.HealingPotions > 0;
+            if (GUI.Button(new Rect(half + 8, 1048, half, 28), L.T("Return potion"))) guild.TryTransferPotion(hero.Id, false);
+            GUI.enabled = previous;
+            GUI.Label(new Rect(0, 1088, width, 105), L.T("Equip living heroes before departure. Items must be in storage.\nSurvivors keep their loadout. Recovered bodies return items to storage; lost heroes lose their gear.\nPotions heal only their owner, up to 8 HP, for one action."), new GUIStyle(GUI.skin.label) { wordWrap = true });
         }
     }
 }

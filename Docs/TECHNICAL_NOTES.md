@@ -920,3 +920,35 @@ GuildTactics.Editor.HexPresentationChecks.RunBatch -logFile <log> (без -quit)
 файла. В маленьких окнах юниты остаются мелкими; полноценный масштабируемый интерфейс
 и финальная анимация остаются дальнейшей полировкой. Новых пакетов и изменений сцены нет.
 WP-18/19 отмечены завершёнными по критериям прототипа; WP-20 не начинался.
+
+## WP-21/22 — Equipment and healing consumables (2026-10-05)
+
+Implemented on top of origin/main e6c4ccb, preserving its sprites, camera and RU/EN UI.
+- GuildState/GuildUI: one weapon and armor slot, comparisons, equip/remove, counted
+  inventory ownership; up to two healing draughts per living adventurer.
+- UnitRuntimeState/CombatSystem: copied runtime loadout modifies attack, damage die
+  and defense without mutating definitions. ConsumableSystem and PlayerUnitController
+  heal self by up to 8 HP for one action; ActionBarUI displays remaining stock.
+- ExpeditionResult returns remaining potions. Survivors keep gear; recovered bodies
+  return gear and unused potions to storage; abandoned bodies/defeat lose carried items.
+- GuildSaveStore schema 2 persists slots and potions, accepts schema 1 with empty
+  loadouts. The existing guild-v1.json filename is retained to discover old saves.
+- Localization contains both languages. LoadoutChecks and the shared batch runner
+  cover inventory conservation, non-stacking bonuses, attack rolls, v1/v2 migration,
+  invalid saves, potion action locks, healing cap, survivors, repeated expeditions,
+  corpse recovery, resurrection and defeat.
+
+Validation: all runtime C# and affected editor checks compile with Roslyn against
+local Unity API stubs. Model regression runner passes WP-01,03–16,19,21/22 and
+localization (including 200 generated seeds and 50 expedition round trips).
+The JSON adapter in this external harness uses System.Text.Json; actual Unity
+JsonUtility round trips still require running the same checks inside the editor.
+Unity 6000.2.8f1 is unavailable here. No scene, Play Mode, import, visual or build
+acceptance is claimed. Scene/prefab serialized fields were not changed.
+
+Remaining: run Tools > Guild Tactics > Validate Equipment and Consumables and the
+full batch checks in Unity; manually loot items, equip/issue potions, launch, heal,
+return and restart in both languages. Check guild scrolling and five action buttons
+at supported resolutions. WP-21/22 remain [~] until that acceptance succeeds.
+The simple UI targets the existing single weapon/armor/potion catalog. Expedition
+saves still restore the pre-departure guild, as in WP-19; in-run saving is WP-30.

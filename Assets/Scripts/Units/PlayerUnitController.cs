@@ -104,7 +104,11 @@ namespace GuildTactics.Units
                     int colorIndex = 0;
                     for (int c = 0; c < definitions.Count; c++) if (definitions[c].Id == definition.Id) colorIndex = c;
                     Spawn(adventurer?.Id ?? "hero-" + definition.Id, definition, spawnPositions[index], HeroColors[colorIndex]);
-                    if (adventurer != null) units[index].ApplyDamage(definition.MaxHealth - adventurer.Health);
+                    if (adventurer != null)
+                    {
+                        units[index].ApplyDamage(definition.MaxHealth - adventurer.Health);
+                        units[index].SetLoadout(adventurer.Weapon, adventurer.Armor, adventurer.HealingPotions);
+                    }
                 }
                 if (encounter != null)
                 {
@@ -437,6 +441,16 @@ namespace GuildTactics.Units
         {
             if (!CanPlayerAct || !Turns.TryBeginAction(SelectedUnit)) return false;
             RefreshSelection();
+            actionRoutine = StartCoroutine(AnimateAction(SelectedUnit, WaitActionSeconds));
+            return true;
+        }
+
+        public bool TryUseHealingPotion()
+        {
+            if (!CanPlayerAct || !ConsumableSystem.TryHeal(Turns, SelectedUnit, out int healed)) return false;
+            CancelTargeting();
+            actionHint = () => L.F("Healed {0} HP. One potion and one action spent.", healed);
+            if (combatText != null) combatText.ShowMessage("+" + healed + " HP", layout.ToWorld(SelectedUnit.Position));
             actionRoutine = StartCoroutine(AnimateAction(SelectedUnit, WaitActionSeconds));
             return true;
         }
