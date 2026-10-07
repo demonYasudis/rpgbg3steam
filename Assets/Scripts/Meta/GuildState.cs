@@ -27,6 +27,52 @@ namespace GuildTactics.Meta
     public sealed class GuildState
     {
         public const int PartySize = 4;
+        public const int RecruitmentCost = 20;
+        public const int MaximumRosterSize = 256;
+        private int nextRecruitId = 3;
+        private readonly List<string> candidates = new List<string>();
+        public IReadOnlyList<string> Candidates => candidates.AsReadOnly();
+        internal int NextRecruitId => nextRecruitId;
+        public bool CanHire => !IsAway && Gold >= RecruitmentCost && roster.Count < MaximumRosterSize;
+        public bool CanRebuildParty
+        {
+            get
+            {
+                int available = roster.FindAll(a => a.Status == AdventurerStatus.Alive).Count;
+                int hires = Math.Min(Math.Min(candidates.Count, MaximumRosterSize - roster.Count), Gold / RecruitmentCost);
+                return available + hires + Math.Min(roster.FindAll(a => a.Status == AdventurerStatus.BodyRecovered).Count,
+                    (Gold - hires * RecruitmentCost) / ResurrectionCost) >= PartySize;
+            }
+        }
+
+        private void RefreshCandidates()
+        {
+            candidates.Clear();
+            if (nextRecruitId == int.MaxValue) return;
+            foreach (var definition in HeroDefinitions.Defaults) candidates.Add(definition.Id + "-" + nextRecruitId);
+            nextRecruitId++;
+        }
+
+        private static UnitDefinition RecruitDefinition(string id, int nextId)
+        {
+            if (string.IsNullOrEmpty(id)) return null;
+            foreach (var definition in HeroDefinitions.Defaults)
+            {
+                string prefix = definition.Id + "-";
+                if (id.StartsWith(prefix, StringComparison.Ordinal) && int.TryParse(id.Substring(prefix.Length), out int number) &&
+                    number >= 3 && number < nextId && id == prefix + number) return definition;
+            }
+            return null;
+        }
+
+        public bool TryHire(string id)
+        {
+            if (!CanHire || !candidates.Contains(id)) return false;
+            var definition = RecruitDefinition(id, nextRecruitId);
+            if (definition == null) return false;
+            candidates.Remove(id); roster.Add(new GuildAdventurer(id, definition)); Gold -= RecruitmentCost;
+            Changed?.Invoke(); return true;
+        }
         public const int ResurrectionCost = 30;
         public const int HealingCost = 5;
         public const int MaximumHealingPotions = 2;
@@ -54,6 +100,7 @@ namespace GuildTactics.Meta
                     roster.Add(adventurer);
                     if (copy == 0) selected.Add(adventurer.Id);
                 }
+            RefreshCandidates();
             Roster = roster.AsReadOnly(); SelectedIds = selected.AsReadOnly(); Inventory = inventory.AsReadOnly();
         }
 
@@ -124,6 +171,7 @@ namespace GuildTactics.Meta
             }
             Gold = newGold; inventory.AddRange(result.Items);
             activeRun = null; activeParty = null;
+            RefreshCandidates();
             Changed?.Invoke();
             return true;
         }
@@ -192,15 +240,27 @@ namespace GuildTactics.Meta
 
         internal static GuildState Restore(GuildSaveData data)
         {
-            if (data == null || (data.version != 1 && data.version != GuildSaveData.CurrentVersion) || data.gold < 0 ||
-                data.roster == null || data.roster.Length != 8 || data.selected == null ||
+            if (data == null || data.version < 1 || data.version > GuildSaveData.CurrentVersion || data.gold < 0 ||
+                data.roster == null || data.roster.Length < 8 || data.roster.Length > MaximumRosterSize ||
+                (data.version < 3 && data.roster.Length != 8) || data.selected == null ||
                 data.selected.Length > PartySize || data.items == null || data.items.Length > 100000)
                 throw new ArgumentException("Invalid guild save.");
             var guild = new GuildState(data.gold);
+            if (data.version >= 3)
+            {
+                if (data.nextRecruitId < 4 || data.candidates == null || data.candidates.Length > 4)
+                    throw new ArgumentException("Invalid recruitment state.");
+                guild.nextRecruitId = data.nextRecruitId;
+            }
             var seen = new HashSet<string>(StringComparer.Ordinal);
             foreach (var saved in data.roster)
             {
                 var hero = saved == null ? null : guild.roster.Find(a => a.Id == saved.id);
+                if (hero == null && saved != null && data.version >= 3)
+                {
+                    var definition = RecruitDefinition(saved.id, guild.nextRecruitId);
+                    if (definition != null) { hero = new GuildAdventurer(saved.id, definition); guild.roster.Add(hero); }
+                }
                 if (hero == null || !seen.Add(saved.id) || saved.definition != hero.Definition.Id ||
                     saved.status < 0 || saved.status > (int)AdventurerStatus.Lost ||
                     saved.health < 0 || saved.health > hero.Definition.MaxHealth ||
@@ -215,6 +275,20 @@ namespace GuildTactics.Meta
                         (hero.Status != AdventurerStatus.Alive && (hero.Weapon != null || hero.Armor != null || saved.potions != 0)))
                         throw new ArgumentException("Invalid saved loadout.");
                     hero.HealingPotions = saved.potions;
+                }
+            }
+            foreach (var hero in guild.roster)
+                if (!seen.Contains(hero.Id)) throw new ArgumentException("Missing saved adventurer.");
+            if (data.version >= 3)
+            {
+                guild.candidates.Clear();
+                var classes = new HashSet<string>(StringComparer.Ordinal);
+                foreach (var id in data.candidates)
+                {
+                    var definition = RecruitDefinition(id, guild.nextRecruitId);
+                    if (definition == null || id != definition.Id + "-" + (guild.nextRecruitId - 1) || seen.Contains(id) ||
+                        !classes.Add(definition.Id)) throw new ArgumentException("Invalid saved candidate.");
+                    guild.candidates.Add(id);
                 }
             }
             guild.selected.Clear(); seen.Clear();

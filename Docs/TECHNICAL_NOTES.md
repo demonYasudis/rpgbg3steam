@@ -952,3 +952,33 @@ return and restart in both languages. Check guild scrolling and five action butt
 at supported resolutions. WP-21/22 remain [~] until that acceptance succeeds.
 The simple UI targets the existing single weapon/armor/potion catalog. Expedition
 saves still restore the pre-departure guild, as in WP-19; in-run saving is WP-30.
+
+## WP-23 — Recruitment (2026-10-07)
+
+Merged WP-21/22 into main by fast-forward; added recruitment on the same guild model.
+Four existing classes offer one candidate each, costing 20 gold. Successful hiring
+consumes that offer once and emits Changed for checkpoint autosave. Offers refresh
+only when an expedition result is accepted, including retreat/defeat. Cancelled
+launches, UI reopening and reload do not refresh offers. Sequential class-number
+IDs persist across recruitment rounds. The roster has a 256-entry cap including
+lost adventurers; no dismiss mechanic is added. If living heroes plus affordable
+hires/resurrections cannot reach four, the UI explains the new-guild exit using the
+existing confirmation flow. Expanded roster rows shift later panels without overlap.
+
+Save schema 3 persists the dynamic roster, next ID and remaining candidates. Versions
+1/2 migrate the fixed roster with four initial candidates; invalid definitions,
+duplicate IDs, missing foundation heroes and invalid candidate ownership are rejected.
+RecruitmentChecks covers one-time charges/notifications, insufficient funds, unique
+IDs, selection and actual spawn/return, refresh-once, cancelled departures, JSON
+roundtrip, old schemas and malformed saves. Added to the common Unity runner.
+
+Validation in Unity 6000.2.8f1: runtime/editor compilation succeeded; all model checks
+WP-01 through WP-19 and WP-21/22/23 passed, including actual Unity JsonUtility.
+Play Mode checks for three expedition loops, movement, turn locks and framing passed.
+The full runner stopped at the existing WP-06 mouse attack presentation assertion
+(CombatChecks.ClickAttack); full suite success is not claimed. The initial -nographics
+run crashed in PixelPresentationChecks.Camera.Render; rerun used normal graphics.
+Windows x64 Development build succeeded with zero errors and warnings.
+Logs: Logs/wp23-final.log, Logs/wp23-build.log, Logs/wp23-localization.log (ignored).
+Manual recruitment/equipment/consumable UI acceptance in RU/EN remains pending;
+WP-21/22/23 retain [~]. No scene/prefab serialization or new packages were changed.

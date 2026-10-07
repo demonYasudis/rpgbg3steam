@@ -54,6 +54,11 @@ namespace GuildTactics.Core
         private static readonly Dictionary<string, string> Russian = new Dictionary<string, string>(StringComparer.Ordinal)
         {
             { "Storage:\n", "Склад:\n" },
+            { "Recruitment - 20 gold per hero", "Найм — 20 золота за героя" },
+            { "Candidates refresh after returning from an expedition. Offers and hires are saved.", "Кандидаты обновляются после возвращения из похода. Предложения и найм сохраняются." },
+            { "Hire (20)", "Нанять (20)" },
+            { "Not enough heroes and gold to rebuild a party. Start a new guild to continue.", "Не хватает героев и золота для восстановления отряда. Начните новую гильдию, чтобы продолжить." },
+            { "Select replacements from the reserve when someone dies.\nFewer than four living heroes: hire candidates, resurrect bodies or start a new guild.", "Выбирайте замену погибшим из резерва.\nЕсли живых меньше четырёх: наймите кандидатов, воскресите героев или начните новую гильдию." },
             { "Previous hero", "Предыдущий герой" },
             { "Next hero", "Следующий герой" },
             { "Loadout: ", "Снаряжение: " },

@@ -96,6 +96,7 @@ namespace GuildTactics.Editor
                 ExpeditionSelectionChecks.Run();
                 SaveChecks.Run();
                 LoadoutChecks.Run();
+                RecruitmentChecks.Run();
                 PixelPresentationChecks.Run();
                 SessionState.SetBool(PendingKey, true);
                 deadline = EditorApplication.timeSinceStartup + 90;

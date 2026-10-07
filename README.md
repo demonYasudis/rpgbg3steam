@@ -177,3 +177,14 @@ potions. The Potion action heals its owner by up to 8 HP and spends the turn's a
 Survivors keep remaining supplies; recovered bodies return equipment to storage;
 lost heroes lose carried items. Save schema 2 automatically reads schema 1 saves.
 Unity acceptance is pending; see Docs/TECHNICAL_NOTES.md and Docs/DEMO_V02_ROADMAP.md.
+
+## WP-23 — Найм героев
+
+В гильдии доступны четыре кандидата существующих классов по 20 золота.
+Нанятый герой появляется в списке, после чего его можно выбрать в отряд и снарядить.
+Кандидаты обновляются только после возвращения из завершённого похода (включая
+отступление и поражение). Повторное открытие экрана и загрузка игры список не обновляют.
+Найм, оставшиеся предложения и уникальные ID сохраняются; сохранения v1/v2 загружаются.
+Если собрать четверых нельзя даже с наймом и воскрешением, экран предлагает начать
+новую гильдию с подтверждением. Размер списка ограничен 256 героями, включая потерянных.
+Проверка: `Tools > Guild Tactics > Validate Recruitment`.

@@ -19,7 +19,9 @@ namespace GuildTactics.Meta
     [Serializable]
     public sealed class GuildSaveData
     {
-        public const int CurrentVersion = 2;
+        public const int CurrentVersion = 3;
+        public int nextRecruitId;
+        public string[] candidates;
         public int version, gold, initialSeed, selectedExpedition, launchedCount;
         public SavedAdventurer[] roster;
         public string[] selected, items;
@@ -30,6 +32,7 @@ namespace GuildTactics.Meta
             return new GuildSaveData
             {
                 version = CurrentVersion, gold = guild.Gold, initialSeed = expeditions.InitialSeed,
+                nextRecruitId = guild.NextRecruitId, candidates = guild.Candidates.ToArray(),
                 selectedExpedition = expeditions.SelectedIndex, launchedCount = expeditions.LaunchedCount,
                 roster = guild.Roster.Select(a => new SavedAdventurer
                 { id = a.Id, definition = a.Definition.Id, health = a.Health, status = (int)a.Status,
