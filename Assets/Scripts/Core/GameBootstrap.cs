@@ -177,7 +177,7 @@ namespace GuildTactics.Core
             var units = presentation.AddComponent<Units.PlayerUnitController>();
             units.Initialize(Grid, layout, view, interaction, movementSecondsPerStep,
                 new Combat.SeededDice(combatSeed), feedback, enableFog: true,
-                playerSpawns: Dungeon.PlayerSpawns, encounter: encounter, expeditionMap: Dungeon, guildParty: party);
+                playerSpawns: Dungeon.PlayerSpawns, encounter: encounter, expeditionMap: Dungeon, guildParty: party, mission: Expeditions.Selected.Mission);
             ActiveController = units;
             presentation.AddComponent<Combat.TurnOrderUI>().Initialize(units);
             presentation.AddComponent<Abilities.ActionBarUI>().Initialize(units);

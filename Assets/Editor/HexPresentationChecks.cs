@@ -103,6 +103,7 @@ namespace GuildTactics.Editor
                 LineOfSightChecks.Run();
                 RangedEnemyChecks.Run();
                 BossAttackChecks.Run();
+                MissionChecks.Run();
                 LocalizationChecks.Run();
                 PixelPresentationChecks.Run();
                 SessionState.SetBool(PendingKey, true);
@@ -353,7 +354,7 @@ namespace GuildTactics.Editor
             SessionState.SetBool(PendingKey, false);
             EditorApplication.update -= WaitForPlayMode;
             if (exception != null) Debug.LogException(exception);
-            else Debug.Log("ALL UNITY CHECKS PASSED (WP-00 through WP-19 and WP-21 through WP-27).");
+            else Debug.Log("ALL UNITY CHECKS PASSED (WP-00 through WP-19 and WP-21 through WP-28).");
             EditorApplication.Exit(exception == null ? 0 : 1);
         }
 

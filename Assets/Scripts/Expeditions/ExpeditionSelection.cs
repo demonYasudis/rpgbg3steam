@@ -9,12 +9,14 @@ namespace GuildTactics.Expeditions
     {
         public string Name { get; }
         public string Difficulty { get; }
-        public string Reward => "20–60 gold, weapon or armor, healing draught";
+        public MissionDefinition Mission { get; }
+        public string Reward => Mission.MinimumGold + "–" + Mission.MaximumGold + " gold, weapon or armor, healing draught";
         private readonly int budget, minimum, maximum, bossChance;
-        internal ExpeditionOffer(string name, string difficulty, int budget, int minimum, int maximum, int bossChance)
+        internal ExpeditionOffer(string name, string difficulty, int budget, int minimum, int maximum, int bossChance, MissionDefinition mission)
         {
             Name = name; Difficulty = difficulty; this.budget = budget;
             this.minimum = minimum; this.maximum = maximum; this.bossChance = bossChance;
+            Mission = mission;
         }
         public EncounterConfig CreateEncounterConfig() => new EncounterConfig
         { Budget = budget, MinEnemies = minimum, MaxEnemies = maximum, MiniBossPercent = bossChance };
@@ -24,8 +26,9 @@ namespace GuildTactics.Expeditions
     {
         public static IReadOnlyList<ExpeditionOffer> Offers { get; } = Array.AsReadOnly(new[]
         {
-            new ExpeditionOffer("Outer crypt", "Low risk · 2–3 enemies · no keeper", 4, 2, 3, 0),
-            new ExpeditionOffer("Deep crypt", "Dangerous · 3–5 enemies · possible keeper", 10, 3, 5, 20)
+            new ExpeditionOffer("Outer crypt", "Low risk · 2–3 enemies · no keeper", 4, 2, 3, 0, MissionDefinition.Relic),
+            new ExpeditionOffer("Deep crypt", "Dangerous · 3–5 enemies · possible keeper", 10, 3, 5, 20, MissionDefinition.Clear),
+            new ExpeditionOffer("Marked quarry", "Dangerous · 3–5 enemies · possible keeper", 10, 3, 5, 20, MissionDefinition.Hunt)
         });
         private readonly int initialSeed;
         public int InitialSeed => initialSeed;

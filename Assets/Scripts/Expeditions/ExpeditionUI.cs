@@ -65,27 +65,30 @@ namespace GuildTactics.Expeditions
                 { confirmingRetreat = showingLog = false; controller.InterfaceBlocked = false; }
                 return;
             }
-            DrawMarker(run.Chest, run.ChestOpened ? L.T("EMPTY") : L.T("CHEST"));
+            if (run.Mission.RequiresRelic) DrawMarker(run.Chest, run.ChestOpened ? L.T("EMPTY") : L.T("RELIC"));
+            if (run.MissionTarget != null && run.MissionTarget.IsAlive) DrawMarker(run.MissionTarget.Position, L.T("TARGET"));
             DrawMarker(run.Extraction, L.T("EXIT"));
             foreach (var body in run.Bodies) DrawMarker(body.Position, body.Recoverable ? L.T("BODY") : L.T("LOST"));
             if (confirmingAbandonment)
             {
-                GUI.Box(new Rect(16, 166, Screen.width - 32, 60), L.T("Unreachable bodies will be permanently lost."));
+                GUI.Box(new Rect(16, 166, Screen.width - 32, 60), L.T("Unrecovered bodies will be permanently lost."));
                 if (GUI.Button(new Rect(16, 194, 220, 28), L.T("Confirm permanent loss")))
                 { controller.InterfaceBlocked = false; controller.TryExtract(true); confirmingAbandonment = false; }
                 if (GUI.Button(new Rect(244, 194, 100, 28), L.T("Cancel")))
                 { confirmingAbandonment = false; controller.InterfaceBlocked = false; }
                 return;
             }
-            string goal = !run.ChestOpened ? L.T("Find CHEST. Open it from the same or an adjacent visible hex (1 action).") :
+            string goal = run.MissionCompleted ? L.T("Objective complete. Reach EXIT to extract.") :
+                run.Mission.Type == MissionType.EliminateTarget ? L.T("Find and defeat TARGET, then return to EXIT.") :
+                run.Mission.Type == MissionType.ClearArea ? L.F("Clear area: {0} enemies remaining", run.RemainingEnemies) : !run.ChestOpened ? L.T("Find RELIC. Take it from the same or an adjacent visible hex (1 action).") :
                 controller.Outcome == BattleOutcome.Victory ? L.T("Area cleared. Bring one survivor to EXIT to extract the party.") :
                 L.T("Loot collected. Defeat remaining enemies, then return to EXIT.");
             GUI.Label(new Rect(16, 168, Screen.width - 32, 26), goal);
             bool previous = GUI.enabled;
             GUI.enabled = previous && controller.CanPlayerAct && run.CanOpenChest(controller.SelectedUnit);
-            if (GUI.Button(new Rect(16, 198, 120, 28), new GUIContent(L.T("Open chest"), L.T("Stand next to the visible chest with one action remaining.")))) controller.TryOpenChest();
+            if (run.Mission.RequiresRelic && GUI.Button(new Rect(16, 198, 120, 28), new GUIContent(L.T("Take relic"), L.T("Stand next to the visible chest with one action remaining.")))) controller.TryOpenChest();
             GUI.enabled = previous && controller.CanPlayerAct && run.CanExtract(controller.SelectedUnit);
-            if (GUI.Button(new Rect(144, 198, 120, 28), new GUIContent(L.T("Extract party"), L.T("Open the chest, defeat every enemy, then stand on EXIT."))))
+            if (GUI.Button(new Rect(144, 198, 120, 28), new GUIContent(L.T("Extract party"), L.T("Complete the mission, then stand on EXIT."))))
             {
                 if (run.HasUnrecoverableBodies) { confirmingAbandonment = true; controller.InterfaceBlocked = true; }
                 else controller.TryExtract();

@@ -70,7 +70,7 @@ namespace GuildTactics.Units
             bool enableBattle = true, bool enableFog = false,
             IReadOnlyList<HexCoordinates> playerSpawns = null,
             IReadOnlyList<Generation.EnemyPlacement> encounter = null, Generation.DungeonMap expeditionMap = null,
-            IReadOnlyList<Meta.GuildAdventurer> guildParty = null)
+            IReadOnlyList<Meta.GuildAdventurer> guildParty = null, Expeditions.MissionDefinition mission = null)
         {
             if (grid != null) throw new InvalidOperationException("Unit controller is already initialized.");
             if (float.IsNaN(moveSecondsPerStep) || float.IsInfinity(moveSecondsPerStep) || moveSecondsPerStep < 0)
@@ -152,7 +152,7 @@ namespace GuildTactics.Units
             var participants = new List<UnitRuntimeState>(units);
             if (enableBattle) participants.AddRange(enemies);
             Turns = new TurnManager(grid, participants, enableFog ? new FogOfWarSystem(grid, units) : null);
-            if (expeditionMap != null) Expedition = new Expeditions.ExpeditionRun(expeditionMap, Turns);
+            if (expeditionMap != null) Expedition = new Expeditions.ExpeditionRun(expeditionMap, Turns, mission);
             gridView.SetFog(Visibility);
             var battleDice = dice ?? new SeededDice(SeededDice.DefaultSeed);
             combat = new CombatSystem(grid, Turns, battleDice);

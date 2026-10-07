@@ -29,11 +29,12 @@ namespace GuildTactics.Meta
             }
             var guild = bootstrap.Guild;
             float extraRows = (guild.Roster.Count - 8) * 42;
-            float recruitmentY = 1316 + extraRows;
+            float offerExtra = (Expeditions.ExpeditionSelection.Offers.Count - 2) * 28;
+            float recruitmentY = 1316 + extraRows + offerExtra;
             GUI.Box(new Rect(12, 12, Screen.width - 24, Screen.height - 24), L.T("ADVENTURERS' GUILD"));
             float width = Mathf.Max(320, Screen.width - 64);
             scroll = GUI.BeginScrollView(new Rect(24, 44, Screen.width - 48, Screen.height - 64), scroll,
-                new Rect(0, 0, width, 1762 + extraRows));
+                new Rect(0, 0, width, 1762 + extraRows + offerExtra));
             GUI.Label(new Rect(0, 0, width, 26), L.F("Gold: {0} | Party: {1}/4 | Stored items: {2}", guild.Gold, guild.SelectedIds.Count, guild.Inventory.Count));
             GUI.Label(new Rect(0, 28, width, 26), L.T("Choose four living adventurers. Wounds persist; healing costs 5 gold."));
             bool previous = GUI.enabled;
@@ -61,21 +62,22 @@ namespace GuildTactics.Meta
                 }
                 GUI.enabled = previous;
             }
-            GUI.BeginGroup(new Rect(0, extraRows, width, 1316));
+            GUI.BeginGroup(new Rect(0, extraRows, width, 1316 + offerExtra));
             GUI.Label(new Rect(0, 408, width, 24), L.T("Choose an expedition — crypt ruins"));
             for (int i = 0; i < Expeditions.ExpeditionSelection.Offers.Count; i++)
             {
                 var offer = Expeditions.ExpeditionSelection.Offers[i];
                 if (GUI.Toggle(new Rect(0, 438 + i * 28, width, 26), bootstrap.Expeditions.SelectedIndex == i,
-                    L.T(offer.Name) + " | " + L.T(offer.Difficulty))) bootstrap.TrySelectExpedition(i);
+                    L.T(offer.Name) + " | " + L.T(offer.Mission.Name) + " | " + L.T(offer.Difficulty))) bootstrap.TrySelectExpedition(i);
             }
+            GUI.BeginGroup(new Rect(0, offerExtra, width, 1316));
             GUI.Label(new Rect(0, 498, width, 26), L.T("Possible reward: ") + L.T(bootstrap.Expeditions.Selected.Reward));
             if (bootstrap.DebugMode) GUI.Label(new Rect(0, 524, width, 24), L.T("Next seed: ") + bootstrap.Expeditions.NextSeed);
             GUI.enabled = previous && guild.CanLaunch;
             if (GUI.Button(new Rect(0, 554, 290, 36), L.T("Start ") + L.T(bootstrap.Expeditions.Selected.Name))) bootstrap.TryLaunchExpedition();
             GUI.enabled = previous;
             if (!guild.CanLaunch) GUI.Label(new Rect(300, 554, width - 300, 46), L.T("Select four living adventurers to depart."), new GUIStyle(GUI.skin.label) { wordWrap = true });
-            GUI.Label(new Rect(0, 610, width, 52), L.T("Successful extraction recovers bodies on reachable ground.\nBodies in pits and all bodies after defeat are permanently lost."));
+            GUI.Label(new Rect(0, 610, width, 52), L.T("Bodies on reachable ground are recovered only after all enemies are defeated.\nExtraction from an uncleared area permanently loses dead heroes."));
             GUI.Label(new Rect(0, 668, width, 52), L.T("Select replacements from the reserve when someone dies.\nFewer than four living heroes: hire candidates, resurrect bodies or start a new guild."));
             var items = new System.Text.StringBuilder(L.T("Storage:\n"));
             foreach (var definition in Expeditions.ItemDefinitions.All)
@@ -86,6 +88,7 @@ namespace GuildTactics.Meta
             }
             GUI.Label(new Rect(0, 730, width, 60), items.ToString());
             DrawLoadout(guild, width, previous);
+            GUI.EndGroup();
             GUI.EndGroup();
             GUI.Label(new Rect(0, recruitmentY, width, 24), L.T("Recruitment - 20 gold per hero"));
             GUI.Label(new Rect(0, recruitmentY + 28, width, 52), L.T("Candidates refresh after returning from an expedition. Offers and hires are saved."), new GUIStyle(GUI.skin.label) { wordWrap = true });

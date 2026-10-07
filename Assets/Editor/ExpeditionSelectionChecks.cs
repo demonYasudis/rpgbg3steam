@@ -36,11 +36,11 @@ namespace GuildTactics.Editor
                 }
                 selection.RecordLaunch(); replay.RecordLaunch();
             }
-            Require(maps.Count > 20 && !selection.TrySelect(-1) && !selection.TrySelect(2), "Variety and invalid selection");
+            Require(maps.Count > 20 && !selection.TrySelect(-1) && !selection.TrySelect(ExpeditionSelection.Offers.Count), "Variety and invalid selection");
             Require(selection.TrySelect(0) && selection.Selected == ExpeditionSelection.Offers[0], "Selection");
             var copy = selection.Selected.CreateEncounterConfig(); copy.Budget = 99;
             Require(selection.Selected.CreateEncounterConfig().Budget == 4, "Config mutation does not alter offer");
-            Debug.Log("WP-16 passed: 40 distinct seeds, reproducible maps, two encounter offers and isolated configs.");
+            Debug.Log("WP-16 passed: 40 distinct seeds, reproducible maps, three mission offers and isolated configs.");
         }
         private static void Require(bool condition, string message)
         { if (!condition) throw new InvalidOperationException("WP-16: " + message); }
@@ -49,7 +49,7 @@ namespace GuildTactics.Editor
         // while exercising the actual bootstrap, scene ownership and guild transfer.
         public static void ValidatePresentation(GameBootstrap bootstrap)
         {
-            for (int cycle = 0; cycle < 2; cycle++)
+            for (int cycle = 0; cycle < 3; cycle++)
             {
                 var controller = bootstrap.ActiveController;
                 foreach (var enemy in controller.Enemies) enemy.ApplyDamage(enemy.CurrentHealth);
@@ -58,14 +58,14 @@ namespace GuildTactics.Editor
                 { turns.TryEndTurn(turns.ActiveUnit); turns.TryStartNextTurn(); }
                 var actor = turns.ActiveUnit;
                 Require(actor.TryRelocate(bootstrap.Grid, controller.Expedition.Chest), "Reach chest fixture");
-                Require(controller.Expedition.TryOpenChest(actor), "Collect second/third expedition reward");
+                if (controller.Expedition.Mission.RequiresRelic) Require(controller.Expedition.TryOpenChest(actor), "Collect relic reward");
                 foreach (var hero in controller.Units)
                     if (hero.IsAlive && hero.Position == controller.Expedition.Extraction)
                         hero.TryRelocate(bootstrap.Grid, bootstrap.Grid.Cells.First(c => TerrainRules.CanWalk(c.Terrain) && !c.IsOccupied).Coordinates);
                 Require(actor.TryRelocate(bootstrap.Grid, controller.Expedition.Extraction) && controller.Expedition.TryExtract(actor), "Complete another run");
                 int gold = bootstrap.Guild.Gold, reward = controller.Expedition.Result.Gold;
                 Require(bootstrap.TryReturnToGuild() && bootstrap.Guild.Gold == gold + reward && !bootstrap.TryReturnToGuild(), "Award exactly once");
-                Require(bootstrap.TrySelectExpedition(cycle == 0 ? 0 : 1), "Change offer between runs");
+                Require(bootstrap.TrySelectExpedition(cycle == 0 ? 0 : cycle == 1 ? 2 : 1), "Change offer between runs");
                 int nextSeed = bootstrap.Expeditions.NextSeed;
                 Require(bootstrap.TryLaunchExpedition() && bootstrap.Dungeon.Seed == nextSeed, "Launch advertised seed");
                 if (cycle == 0) Require(bootstrap.ActiveController.Enemies.Count >= 2 && bootstrap.ActiveController.Enemies.Count <= 3,

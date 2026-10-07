@@ -152,7 +152,7 @@ namespace GuildTactics.Editor
             var dead = controller.Units.First(u => u != actor);
             dead.ApplyDamage(dead.CurrentHealth);
             actor.TryRelocate(bootstrap.Grid, controller.Expedition.Chest);
-            Require(controller.Expedition.TryOpenChest(actor), "Presentation chest");
+            if (controller.Expedition.Mission.RequiresRelic) Require(controller.Expedition.TryOpenChest(actor), "Presentation chest");
             foreach (var unit in controller.Units)
                 if (unit.IsAlive && unit.Position == controller.Expedition.Extraction)
                     unit.TryRelocate(bootstrap.Grid, bootstrap.Grid.Cells.First(c => TerrainRules.CanWalk(c.Terrain) && !c.IsOccupied).Coordinates);

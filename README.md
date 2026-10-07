@@ -233,3 +233,23 @@ v1–v3 загружаются с нулевым опытом; текущая с
 Невидимый босс не начинает подготовку, раскрывающую его присутствие. Смерть босса,
 поражение, завершение экспедиции и уничтожение поля отменяют ожидающий удар.
 Проверка: `Tools > Guild Tactics > Validate Boss Telegraph`.
+
+
+## WP-28 — Three expedition missions (2026-10-07)
+
+The guild offers Recover relic (Outer crypt, 20–40 gold), Clear area (Deep crypt,
+40–70 gold) and Eliminate target (Marked quarry, 30–60 gold). Each also awards a
+weapon or armor and a healing draught. Relic pickup costs one action; hunting
+requires only the marked enemy; clearing requires every enemy and no relic.
+Complete the objective and bring an active survivor to EXIT. Target markers obey
+fog of war. Rewards and targets repeat for the same seed/config; return awards
+rewards once. Dead heroes are recovered only on reachable ground after full
+clearance; extraction with enemies remaining requires confirmation to abandon
+bodies. Existing offer indices 0/1 and save schema 4 remain compatible; hunt uses
+index 2. The older chest-and-clear rule remains only for legacy validation fixtures.
+
+Validation: MissionChecks covers all three missions across 40 seeds with replay,
+partial extraction, body loss confirmation and duplicate extraction rejection.
+Shared Unity checks exercise actual offer switching and guild reward transfer.
+Windows Development x64 build is verified separately. Manual visual acceptance
+is still useful for the translated guild layout at different screen sizes.
