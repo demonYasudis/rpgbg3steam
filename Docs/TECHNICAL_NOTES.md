@@ -1062,3 +1062,42 @@ claimed. Logs: Logs/wp26-final.log and Logs/wp26-build.log (ignored).
 The owner's Unity editor was open, so checks/build ran in an isolated copy of
 Assets/Packages/ProjectSettings under a temporary validation directory. The open
 editor and its scene were not closed or changed by the validation runner.
+
+## WP-27 — Cinder Keeper telegraphed strike (2026-10-07)
+
+BossAttackSystem owns a fixed snapshot of walkable hexes within radius 1 around
+a visible target up to 4 hexes away, using shared shooting geometry. Arming spends
+the boss action and ends its turn; resolution spends its next action and deals
+10 deterministic damage to living player units still in that snapshot. This is
+a fixed hazard rather than another dice attack. The zone is cleared before damage
+events, preventing reentrant/repeated application. Target movement cannot retarget
+the zone; moving the boss does not move the already announced zone either.
+
+TurnManager.TurnNumber is monotonic across all initiative positions. Resolution
+is gated until the boss's next turn, so every surviving hero, before or after
+the boss in initiative, receives one opportunity to act. The boss can prepare
+again on the following turn; there are no phases or added resources. When no
+valid target can be warned, existing melee approach/attack behavior remains.
+
+HexGridView paints visible threatened cells red, including in vision debug mode,
+without overriding unknown/explored fog. TurnOrderUI explains the danger while
+armed; CombatText shows localized preparation/result feedback. An unseen boss
+does not arm. Known fixed warnings may persist if the boss subsequently leaves
+vision; only currently visible warning cells are drawn. Damage reports concern
+player units, without revealing hidden enemies.
+
+Boss death cancels synchronously through StateChanged. The controller cancels
+on combat/expedition termination, and destruction unsubscribes view listeners
+before disposing the system. Active combat remains unsaved under WP-19 policy.
+No static definitions, scene fields, save schema, packages or assets were changed.
+
+Unity 6000.2.8f1 validation in an isolated project copy: full runtime/editor compile
+and shared model/Play Mode checks WP-00–19,21–27 passed. BossAttackChecks covers
+heroes on both sides of initiative, all four real scene hero reaction turns,
+escape by normal movement, fixed area, exactly one strike, spent actions, boss
+death/cancellation, hidden warning suppression, fog/debug coloring and defeat
+during a second pending attack. RU/EN warning/result translations are checked.
+Windows x64 Development build verification: 0 errors/warnings.
+Logs: Logs/wp27-final.log and Logs/wp27-build.log (ignored). The owner's open
+Unity editor was not closed by validation. Manual mouse-driven boss playtesting
+is not claimed; difficulty and 10-damage tuning remain provisional.

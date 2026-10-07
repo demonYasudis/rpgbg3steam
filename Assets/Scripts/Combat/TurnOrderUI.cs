@@ -48,7 +48,9 @@ namespace GuildTactics.Combat
             GUI.enabled = GUI.enabled && turns.ActionAvailable && turns.State == TurnState.SelectingAction;
             if (GUI.Button(new Rect(134, 60, 110, 28), new GUIContent(L.T("Wait"), L.T("Spend your action without attacking. You may still move.")))) controller.TryWaitAction();
             GUI.enabled = previousEnabled;
-            GUI.Label(new Rect(254, 61, Screen.width - 270, 26), L.T("Gold hex: active hero · Green: move · Purple: target"));
+            GUI.Label(new Rect(254, 61, Screen.width - 270, 26), new GUIContent(
+                L.T(controller.BossAttack?.Pending == true ? "Red hexes: 10 damage next boss turn." : "Gold hex: active hero · Green: move · Purple: target"),
+                controller.BossAttack?.Pending == true ? L.T("Cinder burst armed: leave red hexes before the next boss turn.") : ""));
         }
     }
 }

@@ -44,6 +44,9 @@ namespace GuildTactics.Core
         public static string CombatMessage(string message)
         {
             if (message == null || Language == InterfaceLanguage.English) return message;
+            message = T(message);
+            if (message.StartsWith("Cinder burst\n", StringComparison.Ordinal))
+                message = T("Cinder burst") + message.Substring("Cinder burst".Length);
             foreach (var ability in Units.HeroDefinitions.Defaults)
                 foreach (var definition in ability.Abilities)
                     if (message.StartsWith(definition.Name, StringComparison.Ordinal))
@@ -64,6 +67,9 @@ namespace GuildTactics.Core
             { "Survivors gain 100 XP on extraction, 25 on retreat. Dead heroes gain none; resurrection keeps training.", "Выжившим: 100 опыта за эвакуацию, 25 за отступление. Погибшим — 0. Воскрешение сохраняет обучение." },
             { "Walls block the line to this target.", "Стена перекрывает линию до цели." },
             { "Crypt Bowman", "Стрелок склепа" },
+            { "Cinder burst", "Вспышка углей" },
+            { "Cinder burst armed: leave red hexes before the next boss turn.", "Вспышка углей готовится: покиньте красные клетки до следующего хода босса." },
+            { "Red hexes: 10 damage next boss turn.", "Красные клетки: 10 урона на ходе босса." },
             { "Previous hero", "Предыдущий герой" },
             { "Next hero", "Следующий герой" },
             { "Loadout: ", "Снаряжение: " },

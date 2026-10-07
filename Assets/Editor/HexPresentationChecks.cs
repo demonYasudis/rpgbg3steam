@@ -21,6 +21,7 @@ namespace GuildTactics.Editor
         private static bool enemyChecksStarted;
         private static bool abilityChecksStarted;
         private static bool rangedChecksStarted;
+        private static bool bossChecksStarted;
         private static bool visibilityChecksStarted;
         private static bool expeditionChecksStarted;
         private static bool expeditionChecksComplete;
@@ -101,6 +102,7 @@ namespace GuildTactics.Editor
                 ProgressionChecks.Run();
                 LineOfSightChecks.Run();
                 RangedEnemyChecks.Run();
+                BossAttackChecks.Run();
                 LocalizationChecks.Run();
                 PixelPresentationChecks.Run();
                 SessionState.SetBool(PendingKey, true);
@@ -171,9 +173,17 @@ namespace GuildTactics.Editor
                         rangedChecksStarted = true;
                     }
                 }
-                else if (!abilityChecksStarted)
+                else if (!bossChecksStarted)
                 {
                     if (RangedEnemyChecks.PollPresentation())
+                    {
+                        BossAttackChecks.BeginPresentation(sceneUnits);
+                        bossChecksStarted = true;
+                    }
+                }
+                else if (!abilityChecksStarted)
+                {
+                    if (BossAttackChecks.PollPresentation())
                     {
                         AbilityChecks.BeginPresentation(sceneUnits);
                         abilityChecksStarted = true;
@@ -343,7 +353,7 @@ namespace GuildTactics.Editor
             SessionState.SetBool(PendingKey, false);
             EditorApplication.update -= WaitForPlayMode;
             if (exception != null) Debug.LogException(exception);
-            else Debug.Log("ALL UNITY CHECKS PASSED (WP-00 through WP-19 and WP-21 through WP-26).");
+            else Debug.Log("ALL UNITY CHECKS PASSED (WP-00 through WP-19 and WP-21 through WP-27).");
             EditorApplication.Exit(exception == null ? 0 : 1);
         }
 

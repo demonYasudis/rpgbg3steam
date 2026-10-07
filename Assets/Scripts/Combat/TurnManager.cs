@@ -21,6 +21,7 @@ namespace GuildTactics.Combat
         public UnitRuntimeState ActiveUnit => activeIndex < 0 ? null : Order[activeIndex];
         public TurnState State { get; private set; } = TurnState.AwaitTurn;
         public int Round { get; private set; }
+        public long TurnNumber { get; private set; }
         public int RemainingMovement { get; private set; }
         public bool ActionAvailable { get; private set; }
         public TrapField Traps { get; } = new TrapField();
@@ -76,6 +77,7 @@ namespace GuildTactics.Combat
             activeIndex = nextIndex;
             Round = nextRound;
             ActiveUnit.BeginTurn();
+            TurnNumber++;
             RemainingMovement = ActiveUnit.Definition.Movement;
             ActionAvailable = true;
             State = TurnState.SelectingAction;

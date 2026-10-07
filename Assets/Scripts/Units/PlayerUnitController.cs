@@ -37,6 +37,7 @@ namespace GuildTactics.Units
         private Coroutine actionRoutine;
         private CombatSystem combat;
         private AbilitySystem abilities;
+        public BossAttackSystem BossAttack { get; private set; }
         public AbilityDefinition SelectedAbility { get; private set; }
         public bool IsTargetingAttack { get; private set; }
         private Func<string> actionHint = () => "Choose an action or move to a green hex.";
@@ -158,6 +159,13 @@ namespace GuildTactics.Units
             var abilityParticipants = new List<UnitRuntimeState>(units);
             abilityParticipants.AddRange(enemies);
             abilities = new AbilitySystem(grid, Turns, battleDice, abilityParticipants);
+            foreach (var enemy in enemies)
+                if (enemy.Definition.Id == BossAttackSystem.BossId && battleEnabled)
+                {
+                    BossAttack = new BossAttackSystem(Turns, enemy, units);
+                    BossAttack.Changed += RefreshBossWarning;
+                    break;
+                }
             StartNextTurn();
             interaction.CellClicked += HandleCellClicked;
         }
@@ -472,6 +480,7 @@ namespace GuildTactics.Units
 
         private void Update()
         {
+            if (BossAttack != null && (Expedition?.Result != null || BattleRules.Evaluate(Turns.Order) != BattleOutcome.Ongoing)) BossAttack.Cancel();
             if (InterfaceBlocked) return;
             if (Turns != null && Visibility != null && Visibility.Revision != visibilityRevision) RefreshSelection();
             if (Turns == null || Expedition?.Result != null ||
@@ -497,6 +506,19 @@ namespace GuildTactics.Units
 
         private void AdvanceEnemyTurn()
         {
+            if (SelectedUnit.Definition.Id == BossAttackSystem.BossId && BossAttack != null && Turns.ActionAvailable)
+            {
+                if (BossAttack.TryResolve(out int hits))
+                {
+                    combatText?.ShowMessage($"Cinder burst\n{hits} x -10 HP", layout.ToWorld(BossAttack.Center));
+                    Turns.TryEndTurn(SelectedUnit); RefreshSelection(); return;
+                }
+                if (BossAttack.TryArm())
+                {
+                    combatText?.ShowMessage("Cinder burst armed: leave red hexes before the next boss turn.", layout.ToWorld(BossAttack.Center));
+                    Turns.TryEndTurn(SelectedUnit); RefreshSelection(); return;
+                }
+            }
             if (SelectedUnit.Definition.AttackRange > 1 && !enemyMoved && Turns.ActionAvailable)
             {
                 enemyMoved = true;
@@ -565,6 +587,11 @@ namespace GuildTactics.Units
                 L.T("HP: health. Defense: attack total needed to hit. Move: hex movement points. One attack or ability per turn.")));
         }
 
-        private void OnDestroy() => Visibility?.Dispose();
+        private void RefreshBossWarning() => gridView.SetDangerCells(BossAttack?.Zone);
+        private void OnDestroy()
+        {
+            if (BossAttack != null) { BossAttack.Changed -= RefreshBossWarning; BossAttack.Dispose(); }
+            Visibility?.Dispose();
+        }
     }
 }

@@ -27,6 +27,8 @@ namespace GuildTactics.HexGrid
         private readonly HashSet<HexCoordinates> reachable = new HashSet<HexCoordinates>();
         private readonly HashSet<HexCoordinates> targets = new HashSet<HexCoordinates>();
         private readonly HashSet<HexCoordinates> traps = new HashSet<HexCoordinates>();
+        private readonly HashSet<HexCoordinates> danger = new HashSet<HexCoordinates>();
+        public void SetDangerCells(IEnumerable<HexCoordinates> coordinates) => SetCells(danger, coordinates);
         private static readonly Color TargetColor = new Color(0.68f, 0.32f, 0.62f);
         private static readonly Color TrapColor = new Color(0.85f, 0.4f, 0.1f);
         public int TileCount => tiles.Count;
@@ -174,6 +176,7 @@ namespace GuildTactics.HexGrid
                     tile.sprite = tileSprite;
                     tile.color = state == CellVisibility.Visible ? new Color(0.2f, 0.7f, 0.3f) :
                         state == CellVisibility.Explored ? new Color(0.25f, 0.3f, 0.65f) : new Color(0.06f, 0.06f, 0.08f);
+                    if (state == CellVisibility.Visible && danger.Contains(coordinate.Value)) tile.color = new Color(1f, 0.22f, 0.12f);
                     return;
                 }
                 if (state == CellVisibility.Unknown)
@@ -197,6 +200,7 @@ namespace GuildTactics.HexGrid
                     (targets.Contains(coordinate.Value) ? TargetColor :
                     (traps.Contains(coordinate.Value) ? TrapColor :
                     (reachable.Contains(coordinate.Value) ? ReachableColor : TerrainColor(grid.GetCell(coordinate.Value).Terrain)))));
+            if (danger.Contains(coordinate.Value)) tile.color = new Color(1f, 0.22f, 0.12f);
         }
 
         private void OnDestroy()

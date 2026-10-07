@@ -1433,4 +1433,4 @@ WP-20 remains deferred until publication preparation. Preserve the tactical test
 scene, debug controls and validation runners. Continue using
 [Docs/DEMO_V02_ROADMAP.md](Docs/DEMO_V02_ROADMAP.md).
 WP-21/22 implementation and model checks are complete; Unity acceptance remains
-pending, so their status is [~]. WP-23 recruitment is implemented and Unity model checks pass; manual UI acceptance remains pending. WP-24/25 implementation, Unity model/Play Mode checks and build verification are complete. WP-26 ranged enemies and their Unity model/Play Mode checks are complete. Do not begin WP-27 without a new request.
+pending, so their status is [~]. WP-23 recruitment is implemented and Unity model checks pass; manual UI acceptance remains pending. WP-24/25 implementation, Unity model/Play Mode checks and build verification are complete. WP-26 ranged enemies and their Unity model/Play Mode checks are complete. WP-27 boss telegraph, Unity model/Play Mode checks and build verification are complete. Do not begin WP-28 without a new request.
