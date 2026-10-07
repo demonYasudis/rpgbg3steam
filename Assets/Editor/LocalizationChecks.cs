@@ -22,6 +22,9 @@ namespace GuildTactics.Editor
                     .Concat(EnemyDefinitions.Regular.Select(d => d.Unit.DisplayName))
                     .Concat(new[] { EnemyDefinitions.MiniBoss.Unit.DisplayName })
                     .Concat(ItemDefinitions.All.Select(i => i.Name))
+                    .Concat(new[] { "Train attack +1", "Train defense +1", "Walls block the line to this target.",
+                        "Level {0}/5 | XP {1}/{2} | Upgrades {3} | Training ATK +{4}, DEF +{5}",
+                        "Survivors gain 100 XP on extraction, 25 on retreat. Dead heroes gain none; resurrection keeps training." })
                     .Concat(ExpeditionSelection.Offers.SelectMany(o => new[] { o.Name, o.Difficulty, o.Reward })).ToArray();
                 Localization.SetLanguage(InterfaceLanguage.Russian, false);
                 foreach (var label in labels) Require(Localization.T(label) != label, "Missing Russian content: " + label);

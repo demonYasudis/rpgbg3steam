@@ -108,6 +108,7 @@ namespace GuildTactics.Units
                     {
                         units[index].ApplyDamage(definition.MaxHealth - adventurer.Health);
                         units[index].SetLoadout(adventurer.Weapon, adventurer.Armor, adventurer.HealingPotions);
+                        units[index].SetTraining(adventurer.TrainingAttack, adventurer.TrainingDefense);
                     }
                 }
                 if (encounter != null)
@@ -241,7 +242,7 @@ namespace GuildTactics.Units
             if (SelectedAbility != null) { TryUseSelectedAbility(coordinate); return; }
             if (IsTargetingAttack)
             {
-                if (!TryAttackSelected(coordinate)) actionHint = () => "Choose an enemy within basic attack range.";
+                if (!TryAttackSelected(coordinate)) actionHint = InvalidDestinationHint(coordinate);
                 return;
             }
             if (TrySelectUnit(coordinate)) return;
@@ -262,6 +263,7 @@ namespace GuildTactics.Units
             {
                 foreach (var unit in units)
                     if (unit.IsAlive && unit.Position == coordinate) return () => "That ally acts on their own turn. Choose a free green hex.";
+                if (!HexLineOfSight.CanShoot(grid, SelectedUnit.Position, coordinate)) return () => "Walls block the line to this target.";
                 return () => !Turns.ActionAvailable ? "Action already used. Move or end your turn." :
                     L.F("Enemy out of reach. Basic attack range: {0}. Move closer.", SelectedUnit.Definition.AttackRange);
             }

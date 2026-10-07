@@ -25,6 +25,7 @@ namespace GuildTactics.Combat
             attacker.IsPlacedOn(grid) && target != null && target.IsPlacedOn(grid) &&
             attacker.Team != target.Team && attacker.Position.DistanceTo(target.Position) >= 1 &&
             turns.CanSee(attacker, target.Position) &&
+            HexGrid.HexLineOfSight.CanShoot(grid, attacker.Position, target.Position) &&
             attacker.Position.DistanceTo(target.Position) <= attacker.Definition.AttackRange;
 
         public bool TryAttack(UnitRuntimeState attacker, UnitRuntimeState target, out AttackResult result)

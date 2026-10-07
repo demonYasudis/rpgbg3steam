@@ -24,9 +24,18 @@ namespace GuildTactics.Units
         public ItemDefinition Weapon { get; private set; }
         public ItemDefinition Armor { get; private set; }
         public int HealingPotions { get; private set; }
-        public int Attack => (int)Math.Min(int.MaxValue, (long)Definition.Attack + (Weapon?.AttackBonus ?? 0));
+        public int TrainingAttack { get; private set; }
+        public int TrainingDefense { get; private set; }
+        public int Attack => (int)Math.Min(int.MaxValue, (long)Definition.Attack + TrainingAttack + (Weapon?.AttackBonus ?? 0));
         public int DamageDie => Weapon?.DamageDie ?? Definition.DamageDie;
-        public int Defense => (int)Math.Min(int.MaxValue, (long)Definition.Defense + EvasionBonus + (Armor?.DefenseBonus ?? 0));
+        public int Defense => (int)Math.Min(int.MaxValue, (long)Definition.Defense + TrainingDefense + EvasionBonus + (Armor?.DefenseBonus ?? 0));
+
+        internal void SetTraining(int attack, int defense)
+        {
+            if (Team != UnitTeam.Player || attack < 0 || defense < 0 || (long)attack + defense > 4)
+                throw new ArgumentException("Invalid training bonuses.");
+            TrainingAttack = attack; TrainingDefense = defense;
+        }
 
         internal void SetLoadout(ItemDefinition weapon, ItemDefinition armor, int healingPotions)
         {

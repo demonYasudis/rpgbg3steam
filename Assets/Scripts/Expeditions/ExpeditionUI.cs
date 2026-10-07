@@ -124,6 +124,7 @@ namespace GuildTactics.Expeditions
                 text.Append("\n").Append(L.AdventurerName(unit.InstanceId)).Append(unit.Survived ? L.F(": {0}/{1} HP", unit.Health, unit.MaxHealth) :
                     unit.BodyRecovered ? L.T(": DEAD — body recovered") : L.T(": PERMANENTLY LOST"));
             text.Append(L.T("\nRecovered bodies can be resurrected in the guild for 30 gold."));
+            text.Append("\n").Append(L.T("Survivors gain 100 XP on extraction, 25 on retreat. Dead heroes gain none; resurrection keeps training."));
             GUI.Box(new Rect(12, 12, Screen.width - 24, Screen.height - 24), L.T("Expedition result"));
             var style = new GUIStyle(GUI.skin.label) { wordWrap = true, fontSize = 14 };
             float height = style.CalcHeight(new GUIContent(text.ToString()), Screen.width - 80) + 12;

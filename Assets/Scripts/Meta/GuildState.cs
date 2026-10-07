@@ -16,8 +16,13 @@ namespace GuildTactics.Meta
         public ItemDefinition Weapon { get; internal set; }
         public ItemDefinition Armor { get; internal set; }
         public int HealingPotions { get; internal set; }
-        public int Attack => Definition.Attack + (Weapon?.AttackBonus ?? 0);
-        public int Defense => Definition.Defense + (Armor?.DefenseBonus ?? 0);
+        public int Experience { get; internal set; }
+        public int Level => HeroProgression.Level(Experience);
+        public int TrainingAttack { get; internal set; }
+        public int TrainingDefense { get; internal set; }
+        public int AvailableUpgrades => Level - 1 - TrainingAttack - TrainingDefense;
+        public int Attack => Definition.Attack + TrainingAttack + (Weapon?.AttackBonus ?? 0);
+        public int Defense => Definition.Defense + TrainingDefense + (Armor?.DefenseBonus ?? 0);
         public int DamageDie => Weapon?.DamageDie ?? Definition.DamageDie;
         internal GuildAdventurer(string id, UnitDefinition definition)
         { Id = id; Definition = definition; Health = definition.MaxHealth; }
@@ -71,6 +76,15 @@ namespace GuildTactics.Meta
             var definition = RecruitDefinition(id, nextRecruitId);
             if (definition == null) return false;
             candidates.Remove(id); roster.Add(new GuildAdventurer(id, definition)); Gold -= RecruitmentCost;
+            Changed?.Invoke(); return true;
+        }
+
+        public bool TryUpgrade(string id, HeroUpgrade upgrade)
+        {
+            var hero = roster.Find(a => a.Id == id);
+            if (IsAway || hero == null || hero.Status != AdventurerStatus.Alive || hero.AvailableUpgrades <= 0 ||
+                (upgrade != HeroUpgrade.Attack && upgrade != HeroUpgrade.Defense)) return false;
+            if (upgrade == HeroUpgrade.Attack) hero.TrainingAttack++; else hero.TrainingDefense++;
             Changed?.Invoke(); return true;
         }
         public const int ResurrectionCost = 30;
@@ -132,6 +146,7 @@ namespace GuildTactics.Meta
                 foreach (var unit in run.Party)
                     if (unit.InstanceId == adventurer.Id && ReferenceEquals(unit.Definition, adventurer.Definition) &&
                         unit.CurrentHealth == adventurer.Health && unit.Weapon == adventurer.Weapon &&
+                        unit.TrainingAttack == adventurer.TrainingAttack && unit.TrainingDefense == adventurer.TrainingDefense &&
                         unit.Armor == adventurer.Armor && unit.HealingPotions == adventurer.HealingPotions) found = true;
                 if (!found) throw new ArgumentException("Party mismatch.");
             }
@@ -154,6 +169,12 @@ namespace GuildTactics.Meta
             {
                 var adventurer = activeParty.Find(a => a.Id == snapshot.InstanceId);
                 adventurer.Health = snapshot.Health;
+                if (snapshot.Survived)
+                {
+                    int experience = result.Outcome == ExpeditionOutcome.Extracted ? HeroProgression.ExtractionExperience :
+                        result.Outcome == ExpeditionOutcome.Retreated ? HeroProgression.RetreatExperience : 0;
+                    adventurer.Experience = Math.Min(HeroProgression.MaximumExperience, adventurer.Experience + experience);
+                }
                 adventurer.Status = snapshot.Survived ? AdventurerStatus.Alive :
                     snapshot.BodyRecovered ? AdventurerStatus.BodyRecovered : AdventurerStatus.Lost;
                 adventurer.HealingPotions = snapshot.HealingPotions;
@@ -267,6 +288,14 @@ namespace GuildTactics.Meta
                     ((saved.status == (int)AdventurerStatus.Alive) != (saved.health > 0)))
                     throw new ArgumentException("Invalid saved adventurer.");
                 hero.Health = saved.health; hero.Status = (AdventurerStatus)saved.status;
+                if (data.version >= 4)
+                {
+                    if (saved.experience < 0 || saved.experience > HeroProgression.MaximumExperience ||
+                        saved.trainingAttack < 0 || saved.trainingDefense < 0 ||
+                        (long)saved.trainingAttack + saved.trainingDefense > HeroProgression.Level(saved.experience) - 1)
+                        throw new ArgumentException("Invalid saved progression.");
+                    hero.Experience = saved.experience; hero.TrainingAttack = saved.trainingAttack; hero.TrainingDefense = saved.trainingDefense;
+                }
                 if (data.version >= 2)
                 {
                     hero.Weapon = RestoreItem(saved.weapon, ItemCategory.Weapon);

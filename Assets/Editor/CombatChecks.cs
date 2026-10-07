@@ -221,6 +221,8 @@ namespace GuildTactics.Editor
             controller = testRoot.AddComponent<PlayerUnitController>();
             controller.Initialize(playingGrid, layout, view, interaction, 0,
                 new ScriptedDice(20, 6, 20, 6, 20, 6), feedback, enableBattle: false);
+            // Pointer fixtures require the whole map, independent of the prior detail-camera selection.
+            interaction.FrameCamera();
             actor = controller.SelectedUnit;
             target = controller.Enemies.Single();
             attackCount = 0;

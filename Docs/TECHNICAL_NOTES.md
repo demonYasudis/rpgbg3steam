@@ -982,3 +982,51 @@ Windows x64 Development build succeeded with zero errors and warnings.
 Logs: Logs/wp23-final.log, Logs/wp23-build.log, Logs/wp23-localization.log (ignored).
 Manual recruitment/equipment/consumable UI acceptance in RU/EN remains pending;
 WP-21/22/23 retain [~]. No scene/prefab serialization or new packages were changed.
+
+## WP-24/25 — Hero progression and wall occlusion (2026-10-07)
+
+WP-24: GuildAdventurer owns XP and separately counted attack/defense training.
+Surviving active-party members gain 100 XP on extraction, 25 on retreat, zero on
+defeat; reserves and casualties gain none. The existing one-time result acceptance
+guards rewards. Total thresholds 100/250/450/700 produce levels 2/3/4/5; XP caps at
+700. Each earned level permits one +1 attack or +1 defense choice in the guild.
+Death preserves XP/choices; resurrection cannot grant them again. New recruits are
+untrained. Runtime units copy training before attaching the run, and combat combines
+training with equipment without mutating definitions. No HP gain or automatic healing.
+Save schema 4 stores XP and training, validating the earned choice budget; v1–v3
+migrate to untrained heroes. Storage and candidate schema from WP-23 remain intact.
+Guild loadout comparisons include training and a localized progression panel follows
+the equipment controls; roster growth shifts that panel and recruitment consistently.
+
+WP-25: HexLineOfSight clips center-to-center segments against cube-space hex Voronoi
+cells. Closed supercover blocks a ray grazing either of two tied wall cells, avoiding
+one-direction corner shooting. Origin and target cells are excluded from occlusion
+tests so wall faces are visible; CanShoot also disallows a wall destination. Only
+Blocked terrain occludes; no units, heights, pits or corpses. Player fog is a union of
+individual occluded views; enemy sight uses its own radius and the same geometry.
+Fog-disabled isolated fixtures retain unrestricted vision; direct attacks still
+validate shooting geometry. Highlight preview and action commit share CombatSystem
+and AbilitySystem validation. Allies can reveal a destination without granting a
+shot through a wall. Blink can cross walls to party-visible free ground. Fire Burst
+requires actor-to-center and center-to-victim lines, and never damages unseen enemies.
+Trap requires a direct placement line. Basic attack feedback explains wall rejection.
+Fog refresh after movement, Blink, Push, spawn and death uses the existing events.
+
+Validation in Unity 6000.2.8f1: runtime/editor compilation and all shared model and
+Play Mode checks passed (WP-00–19,21–25), with actual JsonUtility migration/roundtrips
+and RU/EN content checks. ProgressionChecks covers nine expedition loops, cap and
+threshold boundaries, duplicate results, real combat bonuses, equipment separation,
+recruits, body recovery/resurrection, retreat/defeat and invalid save budgets.
+LineOfSightChecks covers 4,096 open-field pairs and reverse symmetry with a wall,
+all six adjacent directions, invalid map edges, both tied seam cells, visible wall
+faces, player/enemy shooting, ally vision, Blink, movement/death and blast shielding.
+The old WP-06 pointer test inherited the previous detail-camera framing; explicitly
+framing its isolated fixture in overview fixes that test, and the full Play Mode
+runner now passes through combat, enemy AI, abilities and visibility.
+Logs: Logs/wp24-25-final.log and Logs/wp24-25-build.log (ignored).
+
+Manual GUI interaction and visual acceptance were not performed. An attempted batch
+ScreenCapture of the guild did not produce an image before timeout; that temporary
+capture harness was removed. The actual GUI controls use the tested model methods.
+Balance remains provisional: four small stat improvements, one compact XP schedule.
+No scene/prefab serialization, additional classes or new packages were introduced.
