@@ -33,6 +33,15 @@ namespace GuildTactics.Editor
                 }
             }
             Require(UnitSpriteSheet.Load("unknown-content") == null, "Procedural fallback for unknown IDs");
+            using (var goblin = UnitSpriteSheet.Load("veil-stalker"))
+            {
+                var first = goblin.Frame(UnitSpriteSheet.Pose.Idle, 0);
+                var ninth = goblin.Frame(UnitSpriteSheet.Pose.Idle, 1.61f, false);
+                Require(ninth.name.EndsWith("_8"), "Goblin idle preserves all nine source frames");
+                Require(Mathf.Approximately(first.rect.width / first.texture.width, 180f / 1536f),
+                    "Goblin uses measured source columns, not equal eighths or ninths");
+                Require(goblin.Frame(UnitSpriteSheet.Pose.Idle, 1.81f) == first, "Goblin idle loops after nine frames");
+            }
             PixelPresentationChecks.Run();
             UnitMovementChecks.Run();
             CombatChecks.Run();

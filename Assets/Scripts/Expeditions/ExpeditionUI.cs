@@ -27,6 +27,12 @@ namespace GuildTactics.Expeditions
             layout = hexLayout ?? throw new ArgumentNullException(nameof(hexLayout));
             worldCamera = camera != null ? camera : throw new ArgumentNullException(nameof(camera));
             bootstrap = owner;
+            if (units.Expedition.Mission.RequiresRelic)
+            {
+                var chest = new GameObject("Relic chest");
+                chest.transform.SetParent(transform, false);
+                chest.AddComponent<ChestView>().Initialize(units, hexLayout);
+            }
         }
 
         private void OnGUI()

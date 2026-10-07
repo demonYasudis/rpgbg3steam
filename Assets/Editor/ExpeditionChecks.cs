@@ -156,6 +156,7 @@ namespace GuildTactics.Editor
         private static PlayerUnitController presentation;
         private static DungeonMap presentationMap;
         private static int stage;
+        private static float chestOpenedAt;
         public static void BeginPresentation(Camera camera)
         {
             presentationMap = DungeonGenerator.Generate(13);
@@ -183,11 +184,20 @@ namespace GuildTactics.Editor
             }
             if (presentation.IsMoving) return false;
             var actor = presentation.SelectedUnit;
-            foreach (var hero in presentation.Units)
-                if (hero != actor && hero.Position == presentation.Expedition.Extraction) hero.ApplyDamage(hero.CurrentHealth);
-            Require(actor.TryRelocate(presentationMap.Grid, presentation.Expedition.Chest), "Move to chest fixture");
-            presentation.CancelTargeting();
-            Require(presentation.TryOpenChest() && !presentation.TryOpenChest(), "Controller single reward");
+            if (stage == 1)
+            {
+                foreach (var hero in presentation.Units)
+                    if (hero != actor && hero.Position == presentation.Expedition.Extraction) hero.ApplyDamage(hero.CurrentHealth);
+                Require(actor.TryRelocate(presentationMap.Grid, presentation.Expedition.Chest), "Move to chest fixture");
+                presentation.CancelTargeting();
+                Require(presentation.TryOpenChest() && !presentation.TryOpenChest(), "Controller single reward");
+                chestOpenedAt = Time.unscaledTime;
+                stage = 2;
+                return false;
+            }
+            if (Time.unscaledTime - chestOpenedAt < 0.8f) return false;
+            var chest = presentation.GetComponentInChildren<ChestView>().GetComponent<SpriteRenderer>();
+            Require(chest.enabled && Mathf.Approximately(chest.sprite.rect.x, 1629), "Chest opening finishes and holds the open frame");
             Require(actor.TryRelocate(presentationMap.Grid, presentation.Expedition.Extraction), "Return fixture");
             presentation.CancelTargeting();
             Require(presentation.TryExtract() && presentation.Expedition.Result != null, "Controller result flow");

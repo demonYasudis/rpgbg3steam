@@ -10,14 +10,22 @@ namespace GuildTactics.Core
     public static class Localization
     {
         public const string PreferenceKey = "GuildTactics.InterfaceLanguage";
+
         public static InterfaceLanguage Language { get; private set; } = InterfaceLanguage.English;
+
         public static void LoadPreference() => SetLanguage(ParsePreference(PlayerPrefs.GetString(PreferenceKey, "ru")), false);
+
         public static InterfaceLanguage ParsePreference(string value) => value == "en" ? InterfaceLanguage.English : InterfaceLanguage.Russian;
+
         public static void SetLanguage(InterfaceLanguage value, bool persist = true)
         {
             if (!Enum.IsDefined(typeof(InterfaceLanguage), value)) throw new ArgumentOutOfRangeException(nameof(value));
             Language = value;
-            if (persist) { PlayerPrefs.SetString(PreferenceKey, value == InterfaceLanguage.Russian ? "ru" : "en"); PlayerPrefs.Save(); }
+
+            if (persist)
+            {
+                PlayerPrefs.SetString(PreferenceKey, value == InterfaceLanguage.Russian ? "ru" : "en"); PlayerPrefs.Save();
+            }
         }
         public static string T(string english)
         {

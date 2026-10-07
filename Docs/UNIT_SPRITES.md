@@ -22,6 +22,10 @@ directional rows are inconsistent. The existing death removal / corpse marker fl
 death and directional artwork remains in the source sheets but is not played.
 The wolf hit row uses only its first four frames to avoid playing dead poses on living units.
 Generated poses still need artist cleanup for perfect weapon/anatomy continuity and alignment.
+Goblin uses nine frames in every playable row, including idle. Its column edges are measured
+at source x = 0, 180, 360, 540, 720, 900, 1070, 1240, 1400, 1536, rather than equal-width slices.
+The idle regression check verifies the ninth frame and wraparound. Chest artwork and its
+one-shot opening animation are documented in `CHEST_SPRITES.md`.
 
 Texture import uses point filtering, original dimensions, no mipmaps, no compression and source alpha.
 Unknown definitions keep procedural placeholder art. Runtime sprites are released with each unit;

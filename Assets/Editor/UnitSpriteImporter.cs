@@ -7,7 +7,8 @@ namespace GuildTactics.Editor
     {
         private void OnPreprocessTexture()
         {
-            if (!assetPath.StartsWith("Assets/Resources/UnitSprites/")) return;
+            if (!assetPath.StartsWith("Assets/Resources/UnitSprites/") &&
+                !assetPath.StartsWith("Assets/Resources/PropSprites/")) return;
             var importer = (TextureImporter)assetImporter;
             importer.textureType = TextureImporterType.Default;
             importer.alphaSource = TextureImporterAlphaSource.FromInput;
@@ -17,7 +18,7 @@ namespace GuildTactics.Editor
             importer.mipmapEnabled = false;
             importer.textureCompression = TextureImporterCompression.Uncompressed;
             importer.npotScale = TextureImporterNPOTScale.None;
-            importer.maxTextureSize = 2048;
+            importer.maxTextureSize = 4096;
             importer.isReadable = false;
         }
     }
