@@ -1030,3 +1030,35 @@ ScreenCapture of the guild did not produce an image before timeout; that tempora
 capture harness was removed. The actual GUI controls use the tested model methods.
 Balance remains provisional: four small stat improvements, one compact XP schedule.
 No scene/prefab serialization, additional classes or new packages were introduced.
+
+## WP-26 — Ranged crypt enemy (2026-10-07)
+
+Crypt Bowman joins EnemyDefinitions.Regular: cost 3, HP 12, attack 4, defense 11,
+d6+1 damage, movement 3, initiative 3, range 4, vision 6. No new classes, items,
+save fields or production dependencies. The existing archer sheet supplies
+animation, with a distinct code-authored bow silhouette as fallback and RU/EN name.
+
+RangedBrain considers only currently visible living opponents. It searches the
+authoritative reachable range within this turn's movement budget for a direct
+shot, preferring non-adjacent firing positions and cheaper movement. Without a
+shot it approaches a visible opponent while preferring safety. Grid iteration
+and input target order make ties deterministic. It never crosses occupied or
+non-walkable cells. PlayerUnitController chooses this movement once for ranged
+enemies, then uses existing combat/action/animation locks to attack at most once
+and finish the turn. Existing melee behavior is retained. New encounter draws
+remain reproducible for a given seed/config; adding a budget option changes draws
+relative to the previous release, and active battle saves remain out of scope.
+
+Validation: Unity 6000.2.8f1 runtime/editor compilation; full shared model/Play Mode
+runner including WP-26. Checks cover retreat from adjacent opponents, holding a
+safe shot, approaching within movement budget, zero budget, empty/dead/hidden
+targets, walls, one action, turn completion and 100 repeatable encounter seeds.
+A live PlayerUnitController fixture verifies that the archer retreats, deals one
+7-HP hit and hands control back without freezing. Gallery rendering was inspected;
+the normal archer sheet is reused to match existing unit artwork. Windows x64
+Development build: zero errors/warnings. Manual mouse-driven UI testing is not
+claimed. Logs: Logs/wp26-final.log and Logs/wp26-build.log (ignored).
+
+The owner's Unity editor was open, so checks/build ran in an isolated copy of
+Assets/Packages/ProjectSettings under a temporary validation directory. The open
+editor and its scene were not closed or changed by the validation runner.

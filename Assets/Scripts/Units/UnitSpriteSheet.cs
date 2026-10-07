@@ -22,6 +22,7 @@ namespace GuildTactics.Units
                 case "veil-stalker": return "goblin";
                 case "hollow-brute": return "orc";
                 case "crypt-warden": return "knight";
+                case "crypt-bowman": return "archer";
                 case "cinder-keeper": return "mage";
                 default: return null;
             }

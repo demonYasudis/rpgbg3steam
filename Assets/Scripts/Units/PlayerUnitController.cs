@@ -497,6 +497,12 @@ namespace GuildTactics.Units
 
         private void AdvanceEnemyTurn()
         {
+            if (SelectedUnit.Definition.AttackRange > 1 && !enemyMoved && Turns.ActionAvailable)
+            {
+                enemyMoved = true;
+                var firingPosition = RangedBrain.ChooseDestination(grid, SelectedUnit, Units, Turns.RemainingMovement, Turns);
+                if (firingPosition != SelectedUnit.Position && BeginMovement(firingPosition)) return;
+            }
             var target = MeleeBrain.FindTarget(combat, SelectedUnit, Units);
             if (target != null && BeginAttack(target)) return;
             if (!enemyMoved && Turns.ActionAvailable)

@@ -33,7 +33,7 @@ namespace GuildTactics.Generation
 
     public static class EnemyDefinitions
     {
-        // Four melee profiles reuse the proven brain; ranged behaviour is a later content choice.
+        // Melee profiles plus one ranged archetype; budget selection remains seed-driven.
         public static IReadOnlyList<EnemyArchetype> Regular { get; } = Array.AsReadOnly(new[]
         {
             new EnemyArchetype(new UnitDefinition("ash-crawler", "Ash Crawler", 5, 4,
@@ -43,7 +43,9 @@ namespace GuildTactics.Generation
             new EnemyArchetype(new UnitDefinition("veil-stalker", "Veil Stalker", 5, 5,
                 maxHealth: 12, attack: 5, defense: 12, damageDie: 6, damageBonus: 2), 3),
             new EnemyArchetype(new UnitDefinition("hollow-brute", "Hollow Brute", 2, 0,
-                maxHealth: 28, attack: 4, defense: 11, damageDie: 8, damageBonus: 3), 4)
+                maxHealth: 28, attack: 4, defense: 11, damageDie: 8, damageBonus: 3), 4),
+            new EnemyArchetype(new UnitDefinition("crypt-bowman", "Crypt Bowman", 3, 3,
+                maxHealth: 12, attack: 4, defense: 11, damageDie: 6, damageBonus: 1, attackRange: 4, visionRange: 6), 3)
         });
         public static EnemyArchetype MiniBoss { get; } = new EnemyArchetype(
             new UnitDefinition("cinder-keeper", "Cinder Keeper", 3, 2,

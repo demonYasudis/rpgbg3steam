@@ -52,7 +52,7 @@ namespace GuildTactics.Editor
                 camera.targetTexture = target; camera.Render(); RenderTexture.active = target;
                 pixels.ReadPixels(new Rect(0, 0, 960, 480), 0, 0); pixels.Apply();
                 Directory.CreateDirectory("Logs"); File.WriteAllBytes("Logs/wp18-art.png", pixels.EncodeToPNG());
-                Debug.Log("WP-18 passed: nine distinct sprites, point filtering, no mipmaps; rendered crypt art gallery.");
+                Debug.Log($"WP-18 passed: {definitions.Length} distinct silhouettes, point filtering, no mipmaps; rendered crypt art gallery.");
             }
             finally
             {

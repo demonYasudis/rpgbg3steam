@@ -42,6 +42,10 @@ namespace GuildTactics.Units
                     Rect(3, 5, 10, 5, outline); Rect(4, 6, 8, 3, accent);
                     for (int x = 1; x <= 13; x += 4) { Rect(x, 3, 2, 4, metal); Rect(x, 9, 2, 3, metal); }
                     Rect(5, 8, 2, 1, light); Rect(9, 8, 2, 1, light); break;
+                case "crypt-bowman":
+                    Rect(5, 3, 6, 8, accent); Rect(6, 11, 4, 3, skin);
+                    Rect(12, 4, 1, 9, outline); Rect(13, 5, 1, 7, metal);
+                    Rect(10, 7, 5, 1, light); break;
                 case "crypt-warden":
                     Rect(5, 11, 6, 4, metal); Rect(6, 12, 1, 1, outline); Rect(9, 12, 1, 1, outline);
                     Rect(1, 3, 1, 12, metal); Rect(0, 12, 3, 2, light); break;
