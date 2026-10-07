@@ -63,6 +63,7 @@ namespace GuildTactics.Core
             { "Train attack +1", "Улучшить атаку +1" }, { "Train defense +1", "Улучшить защиту +1" },
             { "Survivors gain 100 XP on extraction, 25 on retreat. Dead heroes gain none; resurrection keeps training.", "Выжившим: 100 опыта за эвакуацию, 25 за отступление. Погибшим — 0. Воскрешение сохраняет обучение." },
             { "Walls block the line to this target.", "Стена перекрывает линию до цели." },
+            { "Crypt Bowman", "Стрелок склепа" },
             { "Previous hero", "Предыдущий герой" },
             { "Next hero", "Следующий герой" },
             { "Loadout: ", "Снаряжение: " },
