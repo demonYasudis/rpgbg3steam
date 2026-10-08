@@ -53,6 +53,14 @@ namespace GuildTactics.Core
         }
         private static readonly Dictionary<string, string> Russian = new Dictionary<string, string>(StringComparer.Ordinal)
         {
+            { "Recruitment — hire for {0} gold", "Найм — {0} золота за героя" },
+            { "One candidate per class. The board refreshes after returning from an expedition. Opening the guild or loading does not refresh it.", "По одному кандидату каждого класса. Список обновляется после возвращения из похода. Открытие гильдии и загрузка его не меняют." },
+            { "Hire ({0})", "Нанять ({0})" },
+            { "Unavailable", "Недоступен" },
+            { "Cannot restore four heroes with the current gold and candidates. Start a new guild below (confirmation required).", "С текущим золотом и кандидатами четверых героев не восстановить. Начните новую гильдию кнопкой ниже — потребуется подтверждение." },
+            { "Roster limit reached. Use living heroes or resurrect recovered bodies.", "Достигнут предел списка героев. Выберите живых или воскресите тех, чьи тела возвращены." },
+            { "Hired heroes arrive healthy and unequipped. Select them for your party.", "Нанятые герои здоровы и без снаряжения. Выберите их в отряд." },
+            { "Select replacements from the reserve or hire candidates.\nRecovered bodies can be resurrected for 30 gold.", "Выберите замену из резерва или наймите кандидатов.\nГероев с возвращёнными телами можно воскресить за 30 золота." },
             { "Storage:\n", "Склад:\n" },
             { "Previous hero", "Предыдущий герой" },
             { "Next hero", "Следующий герой" },

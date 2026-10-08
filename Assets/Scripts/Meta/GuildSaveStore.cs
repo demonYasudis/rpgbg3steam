@@ -17,12 +17,20 @@ namespace GuildTactics.Meta
     }
 
     [Serializable]
+    public sealed class SavedCandidate
+    {
+        public string id, definition;
+    }
+
+    [Serializable]
     public sealed class GuildSaveData
     {
-        public const int CurrentVersion = 2;
+        public const int CurrentVersion = 3;
         public int version, gold, initialSeed, selectedExpedition, launchedCount;
         public SavedAdventurer[] roster;
         public string[] selected, items;
+        public int nextRecruitNumber;
+        public SavedCandidate[] candidates;
 
         public static GuildSaveData Capture(GuildState guild, ExpeditionSelection expeditions)
         {
@@ -34,7 +42,9 @@ namespace GuildTactics.Meta
                 roster = guild.Roster.Select(a => new SavedAdventurer
                 { id = a.Id, definition = a.Definition.Id, health = a.Health, status = (int)a.Status,
                     weapon = a.Weapon?.Id, armor = a.Armor?.Id, potions = a.HealingPotions }).ToArray(),
-                selected = guild.SelectedIds.ToArray(), items = guild.Inventory.Select(i => i.Id).ToArray()
+                selected = guild.SelectedIds.ToArray(), items = guild.Inventory.Select(i => i.Id).ToArray(),
+                nextRecruitNumber = guild.NextRecruitNumber,
+                candidates = guild.Candidates.Select(a => new SavedCandidate { id = a.Id, definition = a.Definition.Id }).ToArray()
             };
         }
     }

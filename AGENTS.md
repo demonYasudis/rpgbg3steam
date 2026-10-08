@@ -1432,5 +1432,5 @@ Only after that checkpoint should deeper content systems be built.
 WP-20 remains deferred until publication preparation. Preserve the tactical test
 scene, debug controls and validation runners. Continue using
 [Docs/DEMO_V02_ROADMAP.md](Docs/DEMO_V02_ROADMAP.md).
-WP-21/22 implementation and model checks are complete; Unity acceptance remains
-pending, so their status is [~]. Do not begin WP-23 without a new request.
+WP-21/22/23 implementation and model checks are complete; Unity acceptance remains
+pending, so their status is [~]. Do not begin WP-24 without a new request.

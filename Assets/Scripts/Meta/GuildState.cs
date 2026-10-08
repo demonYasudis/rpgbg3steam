@@ -30,12 +30,18 @@ namespace GuildTactics.Meta
         public const int ResurrectionCost = 30;
         public const int HealingCost = 5;
         public const int MaximumHealingPotions = 2;
+        public const int HiringCost = 40;
+        public const int MaximumRosterSize = 256;
         private readonly List<GuildAdventurer> roster = new List<GuildAdventurer>();
+        private readonly List<GuildAdventurer> candidates = new List<GuildAdventurer>();
+        private int nextRecruitNumber = 3;
         private readonly List<string> selected = new List<string>();
         private readonly List<ItemDefinition> inventory = new List<ItemDefinition>();
         private ExpeditionRun activeRun;
         private List<GuildAdventurer> activeParty;
         public IReadOnlyList<GuildAdventurer> Roster { get; }
+        public IReadOnlyList<GuildAdventurer> Candidates { get; }
+        internal int NextRecruitNumber => nextRecruitNumber;
         public IReadOnlyList<string> SelectedIds { get; }
         public IReadOnlyList<ItemDefinition> Inventory { get; }
         public int Gold { get; private set; }
@@ -55,6 +61,47 @@ namespace GuildTactics.Meta
                     if (copy == 0) selected.Add(adventurer.Id);
                 }
             Roster = roster.AsReadOnly(); SelectedIds = selected.AsReadOnly(); Inventory = inventory.AsReadOnly();
+            Candidates = candidates.AsReadOnly();
+            RefreshCandidates();
+        }
+
+        // The board changes only after accepting an expedition result, never on UI open/load.
+        private void RefreshCandidates()
+        {
+            candidates.Clear();
+            if (roster.Count >= MaximumRosterSize || nextRecruitNumber > int.MaxValue - 4) return;
+            foreach (var definition in HeroDefinitions.Defaults)
+                candidates.Add(new GuildAdventurer(definition.Id + "-" + nextRecruitNumber++, definition));
+        }
+
+        public bool TryHire(string candidateId)
+        {
+            var candidate = candidates.Find(a => a.Id == candidateId);
+            if (IsAway || candidate == null || Gold < HiringCost || roster.Count >= MaximumRosterSize) return false;
+            candidates.Remove(candidate);
+            roster.Add(candidate);
+            Gold -= HiringCost;
+            Changed?.Invoke();
+            return true;
+        }
+
+        /// <summary>Whether the current gold can restore four living heroes, without future rewards.</summary>
+        public bool CanRebuildParty
+        {
+            get
+            {
+                int living = 0, bodies = 0;
+                foreach (var hero in roster)
+                {
+                    if (hero.Status == AdventurerStatus.Alive) living++;
+                    if (hero.Status == AdventurerStatus.BodyRecovered) bodies++;
+                }
+                int needed = Math.Max(0, PartySize - living);
+                int resurrect = Math.Min(needed, bodies);
+                int hire = needed - resurrect;
+                return hire <= candidates.Count && hire <= MaximumRosterSize - roster.Count &&
+                    Gold >= resurrect * ResurrectionCost + hire * HiringCost;
+            }
         }
 
         public bool TryToggleSelection(string id)
@@ -124,6 +171,7 @@ namespace GuildTactics.Meta
             }
             Gold = newGold; inventory.AddRange(result.Items);
             activeRun = null; activeParty = null;
+            RefreshCandidates();
             Changed?.Invoke();
             return true;
         }
@@ -192,21 +240,31 @@ namespace GuildTactics.Meta
 
         internal static GuildState Restore(GuildSaveData data)
         {
-            if (data == null || (data.version != 1 && data.version != GuildSaveData.CurrentVersion) || data.gold < 0 ||
-                data.roster == null || data.roster.Length != 8 || data.selected == null ||
+            if (data == null || data.version < 1 || data.version > GuildSaveData.CurrentVersion || data.gold < 0 ||
+                data.roster == null || data.roster.Length < 8 || data.roster.Length > MaximumRosterSize ||
+                (data.version < 3 && data.roster.Length != 8) || data.selected == null ||
                 data.selected.Length > PartySize || data.items == null || data.items.Length > 100000)
                 throw new ArgumentException("Invalid guild save.");
             var guild = new GuildState(data.gold);
+            if (data.version >= 3)
+            {
+                if (data.nextRecruitNumber < 7 || data.candidates == null || data.candidates.Length > 4)
+                    throw new ArgumentException("Invalid recruitment board.");
+                guild.nextRecruitNumber = data.nextRecruitNumber;
+            }
+            guild.roster.Clear();
             var seen = new HashSet<string>(StringComparer.Ordinal);
             foreach (var saved in data.roster)
             {
-                var hero = saved == null ? null : guild.roster.Find(a => a.Id == saved.id);
+                var hero = saved == null ? null : RestoreIdentity(saved.id, saved.definition, guild.nextRecruitNumber,
+                    data.version >= 3);
                 if (hero == null || !seen.Add(saved.id) || saved.definition != hero.Definition.Id ||
                     saved.status < 0 || saved.status > (int)AdventurerStatus.Lost ||
                     saved.health < 0 || saved.health > hero.Definition.MaxHealth ||
                     ((saved.status == (int)AdventurerStatus.Alive) != (saved.health > 0)))
                     throw new ArgumentException("Invalid saved adventurer.");
                 hero.Health = saved.health; hero.Status = (AdventurerStatus)saved.status;
+                guild.roster.Add(hero);
                 if (data.version >= 2)
                 {
                     hero.Weapon = RestoreItem(saved.weapon, ItemCategory.Weapon);
@@ -215,6 +273,23 @@ namespace GuildTactics.Meta
                         (hero.Status != AdventurerStatus.Alive && (hero.Weapon != null || hero.Armor != null || saved.potions != 0)))
                         throw new ArgumentException("Invalid saved loadout.");
                     hero.HealingPotions = saved.potions;
+                }
+            }
+            // All initial records remain, including lost heroes; saves cannot erase their deaths.
+            foreach (var definition in HeroDefinitions.Defaults)
+                for (int copy = 1; copy <= 2; copy++)
+                    if (!seen.Contains(definition.Id + "-" + copy)) throw new ArgumentException("Missing initial adventurer.");
+            if (data.version >= 3)
+            {
+                guild.candidates.Clear();
+                var classes = new HashSet<string>(StringComparer.Ordinal);
+                foreach (var saved in data.candidates)
+                {
+                    var candidate = saved == null ? null : RestoreIdentity(saved.id, saved.definition, guild.nextRecruitNumber, true);
+                    if (candidate == null || !seen.Add(candidate.Id) || !classes.Add(candidate.Definition.Id) ||
+                        !TryReadRecruitNumber(candidate.Id, candidate.Definition.Id, out int number) || number < 3)
+                        throw new ArgumentException("Invalid saved candidate.");
+                    guild.candidates.Add(candidate);
                 }
             }
             guild.selected.Clear(); seen.Clear();
@@ -233,6 +308,23 @@ namespace GuildTactics.Meta
                 guild.inventory.Add(found);
             }
             return guild;
+        }
+
+        private static GuildAdventurer RestoreIdentity(string id, string definitionId, int nextNumber, bool allowRecruits)
+        {
+            foreach (var definition in HeroDefinitions.Defaults)
+                if (definition.Id == definitionId && TryReadRecruitNumber(id, definitionId, out int number) &&
+                    number > 0 && (number <= 2 || (allowRecruits && number < nextNumber)))
+                    return new GuildAdventurer(id, definition);
+            return null;
+        }
+
+        private static bool TryReadRecruitNumber(string id, string definition, out int number)
+        {
+            number = 0;
+            return id != null && id.StartsWith(definition + "-", StringComparison.Ordinal) &&
+                int.TryParse(id.Substring(definition.Length + 1), out number) &&
+                id == definition + "-" + number;
         }
 
         private static ItemDefinition RestoreItem(string id, ItemCategory category)

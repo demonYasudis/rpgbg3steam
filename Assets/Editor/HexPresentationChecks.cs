@@ -96,6 +96,7 @@ namespace GuildTactics.Editor
                 ExpeditionSelectionChecks.Run();
                 SaveChecks.Run();
                 LoadoutChecks.Run();
+                RecruitmentChecks.Run();
                 PixelPresentationChecks.Run();
                 SessionState.SetBool(PendingKey, true);
                 deadline = EditorApplication.timeSinceStartup + 90;
@@ -121,6 +122,7 @@ namespace GuildTactics.Editor
                     foreach (var root in UnityEngine.SceneManagement.SceneManager.GetActiveScene().GetRootGameObjects())
                         if (root.TryGetComponent<GameBootstrap>(out var bootstrap))
                         {
+                            RecruitmentChecks.ValidatePresentation(bootstrap);
                             GuildChecks.ValidatePresentation(bootstrap);
                             ExpeditionSelectionChecks.ValidatePresentation(bootstrap);
                             GenerationChecks.ValidatePresentation(bootstrap);

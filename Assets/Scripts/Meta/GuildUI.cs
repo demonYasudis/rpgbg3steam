@@ -23,15 +23,16 @@ namespace GuildTactics.Meta
                 GUI.Label(new Rect(28, 44, Screen.width - 56, 50), L.T("Current gold, roster and stored items will be replaced. This cannot be undone."),
                     new GUIStyle(GUI.skin.label) { wordWrap = true });
                 if (GUI.Button(new Rect(28, 106, 180, 32), L.T("Confirm new guild")))
-                { bootstrap.TryStartNewGuild(); confirmingNewGuild = false; scroll = Vector2.zero; }
+                { bootstrap.TryStartNewGuild(); confirmingNewGuild = false; scroll = Vector2.zero; loadoutIndex = 0; }
                 if (GUI.Button(new Rect(220, 106, 100, 32), L.T("Cancel"))) confirmingNewGuild = false;
                 return;
             }
             var guild = bootstrap.Guild;
             GUI.Box(new Rect(12, 12, Screen.width - 24, Screen.height - 24), L.T("ADVENTURERS' GUILD"));
             float width = Mathf.Max(320, Screen.width - 64);
+            float extraHeight = (guild.Roster.Count - 8) * 42 + 300;
             scroll = GUI.BeginScrollView(new Rect(24, 44, Screen.width - 48, Screen.height - 64), scroll,
-                new Rect(0, 0, width, 1330));
+                new Rect(0, 0, width, 1330 + extraHeight));
             GUI.Label(new Rect(0, 0, width, 26), L.F("Gold: {0} | Party: {1}/4 | Stored items: {2}", guild.Gold, guild.SelectedIds.Count, guild.Inventory.Count));
             GUI.Label(new Rect(0, 28, width, 26), L.T("Choose four living adventurers. Wounds persist; healing costs 5 gold."));
             bool previous = GUI.enabled;
@@ -59,6 +60,9 @@ namespace GuildTactics.Meta
                 }
                 GUI.enabled = previous;
             }
+            DrawRecruitment(guild, width, 66 + row * 42, previous);
+            // Keep the existing controls below the variable-length roster and recruitment board.
+            GUI.BeginGroup(new Rect(0, extraHeight, width, 1330));
             GUI.Label(new Rect(0, 408, width, 24), L.T("Choose an expedition — crypt ruins"));
             for (int i = 0; i < Expeditions.ExpeditionSelection.Offers.Count; i++)
             {
@@ -73,7 +77,7 @@ namespace GuildTactics.Meta
             GUI.enabled = previous;
             if (!guild.CanLaunch) GUI.Label(new Rect(300, 554, width - 300, 46), L.T("Select four living adventurers to depart."), new GUIStyle(GUI.skin.label) { wordWrap = true });
             GUI.Label(new Rect(0, 610, width, 52), L.T("Successful extraction recovers bodies on reachable ground.\nBodies in pits and all bodies after defeat are permanently lost."));
-            GUI.Label(new Rect(0, 668, width, 52), L.T("Select replacements from the reserve when someone dies.\nFewer than four living heroes: resurrect recovered bodies or start a new guild."));
+            GUI.Label(new Rect(0, 668, width, 52), L.T("Select replacements from the reserve or hire candidates.\nRecovered bodies can be resurrected for 30 gold."));
             var items = new System.Text.StringBuilder(L.T("Storage:\n"));
             foreach (var definition in Expeditions.ItemDefinitions.All)
             {
@@ -87,11 +91,39 @@ namespace GuildTactics.Meta
             GUI.Label(new Rect(0, 1246, width, 72), L.SaveMessage(bootstrap.SaveMessage) ??
                 L.T("Guild progress saves automatically. Quitting during an expedition restores the guild before departure."),
                 new GUIStyle(GUI.skin.label) { wordWrap = true });
+            GUI.EndGroup();
             GUI.EndScrollView();
+        }
+
+        private void DrawRecruitment(GuildState guild, float width, float y, bool previous)
+        {
+            var wrap = new GUIStyle(GUI.skin.label) { wordWrap = true };
+            GUI.Label(new Rect(0, y, width, 24), L.F("Recruitment — hire for {0} gold", GuildState.HiringCost));
+            GUI.Label(new Rect(0, y + 26, width, 48), L.T("One candidate per class. The board refreshes after returning from an expedition. Opening the guild or loading does not refresh it."), wrap);
+            // Keep class rows stable so a second click cannot hire the next candidate by accident.
+            for (int row = 0; row < Units.HeroDefinitions.Defaults.Count; row++)
+            {
+                var definition = Units.HeroDefinitions.Defaults[row];
+                GuildAdventurer candidate = null;
+                foreach (var offer in guild.Candidates) if (offer.Definition == definition) candidate = offer;
+                float rowY = y + 78 + row * 32;
+                GUI.Label(new Rect(0, rowY, width - 140, 28), candidate == null ? L.T(definition.DisplayName) : L.AdventurerName(candidate.Id));
+                GUI.enabled = previous && candidate != null && guild.Gold >= GuildState.HiringCost && guild.Roster.Count < GuildState.MaximumRosterSize;
+                if (GUI.Button(new Rect(width - 140, rowY, 140, 28), candidate == null ? L.T("Unavailable") : L.F("Hire ({0})", GuildState.HiringCost)))
+                    guild.TryHire(candidate?.Id);
+                GUI.enabled = previous;
+            }
+            string message = !guild.CanRebuildParty
+                ? "Cannot restore four heroes with the current gold and candidates. Start a new guild below (confirmation required)."
+                : guild.Roster.Count >= GuildState.MaximumRosterSize
+                    ? "Roster limit reached. Use living heroes or resurrect recovered bodies."
+                    : "Hired heroes arrive healthy and unequipped. Select them for your party.";
+            GUI.Label(new Rect(0, y + 214, width, 70), L.T(message), wrap);
         }
 
         private void DrawLoadout(GuildState guild, float width, bool previous)
         {
+            loadoutIndex = Mathf.Clamp(loadoutIndex, 0, guild.Roster.Count - 1);
             float half = (width - 8) / 2;
             if (GUI.Button(new Rect(0, 804, half, 28), L.T("Previous hero"))) loadoutIndex = (loadoutIndex + guild.Roster.Count - 1) % guild.Roster.Count;
             if (GUI.Button(new Rect(half + 8, 804, half, 28), L.T("Next hero"))) loadoutIndex = (loadoutIndex + 1) % guild.Roster.Count;

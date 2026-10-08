@@ -106,9 +106,10 @@ WP-14/15 добавляют гильдию и последствия смерт�
 - Тела в ямах/отрезанных клетках потеряны; эвакуация требует `Confirm permanent loss`.
   При полном поражении все четыре героя потеряны, добыча не возвращается.
 - `Resurrect (30)` восстанавливает героя с возвращённым телом за 30 золота.
-  Потерянного героя выбрать или воскресить нельзя. Есть четыре резервных героя; найма пока нет.
+  Потерянного героя выбрать или воскресить нельзя. Есть четыре резервных героя и наём WP-23.
 - Если живых героев меньше четырёх и воскрешение недоступно, текущая гильдия не может
-  отправить отряд. Stop/Play начинает новую гильдию. Сохранение на диск относится к WP-19.
+  отправить отряд. Если наём и воскрешение не позволяют собрать четверых, кнопка
+  `New guild...` начинает новую гильдию после подтверждения. Stop/Play загружает сохранение.
 
 В этом пакете повторные экспедиции используют прежний Dungeon Seed; выбор экспедиций и
 смена seed относятся к WP-16, который не начат. WP-14/15 ожидают настоящей Unity/Play Mode проверки.
@@ -175,5 +176,19 @@ Equipment and consumables (WP-21/22): after finding loot, scroll down in the gui
 screen to equip a hero with one weapon and armor and assign up to two healing
 potions. The Potion action heals its owner by up to 8 HP and spends the turn's action.
 Survivors keep remaining supplies; recovered bodies return equipment to storage;
-lost heroes lose carried items. Save schema 2 automatically reads schema 1 saves.
+lost heroes lose carried items. Save schema 3 automatically reads schema 1/2 saves.
 Unity acceptance is pending; see Docs/TECHNICAL_NOTES.md and Docs/DEMO_V02_ROADMAP.md.
+
+Найм (WP-23): под списком героев доступны четыре кандидата существующих классов.
+`Нанять (40)` списывает 40 золота и добавляет здорового героя без снаряжения в список;
+выберите его в отряд обычной кнопкой выбора. Один кандидат доступен один раз.
+Список обновляется после принятия результата любого похода, включая отступление
+и поражение. Открытие панели и загрузка игры не обновляют кандидатов.
+Предел прототипа — 256 записей героев, включая погибших. При нехватке золота
+и людей экран объясняет невозможность продолжения и предлагает новую гильдию
+через существующую кнопку с подтверждением; бесплатных героев не выдаёт.
+
+Проверки: `Tools > Guild Tactics > Validate Recruitment`. Полная проверка сцены:
+Unity `-batchmode -projectPath <project> -executeMethod
+GuildTactics.Editor.RecruitmentChecks.RunBatch -logFile <log>` без `-quit`.
+Требуется Unity 6000.2.8f1; проверку сцены в текущей среде запустить не удалось.
