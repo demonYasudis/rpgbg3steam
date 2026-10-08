@@ -55,6 +55,9 @@ namespace GuildTactics.Abilities
             if (!grid.Contains(target) || actor.Position.DistanceTo(target) > ability.Range)
                 return Reject("Target is out of range.", out reason);
             if (!turns.CanSee(actor, target)) return Reject("Target is outside current vision.", out reason);
+            // Blink uses party sight of its landing hex, but deliberately crosses intervening walls.
+            if (ability.Effect != AbilityEffect.Blink && !HexLineOfSight.IsClear(grid, actor.Position, target))
+                return Reject("A wall blocks the line to that hex.", out reason);
             var enemy = EnemyAt(actor, target);
             switch (ability.Effect)
             {
@@ -143,7 +146,8 @@ namespace GuildTactics.Abilities
 
         private List<UnitRuntimeState> AreaTargets(UnitRuntimeState actor, HexCoordinates target, int radius) =>
             units.FindAll(unit => unit.Team != actor.Team && unit.IsPlacedOn(grid) &&
-                turns.CanSee(actor, unit.Position) && unit.Position.DistanceTo(target) <= radius);
+                turns.CanSee(actor, unit.Position) && unit.Position.DistanceTo(target) <= radius &&
+                HexLineOfSight.IsClear(grid, target, unit.Position));
 
         private bool FreeGround(HexCoordinates target) => grid.TryGetCell(target, out var cell) &&
             !cell.IsOccupied && TerrainRules.CanWalk(cell.Terrain);

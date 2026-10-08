@@ -23,7 +23,7 @@ namespace GuildTactics.Abilities
             GUI.enabled = GUI.enabled && controller.Turns.ActionAvailable;
             if (GUI.Button(new Rect(20 + width, 96, width, 28), new GUIContent(
                 controller.IsTargetingAttack ? L.T("> Basic attack") : L.T("Basic attack"),
-                L.F("Range {0}. Roll d20 + attack against defense; costs one action.", controller.SelectedUnit.Definition.AttackRange)), buttonStyle)) controller.SelectBasicAttack();
+                L.F("Range {0}. Clear line required. Roll d20 + attack against defense; costs one action.", controller.SelectedUnit.Definition.AttackRange)), buttonStyle)) controller.SelectBasicAttack();
             var unit = controller.SelectedUnit;
             for (int i = 0; i < unit.Definition.Abilities.Count; i++)
             {

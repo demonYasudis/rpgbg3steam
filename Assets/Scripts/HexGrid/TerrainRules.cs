@@ -7,5 +7,6 @@ namespace GuildTactics.HexGrid
             terrain == TerrainType.Ground || terrain == TerrainType.HighGround;
 
         public static bool CanPushInto(TerrainType terrain) => CanWalk(terrain) || terrain == TerrainType.Pit;
+        public static bool BlocksSight(TerrainType terrain) => terrain == TerrainType.Blocked;
     }
 }

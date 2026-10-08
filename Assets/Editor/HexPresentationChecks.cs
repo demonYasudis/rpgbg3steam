@@ -21,6 +21,7 @@ namespace GuildTactics.Editor
         private static bool enemyChecksStarted;
         private static bool abilityChecksStarted;
         private static bool visibilityChecksStarted;
+        private static bool lineOfSightChecksStarted;
         private static bool expeditionChecksStarted;
         private static bool expeditionChecksComplete;
         private static PlayerUnitController sceneUnits;
@@ -90,6 +91,7 @@ namespace GuildTactics.Editor
                 AbilityChecks.Run();
                 TerrainChecks.Run();
                 VisibilityChecks.Run();
+                LineOfSightChecks.Run();
                 GenerationChecks.Run();
                 ExpeditionChecks.Run();
                 GuildChecks.Run();
@@ -177,7 +179,15 @@ namespace GuildTactics.Editor
                         visibilityChecksStarted = true;
                     }
                 }
-                else if (VisibilityChecks.PollPresentation()) Finish(null);
+                else if (!lineOfSightChecksStarted)
+                {
+                    if (VisibilityChecks.PollPresentation())
+                    {
+                        LineOfSightChecks.BeginPresentation(sceneUnits);
+                        lineOfSightChecksStarted = true;
+                    }
+                }
+                else if (LineOfSightChecks.PollPresentation()) Finish(null);
             }
             catch (Exception exception) { Finish(exception); }
         }
@@ -333,7 +343,7 @@ namespace GuildTactics.Editor
             SessionState.SetBool(PendingKey, false);
             EditorApplication.update -= WaitForPlayMode;
             if (exception != null) Debug.LogException(exception);
-            else Debug.Log("ALL UNITY CHECKS PASSED (WP-00 through WP-19, WP-21 through WP-24).");
+            else Debug.Log("ALL UNITY CHECKS PASSED (WP-00 through WP-19, WP-21 through WP-25).");
             EditorApplication.Exit(exception == null ? 0 : 1);
         }
 

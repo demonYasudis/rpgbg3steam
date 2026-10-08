@@ -24,16 +24,16 @@ namespace GuildTactics.Units
             }),
             new UnitDefinition("ranger", "Ranger", 4, 3, attackRange: 4, abilities: new[]
             {
-                new AbilityDefinition("aimed-shot", "Aimed Shot", "Range 6. Weapon hit: +3 accuracy, +2 damage.",
+                new AbilityDefinition("aimed-shot", "Aimed Shot", "Range 6. Clear line required. Weapon hit: +3 accuracy, +2 damage.",
                     AbilityEffect.AimedShot, 6, power: 2, attackBonus: 3),
-                new AbilityDefinition("trap", "Trap", "Range 3. Empty hex: 8 damage on hostile entry. One active trap; allies safe.",
+                new AbilityDefinition("trap", "Trap", "Range 3. Free visible ground with clear line: 8 damage on hostile entry. One active trap; allies safe.",
                     AbilityEffect.Trap, 3, power: 8)
             }),
             new UnitDefinition("mage", "Mage", 3, 1, attackRange: 3, abilities: new[]
             {
-                new AbilityDefinition("fire-burst", "Fire Burst", "Range 4, radius 1. Roll a weapon hit against each enemy; allies safe.",
+                new AbilityDefinition("fire-burst", "Fire Burst", "Range 4, radius 1. Clear line to center; walls stop the burst. Weapon hit per visible enemy; allies safe.",
                     AbilityEffect.FireBurst, 4, radius: 1),
-                new AbilityDefinition("blink", "Blink", "Range 3. Teleport to free ground, crossing obstacles; keep movement points.",
+                new AbilityDefinition("blink", "Blink", "Range 3. Teleport to free ground currently seen by the party, crossing walls; keep movement points.",
                     AbilityEffect.Blink, 3)
             })
             }.AsReadOnly();

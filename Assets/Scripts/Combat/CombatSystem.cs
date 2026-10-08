@@ -1,5 +1,6 @@
 using System;
 using GuildTactics.Units;
+using GuildTactics.HexGrid;
 using GridModel = GuildTactics.HexGrid.HexGrid;
 
 namespace GuildTactics.Combat
@@ -20,12 +21,23 @@ namespace GuildTactics.Combat
                 throw new ArgumentException("Combat and turns must use the same grid.", nameof(turns));
         }
 
-        public bool CanAttack(UnitRuntimeState attacker, UnitRuntimeState target) =>
-            turns.CanSelectAction(attacker) && turns.ActionAvailable &&
-            attacker.IsPlacedOn(grid) && target != null && target.IsPlacedOn(grid) &&
-            attacker.Team != target.Team && attacker.Position.DistanceTo(target.Position) >= 1 &&
-            turns.CanSee(attacker, target.Position) &&
-            attacker.Position.DistanceTo(target.Position) <= attacker.Definition.AttackRange;
+        public bool CanAttack(UnitRuntimeState attacker, UnitRuntimeState target) => CanAttack(attacker, target, out _);
+
+        public bool CanAttack(UnitRuntimeState attacker, UnitRuntimeState target, out string reason)
+        {
+            reason = null;
+            if (!turns.CanSelectAction(attacker) || !turns.ActionAvailable || !attacker.IsPlacedOn(grid))
+                reason = "No action available for this unit.";
+            else if (target == null || !target.IsPlacedOn(grid) || attacker.Team == target.Team)
+                reason = "Choose a living enemy.";
+            else if (!turns.CanSee(attacker, target.Position)) reason = "Target is outside current vision.";
+            else if (attacker.Position.DistanceTo(target.Position) < 1 ||
+                attacker.Position.DistanceTo(target.Position) > attacker.Definition.AttackRange)
+                reason = "Target is out of range.";
+            else if (!HexLineOfSight.IsClear(grid, attacker.Position, target.Position))
+                reason = "A wall blocks the line to that hex.";
+            return reason == null;
+        }
 
         public bool TryAttack(UnitRuntimeState attacker, UnitRuntimeState target, out AttackResult result)
         {

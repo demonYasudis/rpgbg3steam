@@ -209,3 +209,19 @@ GuildTactics.Editor.RecruitmentChecks.RunBatch -logFile <log>` без `-quit`.
 Полный batch с Unity 6000.2.8f1: `-batchmode -projectPath <project>
 -executeMethod GuildTactics.Editor.ProgressionChecks.RunBatch -logFile <log>`
 без `-quit` и `-nographics`. Play Mode и визуальная приёмка пока ожидаются.
+
+Обзор и линия выстрела (WP-25): стены перекрывают обзор и прямую атаку;
+касание лучом края или угла стены тоже блокирует линию. Сама стена видна,
+клетки за ней скрыты. Высота, ямы и юниты обзор не перекрывают.
+Отряд делится обзором, но стрелок должен иметь собственную свободную линию
+до цели. Фиолетовая подсветка и отказ при клике используют одни правила.
+Fire Burst требует линии до видимого центра, поражает только видимых врагов
+в радиусе и не проходит через стены. Blink пересекает стены, но требует свободной
+проходимой клетки в радиусе 3, которую сейчас видит отряд; одной памяти недостаточно.
+Ловушка требует свободной видимой клетки и прямой линии до неё.
+
+Проверки: `Tools > Guild Tactics > Validate Line Of Sight`.
+Полный batch с Unity 6000.2.8f1: `-batchmode -projectPath <project>
+-executeMethod GuildTactics.Editor.LineOfSightChecks.RunBatch -logFile <log>`
+без `-quit` и `-nographics`. Проверки моделей прошли во внешнем Roslyn harness;
+Unity и визуальная приёмка ещё не запускались.

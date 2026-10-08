@@ -242,7 +242,7 @@ namespace GuildTactics.Units
             if (SelectedAbility != null) { TryUseSelectedAbility(coordinate); return; }
             if (IsTargetingAttack)
             {
-                if (!TryAttackSelected(coordinate)) actionHint = () => "Choose an enemy within basic attack range.";
+                TryAttackSelected(coordinate);
                 return;
             }
             if (TrySelectUnit(coordinate)) return;
@@ -263,8 +263,9 @@ namespace GuildTactics.Units
             {
                 foreach (var unit in units)
                     if (unit.IsAlive && unit.Position == coordinate) return () => "That ally acts on their own turn. Choose a free green hex.";
-                return () => !Turns.ActionAvailable ? "Action already used. Move or end your turn." :
-                    L.F("Enemy out of reach. Basic attack range: {0}. Move closer.", SelectedUnit.Definition.AttackRange);
+                if (!Turns.ActionAvailable) return () => "Action already used. Move or end your turn.";
+                combat.CanAttack(SelectedUnit, enemies.Find(unit => unit.IsAlive && unit.Position == coordinate), out var reason);
+                return () => reason ?? "Choose a living enemy.";
             }
             return () => Turns.RemainingMovement == 0 ? "No movement left. Use an action or end your turn." :
                 "No path within your movement allowance. Choose a green hex.";
@@ -421,7 +422,17 @@ namespace GuildTactics.Units
         public bool TryAttackSelected(HexCoordinates coordinate)
         {
             if (!CanPlayerAct || combat == null) return false;
+            if (!Turns.CanSee(SelectedUnit, coordinate))
+            {
+                actionHint = () => "Target is outside current vision.";
+                return false;
+            }
             UnitRuntimeState target = enemies.Find(unit => unit.IsAlive && unit.Position == coordinate);
+            if (!combat.CanAttack(SelectedUnit, target, out var reason))
+            {
+                actionHint = () => reason;
+                return false;
+            }
             return BeginAttack(target);
         }
 

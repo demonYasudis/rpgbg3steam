@@ -88,7 +88,8 @@ namespace GuildTactics.Combat
         public bool CanSee(UnitRuntimeState unit, HexCoordinates coordinate) =>
             unit != null && unit.IsPlacedOn(grid) && grid.Contains(coordinate) &&
             (Vision == null || (unit.Team == UnitTeam.Player ? Vision.IsVisible(coordinate) :
-                unit.Position.DistanceTo(coordinate) <= unit.Definition.VisionRange));
+                unit.Position.DistanceTo(coordinate) <= unit.Definition.VisionRange &&
+                HexLineOfSight.IsClear(grid, unit.Position, coordinate, allowWallTarget: true)));
 
         public HexMovementRange GetMovementRange(UnitRuntimeState unit) =>
             HexPathfinder.FindReachable(grid, unit.Position, RemainingMovement,

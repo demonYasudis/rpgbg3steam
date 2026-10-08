@@ -8,7 +8,7 @@ namespace GuildTactics.Visibility
 {
     public enum CellVisibility { Unknown, Explored, Visible }
 
-    /// <summary>Party vision by hex distance. Walls do not occlude this first version.</summary>
+    /// <summary>Union of living heroes' ranges and wall-occluded sight; remembers explored terrain.</summary>
     public sealed class FogOfWarSystem : IDisposable
     {
         private readonly List<UnitRuntimeState> observers = new List<UnitRuntimeState>();
@@ -61,7 +61,8 @@ namespace GuildTactics.Visibility
             {
                 bool visible = false;
                 foreach (var unit in observers)
-                    if (unit.IsPlacedOn(Grid) && unit.Position.DistanceTo(cell.Coordinates) <= unit.Definition.VisionRange)
+                    if (unit.IsPlacedOn(Grid) && unit.Position.DistanceTo(cell.Coordinates) <= unit.Definition.VisionRange &&
+                        HexLineOfSight.IsClear(Grid, unit.Position, cell.Coordinates, allowWallTarget: true))
                     { visible = true; break; }
                 states[cell.Coordinates] = visible ? CellVisibility.Visible :
                     remembered.ContainsKey(cell.Coordinates) ? CellVisibility.Explored : CellVisibility.Unknown;
