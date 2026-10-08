@@ -32,7 +32,7 @@ namespace GuildTactics.Meta
             float width = Mathf.Max(320, Screen.width - 64);
             float extraHeight = (guild.Roster.Count - 8) * 42 + 300;
             scroll = GUI.BeginScrollView(new Rect(24, 44, Screen.width - 48, Screen.height - 64), scroll,
-                new Rect(0, 0, width, 1330 + extraHeight));
+                new Rect(0, 0, width, 1672 + extraHeight));
             GUI.Label(new Rect(0, 0, width, 26), L.F("Gold: {0} | Party: {1}/4 | Stored items: {2}", guild.Gold, guild.SelectedIds.Count, guild.Inventory.Count));
             GUI.Label(new Rect(0, 28, width, 26), L.T("Choose four living adventurers. Wounds persist; healing costs 5 gold."));
             bool previous = GUI.enabled;
@@ -47,7 +47,8 @@ namespace GuildTactics.Meta
                 GUI.enabled = previous;
                 string state = adventurer.Status == AdventurerStatus.Alive ? L.F("{0}/{1} HP", adventurer.Health, adventurer.Definition.MaxHealth) :
                     adventurer.Status == AdventurerStatus.BodyRecovered ? L.T("DEAD — body recovered") : L.T("PERMANENTLY LOST");
-                GUI.Label(new Rect(94, y + 4, width - 224, 28), L.AdventurerName(adventurer.Id) + " | " + state);
+                GUI.Label(new Rect(94, y + 4, width - 224, 28), L.AdventurerName(adventurer.Id) + " | " +
+                    L.F("Lv {0}", adventurer.Progression.Level) + " | " + state);
                 if (adventurer.Status == AdventurerStatus.BodyRecovered)
                 {
                     GUI.enabled = previous && guild.Gold >= GuildState.ResurrectionCost;
@@ -62,7 +63,7 @@ namespace GuildTactics.Meta
             }
             DrawRecruitment(guild, width, 66 + row * 42, previous);
             // Keep the existing controls below the variable-length roster and recruitment board.
-            GUI.BeginGroup(new Rect(0, extraHeight, width, 1330));
+            GUI.BeginGroup(new Rect(0, extraHeight, width, 1672));
             GUI.Label(new Rect(0, 408, width, 24), L.T("Choose an expedition — crypt ruins"));
             for (int i = 0; i < Expeditions.ExpeditionSelection.Offers.Count; i++)
             {
@@ -87,8 +88,9 @@ namespace GuildTactics.Meta
             }
             GUI.Label(new Rect(0, 730, width, 60), items.ToString());
             DrawLoadout(guild, width, previous);
-            if (GUI.Button(new Rect(0, 1204, 180, 32), L.T("New guild..."))) confirmingNewGuild = true;
-            GUI.Label(new Rect(0, 1246, width, 72), L.SaveMessage(bootstrap.SaveMessage) ??
+            DrawDevelopment(guild, width, previous);
+            if (GUI.Button(new Rect(0, 1538, 180, 32), L.T("New guild..."))) confirmingNewGuild = true;
+            GUI.Label(new Rect(0, 1580, width, 72), L.SaveMessage(bootstrap.SaveMessage) ??
                 L.T("Guild progress saves automatically. Quitting during an expedition restores the guild before departure."),
                 new GUIStyle(GUI.skin.label) { wordWrap = true });
             GUI.EndGroup();
@@ -138,7 +140,7 @@ namespace GuildTactics.Meta
             { if (item == weapon) weapons++; if (item == armor) armors++; if (item == Expeditions.ItemDefinitions.HealingDraught) potions++; }
             GUI.Label(new Rect(0, 894, width, 40), L.F("Weapon: {0}. Equip: ATK {1} -> {2}, d{3} -> d{4} (stock {5})",
                 hero.Weapon == null ? L.T("None") : L.T(hero.Weapon.Name), hero.Attack,
-                hero.Definition.Attack + weapon.AttackBonus, hero.DamageDie, weapon.DamageDie, weapons), new GUIStyle(GUI.skin.label) { wordWrap = true });
+                hero.Definition.Attack + hero.Progression.AttackBonus + weapon.AttackBonus, hero.DamageDie, weapon.DamageDie, weapons), new GUIStyle(GUI.skin.label) { wordWrap = true });
             bool alive = previous && hero.Status == AdventurerStatus.Alive;
             GUI.enabled = alive && weapons > 0 && hero.Weapon != weapon;
             if (GUI.Button(new Rect(0, 936, half, 28), L.T("Equip weapon"))) guild.TryEquip(hero.Id, weapon.Id);
@@ -146,7 +148,8 @@ namespace GuildTactics.Meta
             if (GUI.Button(new Rect(half + 8, 936, half, 28), L.T("Remove weapon"))) guild.TryUnequip(hero.Id, Expeditions.ItemCategory.Weapon);
             GUI.enabled = previous;
             GUI.Label(new Rect(0, 970, width, 40), L.F("Armor: {0}. Equip: DEF {1} -> {2} (stock {3})",
-                hero.Armor == null ? L.T("None") : L.T(hero.Armor.Name), hero.Defense, hero.Definition.Defense + armor.DefenseBonus, armors), new GUIStyle(GUI.skin.label) { wordWrap = true });
+                hero.Armor == null ? L.T("None") : L.T(hero.Armor.Name), hero.Defense,
+                hero.Definition.Defense + hero.Progression.DefenseBonus + armor.DefenseBonus, armors), new GUIStyle(GUI.skin.label) { wordWrap = true });
             GUI.enabled = alive && armors > 0 && hero.Armor != armor;
             if (GUI.Button(new Rect(0, 1012, half, 28), L.T("Equip armor"))) guild.TryEquip(hero.Id, armor.Id);
             GUI.enabled = alive && hero.Armor != null;
@@ -157,6 +160,38 @@ namespace GuildTactics.Meta
             if (GUI.Button(new Rect(half + 8, 1048, half, 28), L.T("Return potion"))) guild.TryTransferPotion(hero.Id, false);
             GUI.enabled = previous;
             GUI.Label(new Rect(0, 1088, width, 105), L.T("Equip living heroes before departure. Items must be in storage.\nSurvivors keep their loadout. Recovered bodies return items to storage; lost heroes lose their gear.\nPotions heal only their owner, up to 8 HP, for one action."), new GUIStyle(GUI.skin.label) { wordWrap = true });
+        }
+
+        private void DrawDevelopment(GuildState guild, float width, bool previous)
+        {
+            var hero = guild.Roster[loadoutIndex];
+            var progression = hero.Progression;
+            var wrap = new GUIStyle(GUI.skin.label) { wordWrap = true };
+            GUI.Label(new Rect(0, 1204, width, 24), L.T("Development: ") + L.AdventurerName(hero.Id));
+            string experience = progression.Level == Units.HeroProgression.MaximumLevel ? L.T("Maximum level") :
+                L.F("Next level at {0} XP", progression.NextLevelExperience);
+            GUI.Label(new Rect(0, 1230, width, 44), L.F("Level {0} | XP {1} | Pending {2} | Training ATK +{3}, DEF +{4}",
+                progression.Level, progression.Experience, progression.PendingChoices, progression.AttackBonus, progression.DefenseBonus), wrap);
+            GUI.Label(new Rect(0, 1278, width, 24), experience);
+            // Each earned level keeps its own row after choosing; a repeated click cannot spend the next choice.
+            for (int level = 2; level <= Units.HeroProgression.MaximumLevel; level++)
+            {
+                float y = 1308 + (level - 2) * 30;
+                bool chosen = progression.Upgrades.Count >= level - 1;
+                GUI.Label(new Rect(0, y, 100, 24), L.F("Level {0}", level));
+                if (chosen)
+                    GUI.Label(new Rect(108, y, width - 108, 24), L.T(progression.Upgrades[level - 2] == Units.HeroUpgrade.Accuracy ? "Attack +1" : "Defense +1"));
+                else
+                {
+                    GUI.enabled = previous && hero.Status == AdventurerStatus.Alive && progression.PendingChoices > 0 &&
+                        progression.NextChoiceLevel == level;
+                    float half = (width - 116) / 2;
+                    if (GUI.Button(new Rect(108, y, half, 26), L.T("Attack +1"))) guild.TryChooseUpgrade(hero.Id, level, Units.HeroUpgrade.Accuracy);
+                    if (GUI.Button(new Rect(116 + half, y, half, 26), L.T("Defense +1"))) guild.TryChooseUpgrade(hero.Id, level, Units.HeroUpgrade.Guard);
+                    GUI.enabled = previous;
+                }
+            }
+            GUI.Label(new Rect(0, 1436, width, 92), L.T("Choose once per earned level, in order. Training is permanent and separate from gear.\nSurvivors earn 100 XP on extraction; retreat and defeat give none. Dead heroes keep previous development; resurrection preserves it."), wrap);
         }
     }
 }

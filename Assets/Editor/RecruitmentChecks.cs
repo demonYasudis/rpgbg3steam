@@ -43,6 +43,7 @@ namespace GuildTactics.Editor
                 for (int i = 0; i < party.Count; i++)
                 {
                     Require(UnitRuntimeState.TrySpawn(map.Grid, party[i].Id, party[i].Definition, map.PlayerSpawns[i], out var unit), "Recruit spawns on legal cell");
+                    unit.InitializeProgression(party[i].Progression);
                     units.Add(unit);
                 }
                 var turns = new TurnManager(map.Grid, units);
@@ -76,7 +77,8 @@ namespace GuildTactics.Editor
             var limit = Capture(new GuildState(100000));
             var records = limit.roster.ToList();
             for (int i = 7; records.Count < GuildState.MaximumRosterSize; i++)
-                records.Add(new SavedAdventurer { id = "warrior-" + i, definition = "warrior", health = HeroDefinitions.Defaults[0].MaxHealth });
+                records.Add(new SavedAdventurer { id = "warrior-" + i, definition = "warrior", health = HeroDefinitions.Defaults[0].MaxHealth,
+                    upgrades = Array.Empty<int>() });
             limit.roster = records.ToArray(); limit.nextRecruitNumber = GuildState.MaximumRosterSize + 10;
             var capped = GuildState.Restore(limit);
             Require(!capped.TryHire(capped.Candidates[0].Id) && capped.Gold == 100000 && capped.CanRebuildParty, "Roster boundary blocks payment but leaves party usable");
@@ -120,12 +122,20 @@ namespace GuildTactics.Editor
             Require(recruit.Definition == HeroDefinitions.Defaults[0] && recruit.CurrentHealth == recruit.Definition.MaxHealth &&
                 bootstrap.Grid.GetCell(recruit.Position).OccupantId == id, "Recruit runtime identity and occupancy");
             Require(!bootstrap.Guild.TryHire(bootstrap.Guild.Candidates[0].Id), "Scene locks recruitment while away");
-            Require(bootstrap.ActiveController.Expedition.TryRetreat(true) && bootstrap.TryReturnToGuild(), "Recruit returns to guild");
+            Require(RetreatToGuild(bootstrap), "Recruit returns to guild");
             Require(bootstrap.Guild.Roster.Any(a => a.Id == id) && bootstrap.TryLaunchExpedition() &&
                 bootstrap.ActiveController.Units.Any(u => u.InstanceId == id), "Recruit participates in second expedition");
-            Require(bootstrap.ActiveController.Expedition.TryRetreat(true) && bootstrap.TryReturnToGuild() &&
+            Require(RetreatToGuild(bootstrap) &&
                 bootstrap.TryStartNewGuild(), "New guild recovers without editor restart");
             Require(bootstrap.Guild.Roster.Count == 8 && bootstrap.Guild.Candidates.Count == 4, "New guild resets recruitment");
+        }
+
+        private static bool RetreatToGuild(GameBootstrap bootstrap)
+        {
+            var turns = bootstrap.ActiveController.Turns;
+            for (int i = 0; i < turns.Order.Count && turns.ActiveUnit.Team != UnitTeam.Player; i++)
+            { turns.TryEndTurn(turns.ActiveUnit); turns.TryStartNextTurn(); }
+            return bootstrap.ActiveController.Expedition.TryRetreat(true) && bootstrap.TryReturnToGuild();
         }
 
         private static GuildSaveData Capture(GuildState guild) => GuildSaveData.Capture(guild, new ExpeditionSelection("recruitment"));

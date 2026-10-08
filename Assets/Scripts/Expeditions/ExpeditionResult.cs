@@ -15,12 +15,14 @@ namespace GuildTactics.Expeditions
         public bool Survived => Health > 0;
         public bool BodyRecovered { get; }
         public int HealingPotions { get; }
-        internal AdventurerResult(UnitRuntimeState unit, bool bodyRecovered)
+        public int ExperienceGained { get; }
+        internal AdventurerResult(UnitRuntimeState unit, bool bodyRecovered, int experienceGained)
         {
             InstanceId = unit.InstanceId; DefinitionId = unit.Definition.Id;
             Name = unit.Definition.DisplayName; Health = unit.CurrentHealth; MaxHealth = unit.Definition.MaxHealth;
             BodyRecovered = !Survived && bodyRecovered;
             HealingPotions = unit.HealingPotions;
+            ExperienceGained = experienceGained;
         }
     }
 
@@ -41,7 +43,9 @@ namespace GuildTactics.Expeditions
             Items = new List<ItemDefinition>(items).AsReadOnly();
             var snapshots = new List<AdventurerResult>();
             foreach (var unit in party) snapshots.Add(new AdventurerResult(unit,
-                outcome == ExpeditionOutcome.Extracted && recoveredBodies != null && recoveredBodies.Contains(unit.InstanceId)));
+                outcome == ExpeditionOutcome.Extracted && recoveredBodies != null && recoveredBodies.Contains(unit.InstanceId),
+                outcome == ExpeditionOutcome.Extracted && unit.IsAlive
+                    ? System.Math.Min(HeroProgression.ExtractionExperience, HeroProgression.MaximumExperience - unit.Experience) : 0));
             Adventurers = snapshots.AsReadOnly();
         }
     }

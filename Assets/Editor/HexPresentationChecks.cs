@@ -97,6 +97,7 @@ namespace GuildTactics.Editor
                 SaveChecks.Run();
                 LoadoutChecks.Run();
                 RecruitmentChecks.Run();
+                ProgressionChecks.Run();
                 PixelPresentationChecks.Run();
                 SessionState.SetBool(PendingKey, true);
                 deadline = EditorApplication.timeSinceStartup + 90;
@@ -122,6 +123,7 @@ namespace GuildTactics.Editor
                     foreach (var root in UnityEngine.SceneManagement.SceneManager.GetActiveScene().GetRootGameObjects())
                         if (root.TryGetComponent<GameBootstrap>(out var bootstrap))
                         {
+                            ProgressionChecks.ValidatePresentation(bootstrap);
                             RecruitmentChecks.ValidatePresentation(bootstrap);
                             GuildChecks.ValidatePresentation(bootstrap);
                             ExpeditionSelectionChecks.ValidatePresentation(bootstrap);
@@ -331,7 +333,7 @@ namespace GuildTactics.Editor
             SessionState.SetBool(PendingKey, false);
             EditorApplication.update -= WaitForPlayMode;
             if (exception != null) Debug.LogException(exception);
-            else Debug.Log("ALL UNITY CHECKS PASSED (WP-00 through WP-19).");
+            else Debug.Log("ALL UNITY CHECKS PASSED (WP-00 through WP-19, WP-21 through WP-24).");
             EditorApplication.Exit(exception == null ? 0 : 1);
         }
 

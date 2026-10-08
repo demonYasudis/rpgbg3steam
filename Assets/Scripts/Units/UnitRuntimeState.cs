@@ -24,9 +24,24 @@ namespace GuildTactics.Units
         public ItemDefinition Weapon { get; private set; }
         public ItemDefinition Armor { get; private set; }
         public int HealingPotions { get; private set; }
-        public int Attack => (int)Math.Min(int.MaxValue, (long)Definition.Attack + (Weapon?.AttackBonus ?? 0));
+        private bool progressionInitialized;
+        public int Experience { get; private set; }
+        public int Level => HeroProgression.LevelFor(Experience);
+        public int TrainingAttackBonus { get; private set; }
+        public int TrainingDefenseBonus { get; private set; }
+        public int Attack => (int)Math.Min(int.MaxValue, (long)Definition.Attack + TrainingAttackBonus + (Weapon?.AttackBonus ?? 0));
         public int DamageDie => Weapon?.DamageDie ?? Definition.DamageDie;
-        public int Defense => (int)Math.Min(int.MaxValue, (long)Definition.Defense + EvasionBonus + (Armor?.DefenseBonus ?? 0));
+        public int Defense => (int)Math.Min(int.MaxValue, (long)Definition.Defense + TrainingDefenseBonus + EvasionBonus + (Armor?.DefenseBonus ?? 0));
+
+        internal void InitializeProgression(HeroProgression progression)
+        {
+            if (progression == null || progressionInitialized || Team != UnitTeam.Player)
+                throw new ArgumentException("Initialize player progression once at spawn.");
+            Experience = progression.Experience;
+            TrainingAttackBonus = progression.AttackBonus;
+            TrainingDefenseBonus = progression.DefenseBonus;
+            progressionInitialized = true;
+        }
 
         internal void SetLoadout(ItemDefinition weapon, ItemDefinition armor, int healingPotions)
         {

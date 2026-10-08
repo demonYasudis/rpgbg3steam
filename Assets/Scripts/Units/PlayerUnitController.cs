@@ -106,6 +106,7 @@ namespace GuildTactics.Units
                     Spawn(adventurer?.Id ?? "hero-" + definition.Id, definition, spawnPositions[index], HeroColors[colorIndex]);
                     if (adventurer != null)
                     {
+                        units[index].InitializeProgression(adventurer.Progression);
                         units[index].ApplyDamage(definition.MaxHealth - adventurer.Health);
                         units[index].SetLoadout(adventurer.Weapon, adventurer.Armor, adventurer.HealingPotions);
                     }

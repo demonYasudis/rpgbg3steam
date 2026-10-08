@@ -29,6 +29,7 @@ namespace GuildTactics.Editor
                 for (int i = 0; i < party.Count; i++)
                 {
                     Require(UnitRuntimeState.TrySpawn(Map.Grid, party[i].Id, party[i].Definition, Map.PlayerSpawns[i], out var unit), "Spawn selected identity");
+                    unit.InitializeProgression(party[i].Progression);
                     unit.ApplyDamage(unit.Definition.MaxHealth - party[i].Health);
                     Party.Add(unit);
                 }

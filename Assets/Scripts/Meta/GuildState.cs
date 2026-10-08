@@ -16,8 +16,9 @@ namespace GuildTactics.Meta
         public ItemDefinition Weapon { get; internal set; }
         public ItemDefinition Armor { get; internal set; }
         public int HealingPotions { get; internal set; }
-        public int Attack => Definition.Attack + (Weapon?.AttackBonus ?? 0);
-        public int Defense => Definition.Defense + (Armor?.DefenseBonus ?? 0);
+        public HeroProgression Progression { get; internal set; } = new HeroProgression();
+        public int Attack => Definition.Attack + Progression.AttackBonus + (Weapon?.AttackBonus ?? 0);
+        public int Defense => Definition.Defense + Progression.DefenseBonus + (Armor?.DefenseBonus ?? 0);
         public int DamageDie => Weapon?.DamageDie ?? Definition.DamageDie;
         internal GuildAdventurer(string id, UnitDefinition definition)
         { Id = id; Definition = definition; Health = definition.MaxHealth; }
@@ -132,7 +133,10 @@ namespace GuildTactics.Meta
                 foreach (var unit in run.Party)
                     if (unit.InstanceId == adventurer.Id && ReferenceEquals(unit.Definition, adventurer.Definition) &&
                         unit.CurrentHealth == adventurer.Health && unit.Weapon == adventurer.Weapon &&
-                        unit.Armor == adventurer.Armor && unit.HealingPotions == adventurer.HealingPotions) found = true;
+                        unit.Armor == adventurer.Armor && unit.HealingPotions == adventurer.HealingPotions &&
+                        unit.Experience == adventurer.Progression.Experience &&
+                        unit.TrainingAttackBonus == adventurer.Progression.AttackBonus &&
+                        unit.TrainingDefenseBonus == adventurer.Progression.DefenseBonus) found = true;
                 if (!found) throw new ArgumentException("Party mismatch.");
             }
             activeRun = run;
@@ -157,6 +161,7 @@ namespace GuildTactics.Meta
                 adventurer.Status = snapshot.Survived ? AdventurerStatus.Alive :
                     snapshot.BodyRecovered ? AdventurerStatus.BodyRecovered : AdventurerStatus.Lost;
                 adventurer.HealingPotions = snapshot.HealingPotions;
+                adventurer.Progression.AwardExperience(snapshot.ExperienceGained);
                 if (!snapshot.Survived)
                 {
                     if (snapshot.BodyRecovered)
@@ -194,6 +199,15 @@ namespace GuildTactics.Meta
             if (IsAway || adventurer == null || adventurer.Status != AdventurerStatus.Alive ||
                 adventurer.Health == adventurer.Definition.MaxHealth || Gold < HealingCost) return false;
             Gold -= HealingCost; adventurer.Health = adventurer.Definition.MaxHealth; Changed?.Invoke(); return true;
+        }
+
+        public bool TryChooseUpgrade(string id, int level, HeroUpgrade upgrade)
+        {
+            var hero = roster.Find(a => a.Id == id);
+            if (IsAway || hero == null || hero.Status != AdventurerStatus.Alive || !hero.Progression.TryChoose(level, upgrade))
+                return false;
+            Changed?.Invoke();
+            return true;
         }
 
         public bool TryEquip(string id, string itemId)
@@ -264,6 +278,7 @@ namespace GuildTactics.Meta
                     ((saved.status == (int)AdventurerStatus.Alive) != (saved.health > 0)))
                     throw new ArgumentException("Invalid saved adventurer.");
                 hero.Health = saved.health; hero.Status = (AdventurerStatus)saved.status;
+                if (data.version >= 4) hero.Progression = HeroProgression.Restore(saved.experience, saved.upgrades);
                 guild.roster.Add(hero);
                 if (data.version >= 2)
                 {

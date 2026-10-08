@@ -176,7 +176,7 @@ Equipment and consumables (WP-21/22): after finding loot, scroll down in the gui
 screen to equip a hero with one weapon and armor and assign up to two healing
 potions. The Potion action heals its owner by up to 8 HP and spends the turn's action.
 Survivors keep remaining supplies; recovered bodies return equipment to storage;
-lost heroes lose carried items. Save schema 3 automatically reads schema 1/2 saves.
+lost heroes lose carried items. Save schema 4 automatically reads schema 1/2/3 saves.
 Unity acceptance is pending; see Docs/TECHNICAL_NOTES.md and Docs/DEMO_V02_ROADMAP.md.
 
 Найм (WP-23): под списком героев доступны четыре кандидата существующих классов.
@@ -192,3 +192,20 @@ Unity acceptance is pending; see Docs/TECHNICAL_NOTES.md and Docs/DEMO_V02_ROADM
 Unity `-batchmode -projectPath <project> -executeMethod
 GuildTactics.Editor.RecruitmentChecks.RunBatch -logFile <log>` без `-quit`.
 Требуется Unity 6000.2.8f1; проверку сцены в текущей среде запустить не удалось.
+
+Развитие героев (WP-24): успешная эвакуация даёт каждому выжившему участнику
+100 опыта, до общего предела 700. Резерв, погибшие, отступление и поражение не
+получают новый опыт. Пороги уровней 1–5: 0 / 100 / 250 / 450 / 700.
+В гильдии выберите героя кнопками «Предыдущий/Следующий герой» в разделе снаряжения
+и прокрутите ниже к «Развитию». На каждом уровне 2–5 выберите постоянные
+«Атака +1» или «Защита +1», по порядку. Выбор можно отложить; в походе он недоступен.
+Повторный выбор за тот же уровень запрещён, перераспределения нет.
+Бонусы суммируются с вещами и остаются после их снятия. Погибшие сохраняют прежние
+уровни и выборы; воскрешение не сбрасывает развитие и не даёт дополнительного опыта.
+Новые и нанятые герои начинают на уровне 1. Окно результатов показывает фактический
+прирост опыта, включая 0 на пределе. Старые сохранения загружаются без развития.
+
+Проверки: `Tools > Guild Tactics > Validate Hero Progression`.
+Полный batch с Unity 6000.2.8f1: `-batchmode -projectPath <project>
+-executeMethod GuildTactics.Editor.ProgressionChecks.RunBatch -logFile <log>`
+без `-quit` и `-nographics`. Play Mode и визуальная приёмка пока ожидаются.

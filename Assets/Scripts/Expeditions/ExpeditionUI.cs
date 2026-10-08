@@ -121,8 +121,11 @@ namespace GuildTactics.Expeditions
                 else text.Append(L.T("healing consumable, ")).Append(item.Healing).Append(L.T(" HP"));
             }
             foreach (var unit in result.Adventurers)
+            {
                 text.Append("\n").Append(L.AdventurerName(unit.InstanceId)).Append(unit.Survived ? L.F(": {0}/{1} HP", unit.Health, unit.MaxHealth) :
                     unit.BodyRecovered ? L.T(": DEAD — body recovered") : L.T(": PERMANENTLY LOST"));
+                text.Append(L.F(" | +{0} XP", unit.ExperienceGained));
+            }
             text.Append(L.T("\nRecovered bodies can be resurrected in the guild for 30 gold."));
             GUI.Box(new Rect(12, 12, Screen.width - 24, Screen.height - 24), L.T("Expedition result"));
             var style = new GUIStyle(GUI.skin.label) { wordWrap = true, fontSize = 14 };
