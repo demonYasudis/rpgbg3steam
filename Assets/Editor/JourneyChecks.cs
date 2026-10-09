@@ -81,7 +81,7 @@ namespace GuildTactics.Editor
             // Alternate carried and permanently lost bodies.
             bool recoverable = seed % 2 == 0;
             if (!recoverable) first.Turns.Grid.GetCell(casualty.Position).Terrain = GuildTactics.HexGrid.TerrainType.Pit;
-            first.Complete(); journey.Complete(first.Run.Result);
+            first.Complete(); journey.Complete(first.Run.Result); journey.TryResolveEvent(guild, 0);
             Require(first.Run.Result.Adventurers.Single(h => h.InstanceId == casualty.InstanceId).BodyRecovered == recoverable, "Body decision retained");
             int firstGold = first.Run.Result.Gold;
             Require(guild.Gold == 100 && warrior.HealingPotions == 1, "Rewards not yet paid");
@@ -111,12 +111,12 @@ namespace GuildTactics.Editor
             }
             else
             {
-                next.Complete(); journey.Complete(next.Run.Result);
+                next.Complete(); journey.Complete(next.Run.Result); journey.TryResolveEvent(guild, 0);
                 if (journey.Completed < journey.Sections)
                 {
                     next = new Section(journey, guild, journey.ContinuingParty(guild));
                     guild.AttachContinuingRun(next.Run);
-                    next.Complete(); journey.Complete(next.Run.Result);
+                    next.Complete(); journey.Complete(next.Run.Result); journey.TryResolveEvent(guild, 0);
                 }
                 Require(journey.Completed == journey.Sections && next.Run.Result.Items.Count == 2 * journey.Sections &&
                     next.Run.Result.Gold > firstGold, "All sections accumulate rewards once");
@@ -140,7 +140,7 @@ namespace GuildTactics.Editor
                 var departure = GuildSaveData.Capture(guild, offers);
                 var journey = new ExpeditionJourney(offers.NextSeed, 0, 31, new DungeonGenerationConfig(), offers.Selected.CreateEncounterConfig());
                 var first = new Section(journey, guild, guild.BeginExpedition());
-                first.Complete(); journey.Complete(first.Run.Result); offers.RecordLaunch();
+                first.Complete(); journey.Complete(first.Run.Result); journey.TryResolveEvent(guild, 0); offers.RecordLaunch();
                 var store = new GuildSaveStore(Path.Combine(directory, "save.json"));
                 Require(store.TrySaveCheckpoint(departure, offers, journey.Capture(), out _), "Write boundary");
                 Require(store.TryLoad(out var restored, out var loadedOffers, out _) && store.LoadedCheckpoint != null &&
@@ -153,7 +153,7 @@ namespace GuildTactics.Editor
                 second.Heroes[0].ApplyDamage(5);
                 Require(store.TryLoad(out var rollback, out _, out _) &&
                     ExpeditionJourney.Restore(store.LoadedCheckpoint, rollback).BoundaryResult(rollback).Adventurers.All(h => h.Health == h.MaxHealth), "Mid-section close rolls back only that section");
-                second.Complete(); resumed.Complete(second.Run.Result);
+                second.Complete(); resumed.Complete(second.Run.Result); resumed.TryResolveEvent(restored, 0);
                 Require(store.TrySaveCheckpoint(departure, loadedOffers, resumed.Capture(), out _), "Save final boundary");
                 Require(store.TryLoad(out restored, out loadedOffers, out _), "Load final boundary");
                 resumed = ExpeditionJourney.Restore(store.LoadedCheckpoint, restored);
@@ -201,7 +201,8 @@ namespace GuildTactics.Editor
             int launched = bootstrap.Expeditions.LaunchedCount;
             bootstrap.CaptureJourneyBoundary();
             bootstrap.CaptureJourneyBoundary();
-            Require(bootstrap.Journey.Completed == 1 && bootstrap.CanContinueJourney, "Boundary capture idempotent");
+            Require(bootstrap.Journey.Completed == 1 && bootstrap.Journey.EventPending && !bootstrap.CanContinueJourney, "Boundary capture idempotent");
+            ExplorationEventChecks.ValidateBoundary(bootstrap);
             Require(bootstrap.TryContinueJourney() && !bootstrap.TryContinueJourney(), "Continue once");
             Require(!previous.gameObject.activeSelf && !previous.TryRetreat(true) && !previous.TryEndTurn(), "Old input disabled immediately");
             Require(bootstrap.ActiveController.Units.Count == 3 && bootstrap.Expeditions.LaunchedCount == launched &&

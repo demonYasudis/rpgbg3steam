@@ -157,7 +157,10 @@ namespace GuildTactics.Editor
                 if (unit.IsAlive && unit.Position == controller.Expedition.Extraction)
                     unit.TryRelocate(bootstrap.Grid, bootstrap.Grid.Cells.First(c => TerrainRules.CanWalk(c.Terrain) && !c.IsOccupied).Coordinates);
             actor.TryRelocate(bootstrap.Grid, controller.Expedition.Extraction);
-            Require(controller.Expedition.TryExtract(actor) && bootstrap.TryReturnToGuild() && !bootstrap.TryReturnToGuild(), "Return and duplicate lock");
+            Require(controller.Expedition.TryExtract(actor), "Extract before boundary choice");
+            bootstrap.CaptureJourneyBoundary();
+            Require(bootstrap.TryResolveExplorationEvent(0), "Skip boundary event in guild fixture");
+            Require(bootstrap.TryReturnToGuild() && !bootstrap.TryReturnToGuild(), "Return and duplicate lock");
             Require(!controller.gameObject.activeSelf && bootstrap.ActiveController == null, "Old battle disabled immediately");
             bootstrap.Guild.TryResurrect(dead.InstanceId); bootstrap.Guild.TryToggleSelection(dead.InstanceId);
             Require(bootstrap.TryLaunchExpedition(), "Launch second battle without restarting Play");

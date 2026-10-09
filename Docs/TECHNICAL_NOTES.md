@@ -1211,3 +1211,69 @@ ExpeditionSelection.cs and ExpeditionUI.cs; Assets/Scripts/Meta/GuildState.cs,
 GuildSaveStore.cs and GuildUI.cs; Assets/Scripts/Units/PlayerUnitController.cs;
 Assets/Editor/HexPresentationChecks.cs and LocalizationChecks.cs; AGENTS.md,
 README.md, Docs/DEMO_V02_ROADMAP.md and this file.
+
+
+## WP-31 — Exploration events (2026-10-09)
+
+Implemented four data definitions in `ExplorationEvents`: sealed cache (d20 >= 10,
+25 gold / 6 failure damage), blood altar (>= 13, 35 gold and 4 success damage /
+10 failure damage), clouded spring (>= 8, heal up to 8 / 4 failure damage), wire
+snare (>= 12, 20 gold / 8 failure damage). Each successful section boundary offers
+one seed-selected event, including the final boundary. The two choices are to
+investigate with a selected living adventurer or leave without a roll or effect.
+Events can repeat across sections. This deliberately uses the existing safe
+boundary UI and save operations; no tactical event placement or scripting language.
+
+The `exploration:<expedition seed>:<completed section>:type/roll` streams use
+GenerationRandom independently of combat and loot. Data contains only threshold,
+gold, healing and damage. JourneyCheckpoint stores one choice/result per completed
+section and the aggregate event gold. The public last-result snapshot is copied.
+Applying a choice updates the checkpoint HP and gold once; subsequent commands and
+reloads cannot resolve that event again. Events never consume potions or mutate
+shared definitions. Healing clamps to maximum HP and requires a living participant.
+A death at the safe boundary produces a carried body; no survivors means Defeated,
+zero reward and permanent loss of all carried bodies/items. Earlier event gold
+survives later retreat and is lost on total defeat, matching carried mission loot.
+
+GameBootstrap captures extraction before any return command. An unanswered event
+blocks return and continue; invalid choices/actors change nothing. The initial
+boundary must be saved before choosing. After a choice, bootstrap rebuilds the
+boundary result and attempts another atomic save. A write failure blocks continue,
+allows retry or return with the in-memory result, and does not permit another roll.
+Closing before a successful retry may restore the prior saved choice boundary.
+
+Save schema v6 retains compatibility with v1–v5. v5 boundary snapshots have
+exploration disabled, so loading does not add an event to a completed old section;
+subsequent completed sections use events. Pending v6 choices restore unchanged;
+resolved choices restore with their effects already applied. The existing rollback
+of an unfinished tactical section leaves the earlier event resolution intact.
+Checkpoint validation checks unique section records, deterministic rolls, gold and
+HP effects, reward bounds, actor membership and terminal casualty state.
+
+Changed files: ExplorationEvents.cs (+ meta), ExplorationEventChecks.cs (+ meta),
+ExpeditionJourney.cs, JourneyUI.cs, GameBootstrap.cs, GuildSaveStore.cs,
+Localization.cs, HexPresentationChecks.cs, JourneyChecks.cs, GuildChecks.cs,
+ExpeditionSelectionChecks.cs, LocalizationChecks.cs and project documentation.
+No serialized scene/prefab fields or assets were changed. Unity is 6000.2.8f1.
+
+Validation: ExplorationEventChecks exercises 200 seeds and both outcomes of all
+four event definitions, safe skips, invalid choices/actors, replay, healing caps,
+death/carrying bodies, last-survivor defeat, pending/resolved save/load, rollback,
+legacy v5, failed writes, single guild payment, multi-section accumulation and
+retreat/defeat reward composition. The shared runner includes event model checks,
+localization coverage and real Play Mode command/guild integration. Older guild,
+selection and journey fixtures explicitly skip the added boundary choice.
+
+Commands: `GuildTactics.Editor.HexPresentationChecks.RunBatch` without `-quit` or
+`-nographics`; Windows build: `GuildTactics.Editor.BuildChecks.RunBatch -quit`.
+Logs: `Logs/wp31-check.log`, `Logs/wp31-build.log` (ignored by Git).
+Manual mouse/visual acceptance of the new RU/EN event panel was not performed;
+check its scrolling and button readability at small window sizes. Event balance
+and frequency still need playtesting. No WP-32 changes are included.
+
+Verification outcome: Unity editor/runtime C# compilation and the full shared
+model/Play Mode runner passed (exit 0, `ALL UNITY CHECKS PASSED`, including WP-31).
+Windows Development x64 compilation reached ProducePlayerScriptAssemblies, then
+failed during ManagedStripped because the installed UnityLinker.exe was blocked by
+this computer's Device Guard policy. Build summary: Failed, 1 error, 0 warnings;
+no Windows executable for WP-31 is verified. The system policy was not changed.

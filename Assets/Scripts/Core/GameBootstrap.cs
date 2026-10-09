@@ -42,7 +42,7 @@ namespace GuildTactics.Core
         private Expeditions.ExpeditionRun capturedRun;
         private bool boundarySaved;
         public bool BoundarySaved => boundarySaved;
-        public bool CanContinueJourney => JourneyBoundary != null && Journey.Completed < Journey.Sections && boundarySaved;
+        public bool CanContinueJourney => JourneyBoundary != null && Journey.Completed < Journey.Sections && boundarySaved && !Journey.EventPending && !Journey.IsDefeated;
 
         private void Awake()
         {
@@ -137,6 +137,8 @@ namespace GuildTactics.Core
 
         public bool TryReturnToGuild()
         {
+            CaptureJourneyBoundary();
+            if (JourneyBoundary != null && Journey.EventPending) return false;
             var result = JourneyBoundary ?? ActiveController?.Expedition.Result;
             if (!Guild.TryReturn(result))
                 return false;
@@ -158,6 +160,14 @@ namespace GuildTactics.Core
             JourneyBoundary = run.Result;
             ActiveController.BossAttack?.Cancel();
             RetryJourneySave();
+        }
+
+        public bool TryResolveExplorationEvent(int choice, string heroId = null)
+        {
+            if (JourneyBoundary == null || !boundarySaved || !Journey.TryResolveEvent(Guild, choice, heroId)) return false;
+            JourneyBoundary = Journey.BoundaryResult(Guild);
+            RetryJourneySave();
+            return true;
         }
 
         public bool RetryJourneySave()

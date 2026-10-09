@@ -22,6 +22,13 @@ namespace GuildTactics.Editor
                     .Concat(EnemyDefinitions.Regular.Select(d => d.Unit.DisplayName))
                     .Concat(new[] { EnemyDefinitions.MiniBoss.Unit.DisplayName })
                     .Concat(ItemDefinitions.All.Select(i => i.Name))
+                    .Concat(ExplorationEvents.All.SelectMany(e => new[] { e.Name, e.Description }))
+                    .Concat(new[] { "Exploration event", "Leave safely", "SUCCESS", "FAILURE", "The expedition is lost.",
+                        "Investigate with {0} ({1}/{2} HP)", "Left safely. No roll or effects.",
+                        "d20({0}) >= {1}: {2}. {3}: HP {4} -> {5}; +{6} gold.",
+                        "Roll d20 >= {0}. Success: +{1} gold, heal {2} HP, take {3} damage. Failure: take {4} damage.",
+                        "Choose a living hero to investigate, or leave safely. Damage can kill; survivors carry the body. If the last hero dies, all loot and bodies are lost.",
+                        "This choice and its effects are saved with the boundary; loading cannot apply them again." })
                     .Concat(new[] { "Train attack +1", "Train defense +1", "Walls block the line to this target.",
                         "Section {0}/{1}", "Section {0}/{1} complete", "Continue to next section", "Retry checkpoint save",
                         "Carried loot: {0} gold / {1} items", "Experience is awarded once on return to the guild.",

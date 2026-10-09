@@ -106,6 +106,7 @@ namespace GuildTactics.Editor
                 MissionChecks.Run();
                 RetreatChecks.Run();
                 JourneyChecks.Run();
+                ExplorationEventChecks.Run();
                 LocalizationChecks.Run();
                 PixelPresentationChecks.Run();
                 SessionState.SetBool(PendingKey, true);
@@ -136,6 +137,7 @@ namespace GuildTactics.Editor
                             ExpeditionSelectionChecks.ValidatePresentation(bootstrap);
                             RetreatChecks.ValidatePresentation(bootstrap);
                             JourneyChecks.ValidatePresentation(bootstrap);
+                            ExplorationEventChecks.ValidatePresentation(bootstrap);
                             GenerationChecks.ValidatePresentation(bootstrap);
                             var camera = new SerializedObject(bootstrap).FindProperty("gridCamera").objectReferenceValue as Camera;
                             ExpeditionChecks.BeginPresentation(camera);
@@ -358,7 +360,7 @@ namespace GuildTactics.Editor
             SessionState.SetBool(PendingKey, false);
             EditorApplication.update -= WaitForPlayMode;
             if (exception != null) Debug.LogException(exception);
-            else Debug.Log("ALL UNITY CHECKS PASSED (WP-00 through WP-19 and WP-21 through WP-30).");
+            else Debug.Log("ALL UNITY CHECKS PASSED (WP-00 through WP-19 and WP-21 through WP-31).");
             EditorApplication.Exit(exception == null ? 0 : 1);
         }
 

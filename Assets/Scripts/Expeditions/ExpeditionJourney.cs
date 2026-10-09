@@ -24,6 +24,9 @@ namespace GuildTactics.Expeditions
         public JourneyAdventurer[] party;
         public DungeonGenerationConfig dungeon;
         public EncounterConfig encounter;
+        public bool explorationEnabled;
+        public int eventGold;
+        public ExplorationEventResult[] events;
 
         internal void Validate(GuildState guild)
         {
@@ -42,10 +45,34 @@ namespace GuildTactics.Expeditions
                     saved.potions < 0 || saved.potions > hero.HealingPotions || (saved.health > 0 && saved.recovered))
                     throw new ArgumentException("Invalid journey adventurer.");
             }
-            if (!party.Any(p => p.health > 0)) throw new ArgumentException("Checkpoint needs a survivor.");
+            if (events != null)
+            {
+                if (events.Length > completed || events.Select(e => e?.section).Distinct().Count() != events.Length)
+                    throw new ArgumentException("Duplicate exploration results.");
+                foreach (var result in events)
+                {
+                    ExplorationEvents.Validate(result, seed, completed, party);
+                    var hero = guild.Roster.FirstOrDefault(h => h.Id == result.hero);
+                    if (result.choice == 1)
+                    {
+                        var definition = ExplorationEvents.At(seed, result.section);
+                        bool success = result.roll >= definition.Difficulty;
+                        int expected = Math.Max(0, Math.Min(hero.Definition.MaxHealth, result.healthBefore +
+                            (success ? definition.Healing - definition.SuccessDamage : -definition.FailureDamage)));
+                        if (result.healthBefore > hero.Definition.MaxHealth || result.healthAfter != expected ||
+                            (result.section == completed && party.First(h => h.id == result.hero).health != expected))
+                            throw new ArgumentException("Invalid exploration health effect.");
+                    }
+                }
+            }
+            if (eventGold < 0 || eventGold != (events?.Sum(e => e.gold) ?? 0) || (!explorationEnabled && (eventGold != 0 || (events?.Length ?? 0) != 0)))
+                throw new ArgumentException("Invalid exploration rewards.");
+            if (!party.Any(p => p.health > 0) && !(explorationEnabled && events != null &&
+                events.Any(e => e.section == completed && e.choice == 1 && e.healthAfter == 0)))
+                throw new ArgumentException("Checkpoint needs a survivor or a fatal exploration result.");
             foreach (var id in items) FindItem(id);
             var mission = ExpeditionSelection.Offers[offer].Mission;
-            if (gold < completed * mission.MinimumGold || gold > completed * mission.MaximumGold ||
+            if (gold - eventGold < completed * mission.MinimumGold || gold - eventGold > completed * mission.MaximumGold ||
                 items.Length != completed * (mission.GrantsItems ? 2 : 0))
                 throw new ArgumentException("Invalid accumulated rewards.");
         }
@@ -66,6 +93,10 @@ namespace GuildTactics.Expeditions
         public int Sections => ExpeditionSelection.Offers[OfferIndex].Sections;
         public int CarriedGold => checkpoint?.gold ?? 0;
         public int CarriedItemCount => checkpoint?.items.Length ?? 0;
+        public bool IsDefeated => checkpoint != null && !checkpoint.party.Any(p => p.health > 0);
+        public bool EventPending => checkpoint != null && checkpoint.explorationEnabled && LastEvent == null && !IsDefeated;
+        public ExplorationEventDefinition CurrentEvent => checkpoint == null ? null : ExplorationEvents.At(Seed, Completed);
+        public ExplorationEventResult LastEvent => checkpoint?.events?.FirstOrDefault(e => e.section == Completed)?.Copy();
         public DungeonGenerationConfig DungeonConfig { get; }
         public EncounterConfig EncounterConfig { get; }
         public int NextSectionSeed => SectionSeed(Seed, Completed);
@@ -93,14 +124,14 @@ namespace GuildTactics.Expeditions
         internal ExpeditionResult BoundaryResult(GuildState guild)
         {
             if (checkpoint == null) return null;
-            return new ExpeditionResult(Seed, ExpeditionOutcome.Extracted, checkpoint.gold,
-                checkpoint.items.Select(JourneyCheckpoint.FindItem), checkpoint.party.Select(p =>
-                    new AdventurerResult(p.id, guild.Roster.First(h => h.Id == p.id).Definition, p.health, p.potions, p.recovered)));
+            return new ExpeditionResult(Seed, IsDefeated ? ExpeditionOutcome.Defeated : ExpeditionOutcome.Extracted, IsDefeated ? 0 : checkpoint.gold,
+                IsDefeated ? Array.Empty<ItemDefinition>() : checkpoint.items.Select(JourneyCheckpoint.FindItem), checkpoint.party.Select(p =>
+                    new AdventurerResult(p.id, guild.Roster.First(h => h.Id == p.id).Definition, p.health, p.potions, !IsDefeated && p.recovered)));
         }
 
         internal IReadOnlyList<GuildAdventurer> ContinuingParty(GuildState guild)
         {
-            if (checkpoint == null || Completed >= Sections) throw new InvalidOperationException("No next section.");
+            if (checkpoint == null || Completed >= Sections || EventPending || IsDefeated) throw new InvalidOperationException("No next section.");
             return checkpoint.party.Where(p => p.health > 0).Select(p =>
             {
                 var original = guild.Roster.First(h => h.Id == p.id);
@@ -131,9 +162,35 @@ namespace GuildTactics.Expeditions
             };
         }
 
+        internal bool TryResolveEvent(GuildState guild, int choice, string heroId = null)
+        {
+            if (!EventPending || choice < 0 || choice > 1) return false;
+            var hero = checkpoint.party.FirstOrDefault(p => p.id == heroId && p.health > 0);
+            if (choice == 1 && hero == null) return false;
+            var result = new ExplorationEventResult { section = Completed, choice = choice };
+            if (choice == 1)
+            {
+                var definition = CurrentEvent;
+                result.hero = heroId;
+                result.roll = ExplorationEvents.Roll(Seed, Completed);
+                bool success = result.roll >= definition.Difficulty;
+                result.gold = success ? definition.Gold : 0;
+                result.healthBefore = hero.health;
+                int maximum = guild.Roster.First(h => h.Id == heroId).Definition.MaxHealth;
+                hero.health = Math.Max(0, Math.Min(maximum, hero.health +
+                    (success ? definition.Healing - definition.SuccessDamage : -definition.FailureDamage)));
+                result.healthAfter = hero.health;
+                hero.recovered = hero.health == 0;
+                checkpoint.gold = checked(checkpoint.gold + result.gold);
+                checkpoint.eventGold += result.gold;
+            }
+            checkpoint.events = (checkpoint.events ?? Array.Empty<ExplorationEventResult>()).Concat(new[] { result }).ToArray();
+            return true;
+        }
+
         internal void Complete(ExpeditionResult result)
         {
-            if (result == null || result.Outcome != ExpeditionOutcome.Extracted || Completed >= Sections || result.Seed != Seed)
+            if (result == null || result.Outcome != ExpeditionOutcome.Extracted || Completed >= Sections || EventPending || IsDefeated || result.Seed != Seed)
                 throw new InvalidOperationException("Section is not complete.");
             checkpoint = new JourneyCheckpoint
             {
@@ -141,7 +198,9 @@ namespace GuildTactics.Expeditions
                 gold = result.Gold, items = result.Items.Select(i => i.Id).ToArray(),
                 party = result.Adventurers.Select(h => new JourneyAdventurer
                     { id = h.InstanceId, health = h.Health, potions = h.HealingPotions, recovered = h.BodyRecovered }).ToArray(),
-                dungeon = DungeonConfig, encounter = EncounterConfig
+                dungeon = DungeonConfig, encounter = EncounterConfig,
+                explorationEnabled = true, eventGold = checkpoint?.eventGold ?? 0,
+                events = checkpoint?.events ?? Array.Empty<ExplorationEventResult>()
             };
         }
     }

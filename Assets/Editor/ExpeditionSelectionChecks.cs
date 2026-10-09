@@ -63,6 +63,8 @@ namespace GuildTactics.Editor
                     if (hero.IsAlive && hero.Position == controller.Expedition.Extraction)
                         hero.TryRelocate(bootstrap.Grid, bootstrap.Grid.Cells.First(c => TerrainRules.CanWalk(c.Terrain) && !c.IsOccupied).Coordinates);
                 Require(actor.TryRelocate(bootstrap.Grid, controller.Expedition.Extraction) && controller.Expedition.TryExtract(actor), "Complete another run");
+                bootstrap.CaptureJourneyBoundary();
+                Require(bootstrap.TryResolveExplorationEvent(0), "Skip boundary event in selection fixture");
                 int gold = bootstrap.Guild.Gold, reward = controller.Expedition.Result.Gold;
                 Require(bootstrap.TryReturnToGuild() && bootstrap.Guild.Gold == gold + reward && !bootstrap.TryReturnToGuild(), "Award exactly once");
                 Require(bootstrap.TrySelectExpedition(cycle == 0 ? 0 : cycle == 1 ? 2 : 1), "Change offer between runs");
