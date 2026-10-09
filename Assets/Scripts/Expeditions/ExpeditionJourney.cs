@@ -36,6 +36,8 @@ namespace GuildTactics.Expeditions
                 dungeon == null || encounter == null || guild.SelectedIds.Count != GuildState.PartySize)
                 throw new ArgumentException("Invalid journey checkpoint.");
             dungeon.Validate(); encounter.Validate();
+            if (dungeon.Biome != ExpeditionSelection.Offers[offer].Biome || encounter.Biome != dungeon.Biome)
+                throw new ArgumentException("Invalid checkpoint biome.");
             var seen = new HashSet<string>();
             foreach (var saved in party)
             {
@@ -51,11 +53,11 @@ namespace GuildTactics.Expeditions
                     throw new ArgumentException("Duplicate exploration results.");
                 foreach (var result in events)
                 {
-                    ExplorationEvents.Validate(result, seed, completed, party);
+                    ExplorationEvents.Validate(result, seed, completed, party, dungeon.Biome);
                     var hero = guild.Roster.FirstOrDefault(h => h.Id == result.hero);
                     if (result.choice == 1)
                     {
-                        var definition = ExplorationEvents.At(seed, result.section);
+                        var definition = ExplorationEvents.At(seed, result.section, dungeon.Biome);
                         bool success = result.roll >= definition.Difficulty;
                         int expected = Math.Max(0, Math.Min(hero.Definition.MaxHealth, result.healthBefore +
                             (success ? definition.Healing - definition.SuccessDamage : -definition.FailureDamage)));
@@ -95,7 +97,7 @@ namespace GuildTactics.Expeditions
         public int CarriedItemCount => checkpoint?.items.Length ?? 0;
         public bool IsDefeated => checkpoint != null && !checkpoint.party.Any(p => p.health > 0);
         public bool EventPending => checkpoint != null && checkpoint.explorationEnabled && LastEvent == null && !IsDefeated;
-        public ExplorationEventDefinition CurrentEvent => checkpoint == null ? null : ExplorationEvents.At(Seed, Completed);
+        public ExplorationEventDefinition CurrentEvent => checkpoint == null ? null : ExplorationEvents.At(Seed, Completed, DungeonConfig.Biome);
         public ExplorationEventResult LastEvent => checkpoint?.events?.FirstOrDefault(e => e.section == Completed)?.Copy();
         public DungeonGenerationConfig DungeonConfig { get; }
         public EncounterConfig EncounterConfig { get; }
@@ -109,6 +111,8 @@ namespace GuildTactics.Expeditions
             DungeonConfig = JsonUtility.FromJson<DungeonGenerationConfig>(JsonUtility.ToJson(dungeon));
             EncounterConfig = JsonUtility.FromJson<EncounterConfig>(JsonUtility.ToJson(encounter));
             DungeonConfig.Validate(); EncounterConfig.Validate();
+            if (DungeonConfig.Biome != ExpeditionSelection.Offers[offer].Biome || EncounterConfig.Biome != DungeonConfig.Biome)
+                throw new ArgumentException("Journey profiles must match the offer biome.");
         }
 
         internal static ExpeditionJourney Restore(JourneyCheckpoint saved, GuildState guild)

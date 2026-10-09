@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using GuildTactics.HexGrid;
 using GuildTactics.Units;
 
@@ -9,6 +10,7 @@ namespace GuildTactics.Generation
     public sealed class EncounterConfig
     {
         public const int MaximumSupportedEnemies = 8;
+        public DungeonBiome Biome;
         public int Budget = 10;
         public int MinEnemies = 3;
         public int MaxEnemies = 5;
@@ -16,6 +18,7 @@ namespace GuildTactics.Generation
 
         public void Validate()
         {
+            Biomes.Validate(Biome);
             if (MinEnemies < 1 || MaxEnemies < MinEnemies || MaxEnemies > MaximumSupportedEnemies ||
                 Budget < MinEnemies || Budget > 100 || MiniBossPercent < 0 || MiniBossPercent > 100)
                 throw new ArgumentException("Invalid encounter configuration.");
@@ -50,6 +53,10 @@ namespace GuildTactics.Generation
         public static EnemyArchetype MiniBoss { get; } = new EnemyArchetype(
             new UnitDefinition("cinder-keeper", "Cinder Keeper", 3, 2,
                 maxHealth: 40, attack: 5, defense: 14, damageDie: 8, damageBonus: 3), 6, true);
+        private static readonly IReadOnlyList<EnemyArchetype> CellarRegular = Array.AsReadOnly(Regular.Where(a =>
+            a.Unit.Id == "ash-crawler" || a.Unit.Id == "crypt-bowman" || a.Unit.Id == "hollow-brute").ToArray());
+        public static IReadOnlyList<EnemyArchetype> ForBiome(DungeonBiome biome) =>
+            biome == DungeonBiome.FloodedCellar ? CellarRegular : Regular;
     }
 
     public sealed class EnemyPlacement
@@ -65,7 +72,8 @@ namespace GuildTactics.Generation
         public static IReadOnlyList<EnemyPlacement> Generate(DungeonMap map, EncounterConfig config = null)
         {
             if (map == null) throw new ArgumentNullException(nameof(map));
-            config = config ?? new EncounterConfig(); config.Validate();
+            config = config ?? new EncounterConfig { Biome = map.Biome }; config.Validate();
+            if (config.Biome != map.Biome) throw new ArgumentException("Encounter and map biomes must match.");
             var candidates = new List<HexCoordinates>();
             var seen = new HashSet<HexCoordinates>(map.PlayerSpawns);
             seen.Add(map.Objective);
@@ -84,7 +92,7 @@ namespace GuildTactics.Generation
             int count = config.MinEnemies + random.Next(maximum - config.MinEnemies + 1);
             int remaining = config.Budget;
             var placements = new List<EnemyPlacement>();
-            bool boss = random.Next(100) < config.MiniBossPercent &&
+            bool boss = random.Next(100) < config.MiniBossPercent && config.Biome == DungeonBiome.Crypt &&
                 remaining >= EnemyDefinitions.MiniBoss.Cost + count - 1;
             for (int i = 0; i < count; i++)
             {
@@ -94,7 +102,7 @@ namespace GuildTactics.Generation
                 else
                 {
                     var affordable = new List<EnemyArchetype>();
-                    foreach (var archetype in EnemyDefinitions.Regular)
+                    foreach (var archetype in EnemyDefinitions.ForBiome(config.Biome))
                         if (archetype.Cost <= allowance) affordable.Add(archetype);
                     choice = affordable[random.Next(affordable.Count)];
                 }

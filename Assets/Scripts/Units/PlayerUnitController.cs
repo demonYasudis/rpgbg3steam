@@ -268,7 +268,8 @@ namespace GuildTactics.Units
         {
             if (Visibility != null && !Visibility.IsVisible(coordinate)) return () => "Explore closer first: this hex is outside current vision.";
             var cell = grid.GetCell(coordinate);
-            if (!TerrainRules.CanWalk(cell.Terrain)) return () => "Cannot walk onto walls or pits.";
+            if (!TerrainRules.CanWalk(cell.Terrain)) return () => gridView.Biome == Generation.DungeonBiome.FloodedCellar ?
+                "Cannot walk onto walls or deep water." : "Cannot walk onto walls or pits.";
             if (cell.IsOccupied)
             {
                 foreach (var unit in units)

@@ -23,7 +23,8 @@ namespace GuildTactics.Editor
                     .Concat(new[] { EnemyDefinitions.MiniBoss.Unit.DisplayName })
                     .Concat(ItemDefinitions.All.Select(i => i.Name))
                     .Concat(ExplorationEvents.All.SelectMany(e => new[] { e.Name, e.Description }))
-                    .Concat(new[] { "Exploration event", "Leave safely", "SUCCESS", "FAILURE", "The expedition is lost.",
+                    .Concat(new[] { "Flooded cellars", "Crypt ruins", "Choose an expedition", "Deep water (fatal if pushed)",
+                        "Cannot walk onto walls or deep water.", "Exploration event", "Leave safely", "SUCCESS", "FAILURE", "The expedition is lost.",
                         "Investigate with {0} ({1}/{2} HP)", "Left safely. No roll or effects.",
                         "d20({0}) >= {1}: {2}. {3}: HP {4} -> {5}; +{6} gold.",
                         "Roll d20 >= {0}. Success: +{1} gold, heal {2} HP, take {3} damage. Failure: take {4} damage.",

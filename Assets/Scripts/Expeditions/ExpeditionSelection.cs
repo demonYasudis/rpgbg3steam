@@ -10,17 +10,22 @@ namespace GuildTactics.Expeditions
         public string Name { get; }
         public string Difficulty { get; }
         public MissionDefinition Mission { get; }
-        public int Sections => Mission == MissionDefinition.Relic ? 2 : 3;
+        public int Sections { get; }
+        public DungeonBiome Biome { get; }
         public string Reward => Mission.MinimumGold + "–" + Mission.MaximumGold + " gold, weapon or armor, healing draught";
         private readonly int budget, minimum, maximum, bossChance;
-        internal ExpeditionOffer(string name, string difficulty, int budget, int minimum, int maximum, int bossChance, MissionDefinition mission)
+        internal ExpeditionOffer(string name, string difficulty, int budget, int minimum, int maximum, int bossChance, MissionDefinition mission, DungeonBiome biome = DungeonBiome.Crypt, int sections = 0)
         {
             Name = name; Difficulty = difficulty; this.budget = budget;
             this.minimum = minimum; this.maximum = maximum; this.bossChance = bossChance;
-            Mission = mission;
+            Mission = mission; Biome = biome;
+            Sections = sections == 0 ? (mission == MissionDefinition.Relic ? 2 : 3) : sections;
         }
         public EncounterConfig CreateEncounterConfig() => new EncounterConfig
-        { Budget = budget, MinEnemies = minimum, MaxEnemies = maximum, MiniBossPercent = bossChance };
+        { Biome = Biome, Budget = budget, MinEnemies = minimum, MaxEnemies = maximum, MiniBossPercent = bossChance };
+        public DungeonGenerationConfig CreateDungeonConfig() => Biome == DungeonBiome.FloodedCellar ?
+            new DungeonGenerationConfig { Biome = Biome, HighGroundPercent = 18, PitPercent = 0, MinimumWalkableCells = 55 } :
+            new DungeonGenerationConfig();
     }
 
     public sealed class ExpeditionSelection
@@ -29,7 +34,9 @@ namespace GuildTactics.Expeditions
         {
             new ExpeditionOffer("Outer crypt", "Low risk · 2–3 enemies · no keeper", 4, 2, 3, 0, MissionDefinition.Relic),
             new ExpeditionOffer("Deep crypt", "Dangerous · 3–5 enemies · possible keeper", 10, 3, 5, 20, MissionDefinition.Clear),
-            new ExpeditionOffer("Marked quarry", "Dangerous · 3–5 enemies · possible keeper", 10, 3, 5, 20, MissionDefinition.Hunt)
+            new ExpeditionOffer("Marked quarry", "Dangerous · 3–5 enemies · possible keeper", 10, 3, 5, 20, MissionDefinition.Hunt),
+            new ExpeditionOffer("Flooded cellars", "Moderate · 3–4 enemies · deep water", 8, 3, 4, 0,
+                new MissionDefinition(MissionType.ClearArea, "Clear area", 30, 50), DungeonBiome.FloodedCellar, 2)
         });
         private readonly int initialSeed;
         public int InitialSeed => initialSeed;

@@ -74,7 +74,7 @@ namespace GuildTactics.Editor
                     else Require(replay == signature, "Seed reproduces target and reward");
                 }
             }
-            Require(ExpeditionSelection.Offers.Count == 3 && ExpeditionSelection.Offers[0].Mission == MissionDefinition.Relic &&
+            Require(ExpeditionSelection.Offers.Count == 4 && ExpeditionSelection.Offers[0].Mission == MissionDefinition.Relic &&
                 ExpeditionSelection.Offers[1].Mission == MissionDefinition.Clear && ExpeditionSelection.Offers[2].Mission == MissionDefinition.Hunt, "Stable offer indices");
             Debug.Log("WP-28 passed: three mission types across 40 seeds, partial extraction, body loss confirmation, repeatable targets/rewards and single payout.");
         }

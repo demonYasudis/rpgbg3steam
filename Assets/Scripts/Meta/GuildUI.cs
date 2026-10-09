@@ -63,7 +63,7 @@ namespace GuildTactics.Meta
                 GUI.enabled = previous;
             }
             GUI.BeginGroup(new Rect(0, extraRows, width, 1316 + offerExtra));
-            GUI.Label(new Rect(0, 408, width, 24), L.T("Choose an expedition — crypt ruins"));
+            GUI.Label(new Rect(0, 408, width, 24), L.T("Choose an expedition"));
             for (int i = 0; i < Expeditions.ExpeditionSelection.Offers.Count; i++)
             {
                 var offer = Expeditions.ExpeditionSelection.Offers[i];

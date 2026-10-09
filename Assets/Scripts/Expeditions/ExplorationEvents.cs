@@ -46,14 +46,21 @@ namespace GuildTactics.Expeditions
         private static GenerationRandom Stream(int seed, int section, string purpose) => new GenerationRandom(
             GenerationRandom.ParseSeed("exploration:" + seed.ToString(CultureInfo.InvariantCulture) + ":" +
                 section.ToString(CultureInfo.InvariantCulture) + ":" + purpose));
-        public static ExplorationEventDefinition At(int seed, int section) => All[Stream(seed, section, "type").Next(All.Count)];
+        // Damp caches, springs and traps fit the cellar; no blood altar. Reuse all effect rules.
+        private static readonly int[] CellarEvents = { 0, 2, 2, 3 };
+        public static ExplorationEventDefinition At(int seed, int section, DungeonBiome biome = DungeonBiome.Crypt)
+        {
+            Biomes.Validate(biome);
+            int index = Stream(seed, section, "type").Next(All.Count);
+            return All[biome == DungeonBiome.FloodedCellar ? CellarEvents[index] : index];
+        }
         public static int Roll(int seed, int section) => 1 + Stream(seed, section, "roll").Next(20);
 
-        internal static void Validate(ExplorationEventResult result, int seed, int completed, JourneyAdventurer[] party)
+        internal static void Validate(ExplorationEventResult result, int seed, int completed, JourneyAdventurer[] party, DungeonBiome biome = DungeonBiome.Crypt)
         {
             if (result == null || result.section < 1 || result.section > completed || result.choice < 0 || result.choice > 1)
                 throw new ArgumentException("Invalid exploration choice.");
-            var definition = At(seed, result.section);
+            var definition = At(seed, result.section, biome);
             if (result.choice == 0)
             {
                 if (!string.IsNullOrEmpty(result.hero) || result.roll != 0 || result.gold != 0 ||

@@ -29,7 +29,8 @@ namespace GuildTactics.Editor
                 foreach (var offer in ExpeditionSelection.Offers)
                 {
                     var config = offer.CreateEncounterConfig();
-                    var encounter = EncounterGenerator.Generate(map, config);
+                    var offerMap = offer.Biome == DungeonBiome.Crypt ? map : DungeonGenerator.Generate(selection.NextSeed, offer.CreateDungeonConfig());
+                    var encounter = EncounterGenerator.Generate(offerMap, config);
                     Require(encounter.Count >= config.MinEnemies && encounter.Count <= config.MaxEnemies &&
                         encounter.Sum(e => e.Archetype.Cost) <= config.Budget, "Offer respects advertised difficulty");
                     if (config.MiniBossPercent == 0) Require(encounter.All(e => !e.Archetype.IsMiniBoss), "Easy offer excludes boss");
@@ -40,7 +41,7 @@ namespace GuildTactics.Editor
             Require(selection.TrySelect(0) && selection.Selected == ExpeditionSelection.Offers[0], "Selection");
             var copy = selection.Selected.CreateEncounterConfig(); copy.Budget = 99;
             Require(selection.Selected.CreateEncounterConfig().Budget == 4, "Config mutation does not alter offer");
-            Debug.Log("WP-16 passed: 40 distinct seeds, reproducible maps, three mission offers and isolated configs.");
+            Debug.Log("WP-16 passed: 40 distinct seeds, reproducible maps, four expedition offers and isolated configs.");
         }
         private static void Require(bool condition, string message)
         { if (!condition) throw new InvalidOperationException("WP-16: " + message); }

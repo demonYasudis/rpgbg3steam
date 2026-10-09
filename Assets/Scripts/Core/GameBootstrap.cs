@@ -68,19 +68,33 @@ namespace GuildTactics.Core
             GenerateDungeon();
         }
 
+        private Generation.DungeonGenerationConfig DebugDungeonConfig()
+        {
+            var config = JsonUtility.FromJson<Generation.DungeonGenerationConfig>(JsonUtility.ToJson(dungeonConfig));
+            config.Biome = Expeditions.Selected.Biome;
+            return config;
+        }
+
+        private Generation.EncounterConfig DebugEncounterConfig()
+        {
+            var config = JsonUtility.FromJson<Generation.EncounterConfig>(JsonUtility.ToJson(encounterConfig));
+            config.Biome = Expeditions.Selected.Biome;
+            return config;
+        }
+
         private void GenerateDungeon()
         {
             try
             {
-                Dungeon = Generation.DungeonGenerator.Generate(Journey?.NextSectionSeed ?? Expeditions.NextSeed, Journey?.DungeonConfig ?? dungeonConfig);
+                Dungeon = Generation.DungeonGenerator.Generate(Journey?.NextSectionSeed ?? Expeditions.NextSeed, Journey?.DungeonConfig ?? (debugMode ? DebugDungeonConfig() : Expeditions.Selected.CreateDungeonConfig()));
                 encounter = Generation.EncounterGenerator.Generate(Dungeon,
-                    Journey?.EncounterConfig ?? (debugMode ? encounterConfig : Expeditions.Selected.CreateEncounterConfig()));
+                    Journey?.EncounterConfig ?? (debugMode ? DebugEncounterConfig() : Expeditions.Selected.CreateEncounterConfig()));
             }
             catch (System.ArgumentException exception)
             {
                 Debug.LogWarning("Invalid generation settings; using safe defaults. " + exception.Message, this);
-                Dungeon = Generation.DungeonGenerator.Generate(Journey?.NextSectionSeed ?? Expeditions.NextSeed);
-                encounter = Generation.EncounterGenerator.Generate(Dungeon);
+                Dungeon = Generation.DungeonGenerator.Generate(Journey?.NextSectionSeed ?? Expeditions.NextSeed, Expeditions.Selected.CreateDungeonConfig());
+                encounter = Generation.EncounterGenerator.Generate(Dungeon, Expeditions.Selected.CreateEncounterConfig());
             }
             Grid = Dungeon.Grid;
             Debug.Log($"Dungeon seed {Dungeon.Seed}; fallback {Dungeon.UsedFallback}; objective candidate {Dungeon.Objective}.", this);
@@ -109,12 +123,12 @@ namespace GuildTactics.Core
             try
             {
                 Journey = new Expeditions.ExpeditionJourney(Expeditions.NextSeed, Expeditions.SelectedIndex, combatSeed,
-                    dungeonConfig, debugMode ? encounterConfig : Expeditions.Selected.CreateEncounterConfig());
+                    (debugMode ? DebugDungeonConfig() : Expeditions.Selected.CreateDungeonConfig()), debugMode ? DebugEncounterConfig() : Expeditions.Selected.CreateEncounterConfig());
             }
             catch (System.ArgumentException)
             {
                 Journey = new Expeditions.ExpeditionJourney(Expeditions.NextSeed, Expeditions.SelectedIndex, combatSeed,
-                    new Generation.DungeonGenerationConfig(), Expeditions.Selected.CreateEncounterConfig());
+                    Expeditions.Selected.CreateDungeonConfig(), Expeditions.Selected.CreateEncounterConfig());
             }
             var party = Guild.BeginExpedition();
             try
@@ -263,7 +277,7 @@ namespace GuildTactics.Core
             presentation = new GameObject("Hex Grid");
             presentation.transform.SetParent(transform, false);
             var view = presentation.AddComponent<HexGrid.HexGridView>();
-            view.Initialize(Grid, layout);
+            view.Initialize(Grid, layout, Dungeon.Biome);
             var interaction = presentation.AddComponent<HexGrid.HexGridInteraction>();
             interaction.Initialize(Grid, layout, view, gridCamera);
             interaction.DebugMode = debugMode;

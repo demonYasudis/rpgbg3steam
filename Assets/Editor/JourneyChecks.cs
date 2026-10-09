@@ -60,7 +60,7 @@ namespace GuildTactics.Editor
             for (int seed = 0; seed < 20; seed++)
                 ValidateJourney(offer, seed);
             ValidatePersistence();
-            Debug.Log("WP-30 model checks passed: 60 journeys, 2/3 sections, seed replay, wounds, potions, deaths, carried bodies, rewards, retreat, defeat, checkpoint reload and legacy saves.");
+            Debug.Log("WP-30 model checks passed: 80 journeys, 2/3 sections, seed replay, wounds, potions, deaths, carried bodies, rewards, retreat, defeat, checkpoint reload and legacy saves.");
         }
 
         private static void ValidateJourney(int offer, int seed)
@@ -71,7 +71,7 @@ namespace GuildTactics.Editor
             guild = GuildState.Restore(data);
             guild.TryEquip("warrior-1", ItemDefinitions.Weapon.Id);
             guild.TryTransferPotion("warrior-1", true); guild.TryTransferPotion("warrior-1", true);
-            var journey = new ExpeditionJourney(seed, offer, 12345, new DungeonGenerationConfig(), ExpeditionSelection.Offers[offer].CreateEncounterConfig());
+            var journey = new ExpeditionJourney(seed, offer, 12345, ExpeditionSelection.Offers[offer].CreateDungeonConfig(), ExpeditionSelection.Offers[offer].CreateEncounterConfig());
             var first = new Section(journey, guild, guild.BeginExpedition());
             guild.AttachRun(first.Run);
             var warrior = first.Heroes.Single(h => h.InstanceId == "warrior-1");

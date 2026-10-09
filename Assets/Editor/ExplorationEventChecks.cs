@@ -17,7 +17,7 @@ namespace GuildTactics.Editor
         private static ExpeditionJourney Boundary(GuildState guild, ExpeditionSelection offers, int health = 12, bool lone = false)
         {
             var journey = new ExpeditionJourney(offers.NextSeed, offers.SelectedIndex, 73,
-                new DungeonGenerationConfig(), offers.Selected.CreateEncounterConfig());
+                offers.Selected.CreateDungeonConfig(), offers.Selected.CreateEncounterConfig());
             var heroes = guild.Roster.Where(h => guild.SelectedIds.Contains(h.Id)).Select((h, index) =>
                 new AdventurerResult(h.Id, h.Definition, lone && index > 0 ? 0 : health, h.HealingPotions, lone && index > 0));
             journey.Complete(new ExpeditionResult(journey.Seed, ExpeditionOutcome.Extracted, offers.Selected.Mission.MinimumGold,

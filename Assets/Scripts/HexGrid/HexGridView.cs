@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 using GuildTactics.Visibility;
+using GuildTactics.Generation;
 
 namespace GuildTactics.HexGrid
 {
@@ -32,6 +33,7 @@ namespace GuildTactics.HexGrid
         private static readonly Color TargetColor = new Color(0.68f, 0.32f, 0.62f);
         private static readonly Color TrapColor = new Color(0.85f, 0.4f, 0.1f);
         public int TileCount => tiles.Count;
+        public DungeonBiome Biome { get; private set; }
         public FogOfWarSystem Visibility { get; private set; }
         public bool DebugVisibility { get; private set; }
 
@@ -54,11 +56,13 @@ namespace GuildTactics.HexGrid
             foreach (var coordinate in tiles.Keys) Refresh(coordinate);
         }
 
-        public void Initialize(HexGrid grid, HexLayout layout)
+        public void Initialize(HexGrid grid, HexLayout layout, DungeonBiome biome = DungeonBiome.Crypt)
         {
             if (grid == null) throw new ArgumentNullException(nameof(grid));
             if (layout == null) throw new ArgumentNullException(nameof(layout));
             if (tileSprite != null) throw new InvalidOperationException("View is already initialized.");
+            Biomes.Validate(biome);
+            Biome = biome;
             this.grid = grid;
 
             // Unity's default sprite material works in the existing Built-in pipeline.
@@ -102,10 +106,32 @@ namespace GuildTactics.HexGrid
                         if (terrain == TerrainType.Blocked) shade = py % 6 == 0 || (px + py / 6 * 4) % 9 == 0 ? (byte)95 : (byte)245;
                         if (terrain == TerrainType.HighGround) shade = py % 5 == 0 ? (byte)130 : (byte)245;
                         if (terrain == TerrainType.Pit) shade = px < 5 || px > 26 || py < 5 || py > 26 ? (byte)220 : (byte)55;
+                        if (Biome == DungeonBiome.FloodedCellar)
+                        {
+                            // Dry planks and rivets, wet masonry, raised stone platforms and deep-water ripples.
+                            switch (terrain)
+                            {
+                                case TerrainType.Ground:
+                                    shade = py % 6 == 0 ? (byte)100 : (byte)(205 + (px + py / 6) % 3 * 15);
+                                    if ((px == 5 || px == 26) && py % 6 == 2) shade = 130;
+                                    break;
+                                case TerrainType.Blocked:
+                                    shade = py % 7 == 0 || (px + py / 7 * 3) % 10 == 0 ? (byte)100 : (byte)230;
+                                    if ((px * 3 + py * 5) % 17 < 3) shade = 150;
+                                    break;
+                                case TerrainType.HighGround:
+                                    shade = py < 5 || py > 26 || px < 5 || px > 26 ? (byte)105 : (byte)240;
+                                    if (py % 9 == 0) shade = 180;
+                                    break;
+                                case TerrainType.Pit:
+                                    shade = py % 7 == (px / 8 % 2) && px % 8 < 6 ? (byte)230 : (byte)105;
+                                    break;
+                            }
+                        }
                         textured[y * TextureSize + x] = new Color32(shade, shade, shade, pixels[y * TextureSize + x].a);
                     }
                 var art = new Texture2D(TextureSize, TextureSize, TextureFormat.RGBA32, false)
-                { name = "Crypt " + terrain, filterMode = FilterMode.Point, wrapMode = TextureWrapMode.Clamp };
+                { name = Biome + " " + terrain, filterMode = FilterMode.Point, wrapMode = TextureWrapMode.Clamp };
                 art.SetPixels32(textured); art.Apply(false, true); terrainTextures.Add(art);
                 terrainSprites.Add(terrain, Sprite.Create(art, new Rect(0, 0, TextureSize, TextureSize),
                     new Vector2(0.5f, 0.5f), TextureSize / (2f * layout.Radius), 0, SpriteMeshType.FullRect));
@@ -118,7 +144,7 @@ namespace GuildTactics.HexGrid
                 tile.transform.position = layout.ToWorld(cell.Coordinates);
                 var renderer = tile.GetComponent<SpriteRenderer>();
                 renderer.sprite = terrainSprites[cell.Terrain];
-                renderer.color = TerrainColor(cell.Terrain);
+                renderer.color = TerrainColor(cell.Terrain, Biome);
                 tiles.Add(cell.Coordinates, renderer);
             }
         }
@@ -146,8 +172,18 @@ namespace GuildTactics.HexGrid
         public void SetTargetCells(IEnumerable<HexCoordinates> coordinates) => SetCells(targets, coordinates);
         public void SetTrapCells(IEnumerable<HexCoordinates> coordinates) => SetCells(traps, coordinates);
 
-        public static Color TerrainColor(TerrainType terrain)
+        public static Color TerrainColor(TerrainType terrain, DungeonBiome biome = DungeonBiome.Crypt)
         {
+            if (biome == DungeonBiome.FloodedCellar)
+            {
+                switch (terrain)
+                {
+                    case TerrainType.HighGround: return new Color(0.48f, 0.59f, 0.53f);
+                    case TerrainType.Blocked: return new Color(0.24f, 0.40f, 0.40f);
+                    case TerrainType.Pit: return new Color(0.10f, 0.28f, 0.39f);
+                    default: return new Color(0.43f, 0.39f, 0.29f);
+                }
+            }
             switch (terrain)
             {
                 case TerrainType.HighGround: return new Color(0.60f, 0.53f, 0.35f);
@@ -189,7 +225,7 @@ namespace GuildTactics.HexGrid
                 {
                     Visibility.TryGetRememberedTerrain(coordinate.Value, out var terrain);
                     tile.sprite = terrainSprites[terrain];
-                    var remembered = TerrainColor(terrain);
+                    var remembered = TerrainColor(terrain, Biome);
                     tile.color = new Color(remembered.r * 0.45f, remembered.g * 0.45f, remembered.b * 0.45f);
                     return;
                 }
@@ -199,7 +235,7 @@ namespace GuildTactics.HexGrid
                 : (coordinate == hovered ? HoverColor :
                     (targets.Contains(coordinate.Value) ? TargetColor :
                     (traps.Contains(coordinate.Value) ? TrapColor :
-                    (reachable.Contains(coordinate.Value) ? ReachableColor : TerrainColor(grid.GetCell(coordinate.Value).Terrain)))));
+                    (reachable.Contains(coordinate.Value) ? ReachableColor : TerrainColor(grid.GetCell(coordinate.Value).Terrain, Biome)))));
             if (danger.Contains(coordinate.Value)) tile.color = new Color(1f, 0.22f, 0.12f);
         }
 

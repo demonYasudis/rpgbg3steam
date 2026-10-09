@@ -92,7 +92,7 @@ namespace GuildTactics.Expeditions
                 controller.Outcome == BattleOutcome.Victory ? L.T("Area cleared. Bring one survivor to EXIT to extract the party.") :
                 L.T("Loot collected. Defeat remaining enemies, then return to EXIT.");
             if (bootstrap?.Journey != null)
-                goal = L.F("Section {0}/{1}", bootstrap.Journey.Completed + 1, bootstrap.Journey.Sections) + " · " + goal;
+                goal = L.T(Generation.Biomes.Name(bootstrap.Journey.DungeonConfig.Biome)) + " · " + L.F("Section {0}/{1}", bootstrap.Journey.Completed + 1, bootstrap.Journey.Sections) + " · " + goal;
             GUI.Label(new Rect(16, 168, Screen.width - 32, 26), goal);
             bool previous = GUI.enabled;
             GUI.enabled = previous && controller.CanPlayerAct && run.CanOpenChest(controller.SelectedUnit);

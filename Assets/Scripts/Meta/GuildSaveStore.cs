@@ -20,7 +20,7 @@ namespace GuildTactics.Meta
     [Serializable]
     public sealed class GuildSaveData
     {
-        public const int CurrentVersion = 6;
+        public const int CurrentVersion = 7;
         // JsonUtility can materialize an empty inline class for a null field; use an explicit discriminator.
         public bool hasJourney;
         public JourneyCheckpoint journey;

@@ -20,7 +20,8 @@ namespace GuildTactics.Expeditions
             GUI.depth = -20;
             var journey = bootstrap.Journey;
             GUI.Box(new Rect(12, 12, Screen.width - 24, Screen.height - 24),
-                journey.IsDefeated ? L.T("The expedition is lost.") : L.F("Section {0}/{1} complete", journey.Completed, journey.Sections));
+                L.T(Generation.Biomes.Name(journey.DungeonConfig.Biome)) + " · " +
+                (journey.IsDefeated ? L.T("The expedition is lost.") : L.F("Section {0}/{1} complete", journey.Completed, journey.Sections)));
             var text = new StringBuilder(L.F("Carried loot: {0} gold / {1} items", result.Gold, result.Items.Count));
             if (!journey.IsDefeated) text.Append("\n\n").Append(L.T("Return now with all carried loot, or continue without healing or new supplies. Carried bodies remain dead. A total defeat loses everything carried."));
             text.Append("\n\n").Append(L.T(bootstrap.BoundarySaved ?

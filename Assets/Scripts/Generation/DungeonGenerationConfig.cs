@@ -6,6 +6,7 @@ namespace GuildTactics.Generation
     public sealed class DungeonGenerationConfig
     {
         public const int MinimumEnemyCandidates = 8;
+        public DungeonBiome Biome;
         public int RoomCount = 4;
         public int RoomRadius = 2;
         public int HighGroundPercent = 12;
@@ -16,6 +17,7 @@ namespace GuildTactics.Generation
 
         public void Validate()
         {
+            Biomes.Validate(Biome);
             if (RoomCount < 3 || RoomCount > 5 || RoomRadius < 1 || RoomRadius > 3 ||
                 HighGroundPercent < 0 || HighGroundPercent > 100 || PitPercent < 0 || PitPercent > 100 ||
                 MaxAttempts < 1 || MaxAttempts > 20 || MinimumWalkableCells < 16 || MinimumWalkableCells > 100 ||

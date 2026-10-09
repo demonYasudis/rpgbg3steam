@@ -1277,3 +1277,67 @@ Windows Development x64 compilation reached ProducePlayerScriptAssemblies, then
 failed during ManagedStripped because the installed UnityLinker.exe was blocked by
 this computer's Device Guard policy. Build summary: Failed, 1 error, 0 warnings;
 no Windows executable for WP-31 is verified. The system policy was not changed.
+
+
+## WP-32 — Flooded cellars (2026-10-09)
+
+Added DungeonBiome (Crypt = 0, FloodedCellar = 1) to dungeon/encounter profiles and
+DungeonMap. Crypt zero defaults preserve old JSON/Inspector values. Offer index 3
+is Flooded cellars: two sections, ClearArea mission, 30–50 gold and two existing
+items per section, budget 8, 3–4 enemies, no keeper. Indices 0–2 are unchanged.
+EnemyDefinitions.ForBiome reuses Ash Crawler, Crypt Bowman and Hollow Brute;
+no new unit, ability, AI or item system is introduced. Event weights reuse cache,
+spring, spring and snare; the crypt's event definitions and seed recipe are unchanged.
+
+Cellar generation carves two lengthwise dry routes and three crosswalks through
+open basins, with dry entrance and larger connected islands. Row/column/area choices
+use the existing deterministic generator stream. The 12×12 grid, reachable mission
+objectives, spawn safety, retries and validated fallback remain authoritative.
+Deep water is represented by existing Pit terrain: impassable, fatal when pushed
+into, does not block sight or projectiles. Walls still block sight; HighGround stays
+walkable without a bonus. Forced fallback retains the biome identity but uses the
+existing broad safe floor layout. No water simulation, swimming or extra floors.
+
+HexGridView selects point-filtered textures and colors for dry planks with rivets,
+wet masonry, raised platforms and water ripples. Fog/target/movement/danger rules are
+shared, including remembered terrain; Unknown cells keep the same neutral rendering.
+Camera background, hover terrain labels, invalid-movement feedback, expedition and
+boundary titles follow the active biome. Added RU/EN names, difficulty and reward
+labels; guild list sizing already supports the fourth row. Existing scene/prefab
+fields and sprites are not replaced. Normal play uses offer profiles; Debug Mode
+copies Inspector settings and stamps the selected biome without mutating definitions.
+
+Save schema v7 reads v1–v6. Both profiles carry biome fields in the existing journey
+checkpoint. Validation rejects mismatches between offer/map/encounter identity;
+legacy fields absent from JSON default to Crypt. Event resolution and ledger
+validation select the saved biome's event pool, so pending choices, rolls, rewards
+and deaths remain stable after loading. Guild payment and unfinished-section
+rollback retain the existing rules; no live-combat save schema is added.
+
+Added Biomes.cs and BiomeChecks.cs with Unity meta files. Updated generation,
+encounter and expedition profiles, journey/event validation, bootstrap wiring,
+HexGridView/Interaction, guild/journey/expedition labels, movement feedback,
+localization and the relevant validation runners/fixtures. Changes are listed in
+Git; no Unity caches or generated captures are tracked.
+
+Checks: BiomeChecks covers 50 seeds with connected objectives, unique/replayed enemy
+placement, distinct topology/open-water sight lines, event pool variety, forced
+fallback, profile rejection, full two-section guild journeys, wounds/potions,
+pending/resolved checkpoint reload, rollback, single payout, and actual v6 journey
+JSON with resolved events and no biome fields. JourneyChecks now covers 80 journeys
+across all four offers. Shared Play Mode checks launch the real cellar offer, cross
+two sections/events, return rewards once, then switch back to crypt presentation.
+The full Unity 6000.2.8f1 model/Play Mode runner passed with exit 0.
+
+Rendered both biomes with the same seed (8): Logs/wp32-crypt.png and
+Logs/wp32-cellar.png. Both captures were visually inspected for distinct, readable
+water/walkway/platform silhouettes and crisp pixels. These are terrain-only camera
+renders; no claim of manual mouse/GUI acceptance. Manual RU/EN panel scrolling and
+small-window usability still need playtesting, as do difficulty and reward balance.
+
+Windows Development x64 build was attempted. Player C# compilation passed, but
+ManagedStripped failed because the installed UnityLinker.exe is blocked by Device
+Guard (1 error, 0 warnings). No system policy was changed and no WP-32 executable
+is verified. Logs: Logs/wp32-check.log and Logs/wp32-build.log, ignored by Git.
+Batch commands remain HexPresentationChecks.RunBatch without -quit/-nographics,
+and BuildChecks.RunBatch with -quit. No further work package was started.

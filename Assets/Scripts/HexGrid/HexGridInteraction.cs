@@ -46,7 +46,8 @@ namespace GuildTactics.HexGrid
             detailView = false;
             var bounds = layout.GetBounds(grid);
             gridCamera.orthographic = true;
-            gridCamera.backgroundColor = new Color(0.035f, 0.04f, 0.065f);
+            gridCamera.backgroundColor = view.Biome == Generation.DungeonBiome.FloodedCellar ?
+                new Color(0.025f, 0.055f, 0.075f) : new Color(0.035f, 0.04f, 0.065f);
             gridCamera.allowMSAA = false;
             gridCamera.transform.rotation = Quaternion.identity;
             // Reserve screen space above the map for the prototype readout.
@@ -199,10 +200,10 @@ namespace GuildTactics.HexGrid
         private string HoveredTerrain()
         {
             if (!Hovered.HasValue) return "";
-            if (view.Visibility == null) return Core.Localization.T(grid.GetCell(Hovered.Value).Terrain.ToString());
+            if (view.Visibility == null) return Core.Localization.T(Generation.Biomes.TerrainName(view.Biome, grid.GetCell(Hovered.Value).Terrain));
             var state = view.Visibility.GetState(Hovered.Value);
             return view.Visibility.TryGetRememberedTerrain(Hovered.Value, out var terrain)
-                ? Core.Localization.T(state.ToString()) + " / " + Core.Localization.T(terrain.ToString()) : Core.Localization.T(state.ToString());
+                ? Core.Localization.T(state.ToString()) + " / " + Core.Localization.T(Generation.Biomes.TerrainName(view.Biome, terrain)) : Core.Localization.T(state.ToString());
         }
     }
 }
