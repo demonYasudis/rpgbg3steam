@@ -72,7 +72,8 @@ namespace GuildTactics.Meta
             }
             GUI.BeginGroup(new Rect(0, offerExtra, width, 1316));
             GUI.Label(new Rect(0, 498, width, 26), L.T("Possible reward: ") + L.T(bootstrap.Expeditions.Selected.Reward));
-            if (bootstrap.DebugMode) GUI.Label(new Rect(0, 524, width, 24), L.T("Next seed: ") + bootstrap.Expeditions.NextSeed);
+            GUI.Label(new Rect(0, 524, width, 24), L.F("Sections: {0}. Each completed section earns the listed reward.", bootstrap.Expeditions.Selected.Sections) +
+                (bootstrap.DebugMode ? " | " + L.T("Next seed: ") + bootstrap.Expeditions.NextSeed : ""));
             GUI.enabled = previous && guild.CanLaunch;
             if (GUI.Button(new Rect(0, 554, 290, 36), L.T("Start ") + L.T(bootstrap.Expeditions.Selected.Name))) bootstrap.TryLaunchExpedition();
             GUI.enabled = previous;

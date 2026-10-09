@@ -38,6 +38,7 @@ namespace GuildTactics.Expeditions
         private void OnGUI()
         {
             if (controller == null) return;
+            if (bootstrap?.JourneyBoundary != null) return;
             var run = controller.Expedition;
             if (run.Result != null) { DrawResult(run.Result); return; }
             bool enabledBefore = GUI.enabled;
@@ -90,6 +91,8 @@ namespace GuildTactics.Expeditions
                 run.Mission.Type == MissionType.ClearArea ? L.F("Clear area: {0} enemies remaining", run.RemainingEnemies) : !run.ChestOpened ? L.T("Find RELIC. Take it from the same or an adjacent visible hex (1 action).") :
                 controller.Outcome == BattleOutcome.Victory ? L.T("Area cleared. Bring one survivor to EXIT to extract the party.") :
                 L.T("Loot collected. Defeat remaining enemies, then return to EXIT.");
+            if (bootstrap?.Journey != null)
+                goal = L.F("Section {0}/{1}", bootstrap.Journey.Completed + 1, bootstrap.Journey.Sections) + " · " + goal;
             GUI.Label(new Rect(16, 168, Screen.width - 32, 26), goal);
             bool previous = GUI.enabled;
             GUI.enabled = previous && controller.CanPlayerAct && run.CanOpenChest(controller.SelectedUnit);
@@ -111,6 +114,8 @@ namespace GuildTactics.Expeditions
             if (preview == null) return L.T("Retreat requires the active hero on EXIT. No action is required.");
             var text = new StringBuilder(L.T("Retreat without the mission reward? All living heroes escape with their wounds, equipment and remaining potions. Bodies return only from reachable ground after all enemies are defeated."));
             text.Append("\n").Append(L.F("Loot forfeited: {0} gold / {1} items. Mission reward: none. Survivors gain 25 XP.", run.CollectedGold, run.CollectedItems.Count));
+            if (bootstrap?.Journey != null && bootstrap.Journey.Completed > 0)
+                text.Append("\n").Append(L.F("Earlier sections retained: {0} gold / {1} items. Carried bodies return.", preview.Gold, preview.Items.Count));
             foreach (var hero in preview.Adventurers)
                 text.Append("\n").Append(L.AdventurerName(hero.InstanceId)).Append(hero.Survived ? L.F(": {0}/{1} HP", hero.Health, hero.MaxHealth) :
                     hero.BodyRecovered ? L.T(": DEAD — body recovered") : L.T(": PERMANENTLY LOST"));

@@ -70,7 +70,8 @@ namespace GuildTactics.Units
             bool enableBattle = true, bool enableFog = false,
             IReadOnlyList<HexCoordinates> playerSpawns = null,
             IReadOnlyList<Generation.EnemyPlacement> encounter = null, Generation.DungeonMap expeditionMap = null,
-            IReadOnlyList<Meta.GuildAdventurer> guildParty = null, Expeditions.MissionDefinition mission = null)
+            IReadOnlyList<Meta.GuildAdventurer> guildParty = null, Expeditions.MissionDefinition mission = null,
+            Func<Expeditions.ExpeditionResult, Expeditions.ExpeditionResult> composeResult = null)
         {
             if (grid != null) throw new InvalidOperationException("Unit controller is already initialized.");
             if (float.IsNaN(moveSecondsPerStep) || float.IsInfinity(moveSecondsPerStep) || moveSecondsPerStep < 0)
@@ -90,7 +91,8 @@ namespace GuildTactics.Units
             if (guildParty != null)
             {
                 var ids = new HashSet<string>();
-                if (guildParty.Count != 4) throw new ArgumentException("Select exactly four adventurers.");
+                if (guildParty.Count < 1 || guildParty.Count > 4 || (composeResult == null && guildParty.Count != 4))
+                    throw new ArgumentException("Select four adventurers or continue with surviving members.");
                 foreach (var adventurer in guildParty)
                     if (adventurer == null || adventurer.Status != Meta.AdventurerStatus.Alive ||
                         adventurer.Health <= 0 || !ids.Add(adventurer.Id))
@@ -98,7 +100,7 @@ namespace GuildTactics.Units
             }
             try
             {
-                for (int index = 0; index < definitions.Count; index++)
+                for (int index = 0; index < (guildParty?.Count ?? definitions.Count); index++)
                 {
                     var adventurer = guildParty?[index];
                     var definition = adventurer?.Definition ?? definitions[index];
@@ -152,7 +154,7 @@ namespace GuildTactics.Units
             var participants = new List<UnitRuntimeState>(units);
             if (enableBattle) participants.AddRange(enemies);
             Turns = new TurnManager(grid, participants, enableFog ? new FogOfWarSystem(grid, units) : null);
-            if (expeditionMap != null) Expedition = new Expeditions.ExpeditionRun(expeditionMap, Turns, mission);
+            if (expeditionMap != null) Expedition = new Expeditions.ExpeditionRun(expeditionMap, Turns, mission, composeResult);
             gridView.SetFog(Visibility);
             var battleDice = dice ?? new SeededDice(SeededDice.DefaultSeed);
             combat = new CombatSystem(grid, Turns, battleDice);

@@ -1151,3 +1151,63 @@ Log: Logs/wp29-check.log. Manual mouse interaction and visual acceptance of the
 confirmation at different resolutions were not performed.
 Windows Development x64 build also succeeded with 0 errors and 0 warnings
 (Logs/wp29-build.log; Builds/UnityValidation/GuildTactics.exe).
+
+## WP-30 — Multi-section expeditions (2026-10-09)
+
+Outer crypt has 2 sections; Deep crypt and Marked quarry have 3. Each uses the
+selected mission and encounter profile on a compact 12x12 map. Section zero keeps
+the advertised expedition seed; later seeds use the root seed plus the section
+index times an odd constant (unchecked int arithmetic). Combat seeds use the same
+index derivation in their independent stream. Generation configs and combat root
+seed are captured with the checkpoint so resuming does not depend on Inspector
+changes. No static assets or serialized scene fields changed.
+
+ExpeditionJourney owns prior section snapshots and combines section results.
+Only surviving members spawn on the next map, with exact HP, training, equipment
+and remaining potions. Previous casualties remain immutable result snapshots, not
+combat units or markers on the new map. Current-map bodies retain WP-29's full
+clearance/reachability rule and existing permanent-loss confirmation. Previously
+recovered bodies remain carried; previously abandoned bodies stay lost. Extraction
+retains all earned section rewards; retreat retains prior section rewards and
+carried bodies but forfeits current-section rewards. Defeat loses all rewards and
+all bodies. Guild transfer and XP occur once per whole expedition (100 extracted,
+25 retreated), with no intermediate healing, inventory transfer or candidate refresh.
+
+A completed section opens a scrollable RU/EN boundary screen with return/continue
+choices. Final sections offer return only. Continue creates fresh presentation and
+turn state, disables the previous hierarchy synchronously and disposes it. Duplicate
+continue/return/capture commands are rejected. Failed continuation retains the
+boundary for retry or return. Transient buffs, traps and pending boss attacks do
+not cross maps.
+
+Save schema 5 adds an explicit hasJourney discriminator and a validated inline
+JourneyCheckpoint. JsonUtility can materialize null inline classes, so the explicit
+flag is necessary for ordinary guild saves and v1-v4 migration. The checkpoint
+contains the pre-departure guild plus accumulated expedition results and launch
+counter; rewards are not yet paid. Save uses the existing atomic replacement and
+backup mechanism. Load reserves the original party and restores the boundary
+choice. Closing mid-section rolls back to the last boundary (including its
+survivors, wounds, potions and loot); before section one completes, it restores the
+pre-departure guild. Returning writes a normal guild save without a journey, so
+loading cannot pay the same result again. Save failures are shown and block the
+next section until retry succeeds. This deliberately permits replay of an
+unfinished section and is not an anti-save-scumming system.
+
+Validation: JourneyChecks covers 60 multi-section journeys over three mission
+types, deterministic replay, 2/3-section completion, carried/lost bodies, wounds,
+potion consumption, single loot/XP transfer, retreat, defeat, checkpoint reload,
+corrupt checkpoint backup, IO failure and migration from versions 1-4. Full Unity
+6000.2.8f1 model and Play Mode runner passed, including actual controller replacement,
+dead-member omission, stale input rejection, return and launching another expedition.
+Log: Logs/wp30-check.log. Manual mouse-driven UI acceptance was not performed.
+Windows x64 Development build passed with 0 errors and 0 warnings
+(Logs/wp30-build.log; Builds/UnityValidation/GuildTactics.exe).
+
+Added: Assets/Scripts/Expeditions/ExpeditionJourney.cs, JourneyUI.cs and
+Assets/Editor/JourneyChecks.cs, each with its .meta file.
+Modified: Assets/Scripts/Core/GameBootstrap.cs and Localization.cs;
+Assets/Scripts/Expeditions/ExpeditionRun.cs, ExpeditionResult.cs,
+ExpeditionSelection.cs and ExpeditionUI.cs; Assets/Scripts/Meta/GuildState.cs,
+GuildSaveStore.cs and GuildUI.cs; Assets/Scripts/Units/PlayerUnitController.cs;
+Assets/Editor/HexPresentationChecks.cs and LocalizationChecks.cs; AGENTS.md,
+README.md, Docs/DEMO_V02_ROADMAP.md and this file.

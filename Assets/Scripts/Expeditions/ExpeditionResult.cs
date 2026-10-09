@@ -22,6 +22,13 @@ namespace GuildTactics.Expeditions
             BodyRecovered = !Survived && bodyRecovered;
             HealingPotions = unit.HealingPotions;
         }
+
+        internal AdventurerResult(string id, UnitDefinition definition, int health, int potions, bool recovered)
+        {
+            InstanceId = id; DefinitionId = definition.Id; Name = definition.DisplayName;
+            MaxHealth = definition.MaxHealth; Health = health; HealingPotions = potions;
+            BodyRecovered = health == 0 && recovered;
+        }
     }
 
     /// <summary>Snapshot for the result screen and future guild; no scene or mutable unit references.</summary>
@@ -32,6 +39,14 @@ namespace GuildTactics.Expeditions
         public int Gold { get; }
         public IReadOnlyList<ItemDefinition> Items { get; }
         public IReadOnlyList<AdventurerResult> Adventurers { get; }
+
+        internal ExpeditionResult(int seed, ExpeditionOutcome outcome, int gold,
+            IEnumerable<ItemDefinition> items, IEnumerable<AdventurerResult> adventurers)
+        {
+            Seed = seed; Outcome = outcome; Gold = gold;
+            Items = new List<ItemDefinition>(items).AsReadOnly();
+            Adventurers = new List<AdventurerResult>(adventurers).AsReadOnly();
+        }
 
         internal ExpeditionResult(int seed, ExpeditionOutcome outcome, int gold,
             IEnumerable<ItemDefinition> items, IEnumerable<UnitRuntimeState> party,

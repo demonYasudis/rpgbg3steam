@@ -13,6 +13,7 @@ namespace GuildTactics.Expeditions
         private readonly TurnManager turns;
         private readonly List<UnitRuntimeState> party = new List<UnitRuntimeState>();
         private readonly int seed;
+        private readonly Func<ExpeditionResult, ExpeditionResult> composeResult;
         public MissionDefinition Mission { get; }
         public UnitRuntimeState MissionTarget { get; }
         public int RemainingEnemies
@@ -47,14 +48,17 @@ namespace GuildTactics.Expeditions
             get { foreach (var body in Bodies) if (!body.Recoverable) return true; return false; }
         }
 
-        public ExpeditionRun(DungeonMap map, TurnManager turns, MissionDefinition mission = null)
+        public ExpeditionRun(DungeonMap map, TurnManager turns, MissionDefinition mission = null,
+            Func<ExpeditionResult, ExpeditionResult> composeResult = null)
         {
             if (map == null) throw new ArgumentNullException(nameof(map));
             this.turns = turns ?? throw new ArgumentNullException(nameof(turns));
+            this.composeResult = composeResult ?? (result => result);
             Mission = mission ?? MissionDefinition.Legacy;
             if (!ReferenceEquals(map.Grid, turns.Grid)) throw new ArgumentException("Expedition and turns must share a grid.");
             foreach (var unit in turns.Order) if (unit.Team == UnitTeam.Player) party.Add(unit);
-            if (party.Count != 4) throw new ArgumentException("An expedition requires four adventurers.");
+            if (party.Count < 1 || party.Count > 4 || (composeResult == null && party.Count != 4))
+                throw new ArgumentException("An expedition requires four adventurers or a continuing party.");
             Party = party.AsReadOnly();
             seed = map.Seed; Chest = map.Objective; Extraction = map.PlayerSpawns[0];
             if (Chest == Extraction || !DungeonValidator.Distances(map.Grid, Extraction).ContainsKey(Chest))
@@ -111,7 +115,7 @@ namespace GuildTactics.Expeditions
             var recovered = new HashSet<string>();
             foreach (var body in Bodies) if (body.Recoverable) recovered.Add(body.InstanceId);
             if (!ChestOpened) GenerateReward();
-            Result = new ExpeditionResult(seed, ExpeditionOutcome.Extracted, CollectedGold, CollectedItems, party, recovered);
+            Result = composeResult(new ExpeditionResult(seed, ExpeditionOutcome.Extracted, CollectedGold, CollectedItems, party, recovered));
             return true;
         }
 
@@ -119,7 +123,7 @@ namespace GuildTactics.Expeditions
         {
             if (Result != null || turns.State == TurnState.Moving || turns.State == TurnState.ResolvingAction) return;
             if (BattleRules.Evaluate(turns.Order) == BattleOutcome.Defeat)
-                Result = new ExpeditionResult(seed, ExpeditionOutcome.Defeated, 0, Array.Empty<ItemDefinition>(), party);
+                Result = composeResult(new ExpeditionResult(seed, ExpeditionOutcome.Defeated, 0, Array.Empty<ItemDefinition>(), party));
         }
 
         public bool CanRetreat(UnitRuntimeState actor) => CanInteract(actor) && actor.Position == Extraction;
@@ -130,7 +134,7 @@ namespace GuildTactics.Expeditions
             if (!CanRetreat(actor)) return null;
             var recovered = new HashSet<string>();
             foreach (var body in Bodies) if (body.Recoverable) recovered.Add(body.InstanceId);
-            return new ExpeditionResult(seed, ExpeditionOutcome.Retreated, 0, Array.Empty<ItemDefinition>(), party, recovered);
+            return composeResult(new ExpeditionResult(seed, ExpeditionOutcome.Retreated, 0, Array.Empty<ItemDefinition>(), party, recovered));
         }
 
         // One active survivor at EXIT evacuates all survivors, but forfeits mission loot.

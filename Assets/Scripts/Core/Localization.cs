@@ -64,6 +64,19 @@ namespace GuildTactics.Core
         }
         private static readonly Dictionary<string, string> Russian = new Dictionary<string, string>(StringComparer.Ordinal)
         {
+            { "Section {0}/{1} complete", "Участок {0}/{1} завершён" },
+            { "Section {0}/{1}", "Участок {0}/{1}" },
+            { "Sections: {0}. Each completed section earns the listed reward.", "Участков: {0}. Указанная награда выдаётся за каждый выполненный участок." },
+            { "Carried loot: {0} gold / {1} items", "Накопленная добыча: {0} золота / {1} предметов" },
+            { "Earlier sections retained: {0} gold / {1} items. Carried bodies return.", "С прошлых участков сохранится: {0} золота / {1} предметов. Взятые ранее тела вернутся." },
+            { "Continue to next section", "Продолжить поход" },
+            { "Retry checkpoint save", "Повторить сохранение" },
+            { "Checkpoint not saved. Retry saving or return to the guild before closing the game.", "Прогресс не сохранён. Повторите сохранение или вернитесь в гильдию перед закрытием игры." },
+            { "Could not continue expedition. Retry or return to the guild.", "Не удалось продолжить поход. Повторите попытку или вернитесь в гильдию." },
+            { "Experience is awarded once on return to the guild.", "Опыт начисляется один раз при возвращении в гильдию." },
+            { "Return now with all carried loot, or continue without healing or new supplies. Carried bodies remain dead. A total defeat loses everything carried.", "Вернитесь с накопленной добычей или продолжайте без лечения и пополнения запасов. Взятые тела остаются мёртвыми. При полном поражении вся добыча и тела теряются." },
+            { "This boundary is saved. Closing the game in the next section restores this choice and rolls back that section. Before the first boundary, the pre-departure guild is restored.", "Здесь сохраняется прогресс. Закрытие игры на следующем участке вернёт к этому выбору и отменит события того участка. До первой такой точки восстановится гильдия перед выходом в поход." },
+            { "Retreat in a later section keeps earlier rewards and carried bodies, but forfeits that section's reward. New bodies require full clearance and a path to EXIT.", "Отступление на следующем участке сохранит прежнюю добычу и взятые тела, но награда текущего участка пропадёт. Новые тела можно забрать только после полной зачистки, если есть путь до ВЫХОДА." },
             { "Retreat requires the active hero on EXIT. No action is required.", "Для отступления активный герой должен стоять на ВЫХОДЕ. Действие не требуется." },
             { "Retreat without the mission reward? All living heroes escape with their wounds, equipment and remaining potions. Bodies return only from reachable ground after all enemies are defeated.", "Отступить без награды за задание? Все живые герои уйдут с ранениями, снаряжением и оставшимися зельями. Тела возвращаются только с доступных клеток после уничтожения всех врагов." },
             { "Loot forfeited: {0} gold / {1} items. Mission reward: none. Survivors gain 25 XP.", "Будет потеряно: {0} золота / {1} предметов добычи. Награды за задание не будет. Выжившие получат 25 опыта." },

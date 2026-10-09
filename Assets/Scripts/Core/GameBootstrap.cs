@@ -36,6 +36,13 @@ namespace GuildTactics.Core
         public bool DebugMode => debugMode;
         private Meta.GuildSaveStore saveStore;
         public string SaveMessage { get; private set; }
+        public Expeditions.ExpeditionJourney Journey { get; private set; }
+        public Expeditions.ExpeditionResult JourneyBoundary { get; private set; }
+        private Meta.GuildSaveData departureSave;
+        private Expeditions.ExpeditionRun capturedRun;
+        private bool boundarySaved;
+        public bool BoundarySaved => boundarySaved;
+        public bool CanContinueJourney => JourneyBoundary != null && Journey.Completed < Journey.Sections && boundarySaved;
 
         private void Awake()
         {
@@ -56,6 +63,8 @@ namespace GuildTactics.Core
                 SaveMessage = message;
             }
             Guild.Changed += SaveProgress;
+            if (saveStore?.LoadedCheckpoint != null)
+                RestoreJourney(saveStore.LoadedCheckpoint);
             GenerateDungeon();
         }
 
@@ -63,14 +72,14 @@ namespace GuildTactics.Core
         {
             try
             {
-                Dungeon = Generation.DungeonGenerator.Generate(Expeditions.NextSeed, dungeonConfig);
+                Dungeon = Generation.DungeonGenerator.Generate(Journey?.NextSectionSeed ?? Expeditions.NextSeed, Journey?.DungeonConfig ?? dungeonConfig);
                 encounter = Generation.EncounterGenerator.Generate(Dungeon,
-                    debugMode ? encounterConfig : Expeditions.Selected.CreateEncounterConfig());
+                    Journey?.EncounterConfig ?? (debugMode ? encounterConfig : Expeditions.Selected.CreateEncounterConfig()));
             }
             catch (System.ArgumentException exception)
             {
                 Debug.LogWarning("Invalid generation settings; using safe defaults. " + exception.Message, this);
-                Dungeon = Generation.DungeonGenerator.Generate(Expeditions.NextSeed);
+                Dungeon = Generation.DungeonGenerator.Generate(Journey?.NextSectionSeed ?? Expeditions.NextSeed);
                 encounter = Generation.EncounterGenerator.Generate(Dungeon);
             }
             Grid = Dungeon.Grid;
@@ -87,6 +96,7 @@ namespace GuildTactics.Core
             }
 
             gameObject.AddComponent<Meta.GuildUI>().Initialize(this);
+            gameObject.AddComponent<Expeditions.JourneyUI>().Initialize(this);
         }
 
         public bool TryLaunchExpedition()
@@ -95,7 +105,17 @@ namespace GuildTactics.Core
                 return false;
 
             SaveProgress();
-
+            departureSave = Meta.GuildSaveData.Capture(Guild, Expeditions);
+            try
+            {
+                Journey = new Expeditions.ExpeditionJourney(Expeditions.NextSeed, Expeditions.SelectedIndex, combatSeed,
+                    dungeonConfig, debugMode ? encounterConfig : Expeditions.Selected.CreateEncounterConfig());
+            }
+            catch (System.ArgumentException)
+            {
+                Journey = new Expeditions.ExpeditionJourney(Expeditions.NextSeed, Expeditions.SelectedIndex, combatSeed,
+                    new Generation.DungeonGenerationConfig(), Expeditions.Selected.CreateEncounterConfig());
+            }
             var party = Guild.BeginExpedition();
             try
             {
@@ -110,17 +130,82 @@ namespace GuildTactics.Core
                 if (presentation != null) { presentation.SetActive(false); Destroy(presentation); }
                 presentation = null; ActiveController = null;
                 Guild.CancelLaunch();
+                Journey = null; departureSave = null;
                 throw;
             }
         }
 
         public bool TryReturnToGuild()
         {
-            if (!Guild.TryReturn()) 
+            var result = JourneyBoundary ?? ActiveController?.Expedition.Result;
+            if (!Guild.TryReturn(result))
                 return false;
-            presentation.SetActive(false);
-            Destroy(presentation);
+            if (presentation != null) { presentation.SetActive(false); Destroy(presentation); }
             presentation = null; ActiveController = null;
+            Journey = null; JourneyBoundary = null; departureSave = null; capturedRun = null;
+            return true;
+        }
+
+        private void Update() => CaptureJourneyBoundary();
+
+        internal void CaptureJourneyBoundary()
+        {
+            var run = ActiveController?.Expedition;
+            if (Journey == null || JourneyBoundary != null || run == null || run == capturedRun ||
+                run.Result?.Outcome != GuildTactics.Expeditions.ExpeditionOutcome.Extracted) return;
+            Journey.Complete(run.Result);
+            capturedRun = run;
+            JourneyBoundary = run.Result;
+            ActiveController.BossAttack?.Cancel();
+            RetryJourneySave();
+        }
+
+        public bool RetryJourneySave()
+        {
+            if (JourneyBoundary == null) return false;
+            string message = null;
+            boundarySaved = saveStore == null || saveStore.TrySaveCheckpoint(departureSave, Expeditions, Journey.Capture(), out message);
+            SaveMessage = message;
+            return boundarySaved;
+        }
+
+        internal void RestoreJourney(Expeditions.JourneyCheckpoint checkpoint)
+        {
+            Journey = GuildTactics.Expeditions.ExpeditionJourney.Restore(checkpoint, Guild);
+            departureSave = Meta.GuildSaveData.Capture(Guild, Expeditions);
+            JourneyBoundary = Journey.BoundaryResult(Guild);
+            Guild.BeginExpedition();
+            boundarySaved = true;
+        }
+
+        public bool TryContinueJourney()
+        {
+            CaptureJourneyBoundary();
+            if (!CanContinueJourney || gridCamera == null) return false;
+            var previousPresentation = presentation;
+            var previousController = ActiveController;
+            var previousDungeon = Dungeon;
+            var previousEncounter = encounter;
+            try
+            {
+                GenerateDungeon();
+                CreateBattle(Journey.ContinuingParty(Guild));
+                Guild.AttachContinuingRun(ActiveController.Expedition);
+            }
+            catch (System.Exception error)
+            {
+                if (presentation != null && presentation != previousPresentation)
+                { presentation.SetActive(false); Destroy(presentation); }
+                presentation = previousPresentation; ActiveController = previousController;
+                Dungeon = previousDungeon; Grid = Dungeon.Grid; encounter = previousEncounter;
+                Debug.LogException(error, this);
+                SaveMessage = "Could not continue expedition. Retry or return to the guild.";
+                return false;
+            }
+            // Disable synchronously: Destroy alone would leave the old input alive for this frame.
+            if (previousPresentation != null) { previousPresentation.SetActive(false); Destroy(previousPresentation); }
+            JourneyBoundary = null;
+            SaveMessage = null;
             return true;
         }
 
@@ -173,11 +258,14 @@ namespace GuildTactics.Core
             interaction.Initialize(Grid, layout, view, gridCamera);
             interaction.DebugMode = debugMode;
             var feedback = presentation.AddComponent<Combat.CombatText>();
-            feedback.Initialize(gridCamera, combatSeed);
+            int sectionCombatSeed = Journey == null ? combatSeed :
+                GuildTactics.Expeditions.ExpeditionJourney.SectionSeed(Journey.CombatSeed, Journey.Completed);
+            feedback.Initialize(gridCamera, sectionCombatSeed);
             var units = presentation.AddComponent<Units.PlayerUnitController>();
             units.Initialize(Grid, layout, view, interaction, movementSecondsPerStep,
-                new Combat.SeededDice(combatSeed), feedback, enableFog: true,
-                playerSpawns: Dungeon.PlayerSpawns, encounter: encounter, expeditionMap: Dungeon, guildParty: party, mission: Expeditions.Selected.Mission);
+                new Combat.SeededDice(sectionCombatSeed), feedback, enableFog: true,
+                playerSpawns: Dungeon.PlayerSpawns, encounter: encounter, expeditionMap: Dungeon, guildParty: party, mission: Expeditions.Selected.Mission,
+                composeResult: Journey?.ResultComposer(Guild));
             ActiveController = units;
             presentation.AddComponent<Combat.TurnOrderUI>().Initialize(units);
             presentation.AddComponent<Abilities.ActionBarUI>().Initialize(units);

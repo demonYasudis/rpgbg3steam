@@ -162,8 +162,16 @@ namespace GuildTactics.Meta
 
         public bool TryReturn()
         {
-            var result = activeRun?.Result;
-            if (result == null) return false;
+            return TryReturn(activeRun?.Result);
+        }
+
+        internal bool TryReturn(ExpeditionResult result)
+        {
+            if (result == null || !IsAway) return false;
+            var seen = new HashSet<string>();
+            if (result.Adventurers.Count != activeParty.Count) return false;
+            foreach (var hero in result.Adventurers)
+                if (!seen.Add(hero.InstanceId) || !activeParty.Exists(a => a.Id == hero.InstanceId)) return false;
             int newGold = checked(Gold + result.Gold);
             foreach (var snapshot in result.Adventurers)
             {
@@ -195,6 +203,16 @@ namespace GuildTactics.Meta
             RefreshCandidates();
             Changed?.Invoke();
             return true;
+        }
+
+        internal void AttachContinuingRun(ExpeditionRun run)
+        {
+            if (!IsAway || run == null || run.Result != null || (activeRun != null && activeRun.Result == null))
+                throw new InvalidOperationException("No completed section to continue.");
+            foreach (var unit in run.Party)
+                if (!activeParty.Exists(a => a.Id == unit.InstanceId && a.Definition == unit.Definition))
+                    throw new ArgumentException("Continuing party mismatch.");
+            activeRun = run;
         }
 
         public bool TryResurrect(string id)

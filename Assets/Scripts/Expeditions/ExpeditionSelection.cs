@@ -10,6 +10,7 @@ namespace GuildTactics.Expeditions
         public string Name { get; }
         public string Difficulty { get; }
         public MissionDefinition Mission { get; }
+        public int Sections => Mission == MissionDefinition.Relic ? 2 : 3;
         public string Reward => Mission.MinimumGold + "–" + Mission.MaximumGold + " gold, weapon or armor, healing draught";
         private readonly int budget, minimum, maximum, bossChance;
         internal ExpeditionOffer(string name, string difficulty, int budget, int minimum, int maximum, int bossChance, MissionDefinition mission)

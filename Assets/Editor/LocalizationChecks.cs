@@ -23,6 +23,10 @@ namespace GuildTactics.Editor
                     .Concat(new[] { EnemyDefinitions.MiniBoss.Unit.DisplayName })
                     .Concat(ItemDefinitions.All.Select(i => i.Name))
                     .Concat(new[] { "Train attack +1", "Train defense +1", "Walls block the line to this target.",
+                        "Section {0}/{1}", "Section {0}/{1} complete", "Continue to next section", "Retry checkpoint save",
+                        "Carried loot: {0} gold / {1} items", "Experience is awarded once on return to the guild.",
+                        "Sections: {0}. Each completed section earns the listed reward.",
+                        "Earlier sections retained: {0} gold / {1} items. Carried bodies return.",
                         "Retreat requires the active hero on EXIT. No action is required.",
                         "Retreat without the mission reward? All living heroes escape with their wounds, equipment and remaining potions. Bodies return only from reachable ground after all enemies are defeated.",
                         "Loot forfeited: {0} gold / {1} items. Mission reward: none. Survivors gain 25 XP.",
