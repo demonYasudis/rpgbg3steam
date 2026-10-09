@@ -64,6 +64,9 @@ namespace GuildTactics.Core
         }
         private static readonly Dictionary<string, string> Russian = new Dictionary<string, string>(StringComparer.Ordinal)
         {
+            { "Retreat requires the active hero on EXIT. No action is required.", "Для отступления активный герой должен стоять на ВЫХОДЕ. Действие не требуется." },
+            { "Retreat without the mission reward? All living heroes escape with their wounds, equipment and remaining potions. Bodies return only from reachable ground after all enemies are defeated.", "Отступить без награды за задание? Все живые герои уйдут с ранениями, снаряжением и оставшимися зельями. Тела возвращаются только с доступных клеток после уничтожения всех врагов." },
+            { "Loot forfeited: {0} gold / {1} items. Mission reward: none. Survivors gain 25 XP.", "Будет потеряно: {0} золота / {1} предметов добычи. Награды за задание не будет. Выжившие получат 25 опыта." },
             { "Storage:\n", "Склад:\n" },
             { "Recruitment - 20 gold per hero", "Найм — 20 золота за героя" },
             { "Candidates refresh after returning from an expedition. Offers and hires are saved.", "Кандидаты обновляются после возвращения из похода. Предложения и найм сохраняются." },

@@ -7,7 +7,7 @@ using GuildTactics.Units;
 
 namespace GuildTactics.Expeditions
 {
-    /// <summary>One chest and one extraction. Commands share the authoritative combat turn permissions.</summary>
+    /// <summary>Mission and evacuation commands share the authoritative combat turn permissions.</summary>
     public sealed class ExpeditionRun
     {
         private readonly TurnManager turns;
@@ -122,11 +122,25 @@ namespace GuildTactics.Expeditions
                 Result = new ExpeditionResult(seed, ExpeditionOutcome.Defeated, 0, Array.Empty<ItemDefinition>(), party);
         }
 
-        // Retreat preserves living adventurers and their wounds, but forfeits loot and bodies.
+        public bool CanRetreat(UnitRuntimeState actor) => CanInteract(actor) && actor.Position == Extraction;
+
+        // Read-only snapshot for confirmation; requesting or dismissing it spends nothing.
+        public ExpeditionResult PreviewRetreat(UnitRuntimeState actor)
+        {
+            if (!CanRetreat(actor)) return null;
+            var recovered = new HashSet<string>();
+            foreach (var body in Bodies) if (body.Recoverable) recovered.Add(body.InstanceId);
+            return new ExpeditionResult(seed, ExpeditionOutcome.Retreated, 0, Array.Empty<ItemDefinition>(), party, recovered);
+        }
+
+        // One active survivor at EXIT evacuates all survivors, but forfeits mission loot.
+        // Bodies follow the same cleared-area/reachability rule as successful extraction.
         public bool TryRetreat(bool confirmed)
         {
-            if (!confirmed || Result != null || !CanInteract(turns.ActiveUnit)) return false;
-            Result = new ExpeditionResult(seed, ExpeditionOutcome.Retreated, 0, Array.Empty<ItemDefinition>(), party);
+            if (!confirmed) return false;
+            var preview = PreviewRetreat(turns.ActiveUnit);
+            if (preview == null) return false;
+            Result = preview;
             return true;
         }
     }

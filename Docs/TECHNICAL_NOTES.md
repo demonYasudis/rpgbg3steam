@@ -1121,3 +1121,33 @@ partial extraction, body loss confirmation and duplicate extraction rejection.
 Shared Unity checks exercise actual offer switching and guild reward transfer.
 Windows Development x64 build is verified separately. Manual visual acceptance
 is still useful for the translated guild layout at different screen sizes.
+
+## WP-29 — Early retreat (2026-10-08)
+
+Retreat now requires a living active party member on EXIT during an idle player
+turn. It needs no remaining action or movement and works before mission completion
+and while enemies remain. One survivor evacuates all living party members, retaining
+wounds, equipment and unused potions. Retreat forfeits all collected loot and mission
+rewards (including after objective completion); survivors receive the existing 25 XP.
+Bodies use the same rule as extraction: full enemy clearance plus terrain reachability
+from EXIT. Unsafe/unreachable bodies and their carried equipment are permanently lost.
+
+The RU/EN confirmation lists the exact survivors, HP, recovered/lost bodies and
+forfeited loot. PreviewRetreat is read-only; cancellation spends nothing. Confirmation
+revalidates the authoritative state, sets one immutable result and cancels pending
+boss attacks. The existing guild return/save path handles gear, experience and bodies;
+no new persistent fields or save-version change is needed (schema 4).
+
+Changed runtime files: ExpeditionRun, ExpeditionResult, ExpeditionUI,
+PlayerUnitController and Localization. Added RetreatChecks (with Unity .meta),
+integrated it into HexPresentationChecks and adapted ExpeditionChecks, LoadoutChecks,
+RecruitmentChecks, ProgressionChecks and LocalizationChecks to the exit requirement.
+
+Validation: Unity 6000.2.8f1 compiled the code and passed the full shared model and
+Play Mode runner, including three missions, cancellation, spent-action availability,
+action-resolution blocking, single immutable result, safe/unsafe bodies, gear loss and
+recovery, save restoration, single guild transfer and launching the next expedition.
+Log: Logs/wp29-check.log. Manual mouse interaction and visual acceptance of the
+confirmation at different resolutions were not performed.
+Windows Development x64 build also succeeded with 0 errors and 0 warnings
+(Logs/wp29-build.log; Builds/UnityValidation/GuildTactics.exe).

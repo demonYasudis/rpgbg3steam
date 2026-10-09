@@ -41,7 +41,7 @@ namespace GuildTactics.Expeditions
             Items = new List<ItemDefinition>(items).AsReadOnly();
             var snapshots = new List<AdventurerResult>();
             foreach (var unit in party) snapshots.Add(new AdventurerResult(unit,
-                outcome == ExpeditionOutcome.Extracted && recoveredBodies != null && recoveredBodies.Contains(unit.InstanceId)));
+                outcome != ExpeditionOutcome.Defeated && recoveredBodies != null && recoveredBodies.Contains(unit.InstanceId)));
             Adventurers = snapshots.AsReadOnly();
         }
     }

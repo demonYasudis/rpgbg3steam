@@ -424,6 +424,15 @@ namespace GuildTactics.Units
             return true;
         }
 
+        public bool TryRetreat(bool confirmed)
+        {
+            if (!CanPlayerAct || Expedition == null || !Expedition.TryRetreat(confirmed)) return false;
+            BossAttack?.Cancel();
+            SelectedUnit = null;
+            CancelTargeting();
+            return true;
+        }
+
         public bool CanAttack(UnitRuntimeState target) => CanPlayerAct && combat != null &&
             combat.CanAttack(SelectedUnit, target);
 

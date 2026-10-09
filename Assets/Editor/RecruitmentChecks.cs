@@ -65,6 +65,7 @@ namespace GuildTactics.Editor
             var run = new ExpeditionRun(map, turns);
             guild.AttachRun(run);
             turns.TryStartNextTurn();
+            RetreatChecks.ReachExit(turns, run);
             Require(run.TryRetreat(true) && guild.TryReturn(), "Recruits return from expedition");
             Require(guild.Candidates.Count == 4 && guild.Candidates.All(c => !guild.Roster.Any(h => h.Id == c)), "Return refreshes unique offers");
             var refreshed = guild.Candidates.ToArray();

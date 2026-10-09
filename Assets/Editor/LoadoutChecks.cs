@@ -105,8 +105,17 @@ namespace GuildTactics.Editor
                 guild.TryTransferPotion("warrior-1", true); guild.TryTransferPotion("warrior-1", true);
                 var run = new RunFixture(guild);
                 Require(!guild.TryUnequip("warrior-1", ItemCategory.Weapon) && !guild.TryTransferPotion("warrior-1", false), "Away loadout immutable");
-                var victim = run.Party.First(u => u.InstanceId == "warrior-1"); victim.ApplyDamage(victim.CurrentHealth);
-                if (recovered) run.Extract(); else Require(run.Run.TryRetreat(true), "Retreat fixture");
+                var victim = run.Party.First(u => u.InstanceId == "warrior-1");
+                if (!recovered) Require(victim.TryRelocate(run.Map.Grid, run.Run.Chest), "Place unrecoverable casualty");
+                victim.ApplyDamage(victim.CurrentHealth);
+                if (recovered) run.Extract();
+                else
+                {
+                    // An unreachable body is lost even after a cleared-area retreat.
+                    run.Map.Grid.GetCell(victim.Position).Terrain = TerrainType.Pit;
+                    RetreatChecks.ReachExit(run.Turns, run.Run);
+                    Require(run.Run.TryRetreat(true), "Retreat fixture");
+                }
                 int loot = run.Run.Result.Items.Count;
                 Require(guild.TryReturn() && !guild.TryReturn(), "Result applied once");
                 Require(guild.Inventory.Count == 1 + loot + (recovered ? 4 : 0) &&

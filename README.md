@@ -253,3 +253,17 @@ partial extraction, body loss confirmation and duplicate extraction rejection.
 Shared Unity checks exercise actual offer switching and guild reward transfer.
 Windows Development x64 build is verified separately. Manual visual acceptance
 is still useful for the translated guild layout at different screen sizes.
+
+## WP-29 — Досрочное отступление
+
+Чтобы уйти без завершения задания, приведите активного живого героя на **EXIT**
+и нажмите **Вернуться / отступить** (Return / retreat). Действие тратить не нужно.
+Все выжившие уходят вместе, сохраняя HP, снаряжение и оставшиеся зелья; каждый
+получает 25 опыта. Вся добыча и награда за задание теряются, даже если цель уже
+выполнена. Для получения награды используйте успешную эвакуацию.
+
+Тела возвращаются только после уничтожения всех врагов и только с клеток,
+достижимых от выхода. Остальные погибшие и их снаряжение теряются навсегда.
+Окно подтверждения перечисляет последствия для каждого героя; отмена ничего
+не меняет. После возврата можно выбрать замену погибшим и начать новый поход.
+Проверка: `Tools > Guild Tactics > Validate Early Retreat`.

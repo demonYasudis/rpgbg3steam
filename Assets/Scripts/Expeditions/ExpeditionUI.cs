@@ -41,8 +41,9 @@ namespace GuildTactics.Expeditions
             var run = controller.Expedition;
             if (run.Result != null) { DrawResult(run.Result); return; }
             bool enabledBefore = GUI.enabled;
-            GUI.enabled = enabledBefore && (controller.CanPlayerAct || confirmingRetreat || showingLog);
-            if (GUI.Button(new Rect(Screen.width - 140, 6, 124, 26), L.T("Return / retreat")))
+            GUI.enabled = enabledBefore && !confirmingAbandonment &&
+                ((controller.CanPlayerAct && run.CanRetreat(controller.SelectedUnit)) || confirmingRetreat);
+            if (GUI.Button(new Rect(Screen.width - 140, 6, 124, 26), new GUIContent(L.T("Return / retreat"), L.T("Retreat requires the active hero on EXIT. No action is required."))))
             { confirmingRetreat = !confirmingRetreat; showingLog = false; controller.InterfaceBlocked = confirmingRetreat; }
             GUI.enabled = enabledBefore;
             if (GUI.Button(new Rect(Screen.width - 140, 32, 124, 24), L.T("Last combat result")))
@@ -55,8 +56,7 @@ namespace GuildTactics.Expeditions
             {
                 GUI.Box(new Rect(8, 58, Screen.width - 16, 168), "");
                 var style = new GUIStyle(GUI.skin.label) { wordWrap = true };
-                string message = confirmingRetreat ?
-                    L.T("Retreat to the guild? Living heroes keep their wounds. All collected loot and dead adventurers are permanently lost.") :
+                string message = confirmingRetreat ? RetreatMessage(run) :
                     controller.GetComponent<CombatText>()?.LastMessage ?? L.T("No combat result yet.");
                 resultScroll = GUI.BeginScrollView(new Rect(16, 64, Screen.width - 32, 110), resultScroll,
                     new Rect(0, 0, Screen.width - 56, Mathf.Max(100, style.CalcHeight(new GUIContent(message), Screen.width - 56))));
@@ -64,8 +64,9 @@ namespace GuildTactics.Expeditions
                 GUI.EndScrollView();
                 if (confirmingRetreat && GUI.Button(new Rect(16, 186, 210, 28), L.T("Confirm retreat and loss")))
                 {
-                    if (run.TryRetreat(true))
-                    { controller.InterfaceBlocked = false; confirmingRetreat = false; }
+                    controller.InterfaceBlocked = false;
+                    controller.TryRetreat(true);
+                    confirmingRetreat = false;
                 }
                 if (GUI.Button(new Rect(Screen.width - 126, 186, 110, 28), L.T("Back to battle")))
                 { confirmingRetreat = showingLog = false; controller.InterfaceBlocked = false; }
@@ -102,6 +103,18 @@ namespace GuildTactics.Expeditions
             GUI.enabled = previous;
             GUI.Label(new Rect(274, 200, Screen.width - 290, 24),
                 L.F("Loot: {0} gold / {1} items", run.CollectedGold, run.CollectedItems.Count));
+        }
+
+        private string RetreatMessage(ExpeditionRun run)
+        {
+            var preview = run.PreviewRetreat(controller.SelectedUnit);
+            if (preview == null) return L.T("Retreat requires the active hero on EXIT. No action is required.");
+            var text = new StringBuilder(L.T("Retreat without the mission reward? All living heroes escape with their wounds, equipment and remaining potions. Bodies return only from reachable ground after all enemies are defeated."));
+            text.Append("\n").Append(L.F("Loot forfeited: {0} gold / {1} items. Mission reward: none. Survivors gain 25 XP.", run.CollectedGold, run.CollectedItems.Count));
+            foreach (var hero in preview.Adventurers)
+                text.Append("\n").Append(L.AdventurerName(hero.InstanceId)).Append(hero.Survived ? L.F(": {0}/{1} HP", hero.Health, hero.MaxHealth) :
+                    hero.BodyRecovered ? L.T(": DEAD — body recovered") : L.T(": PERMANENTLY LOST"));
+            return text.ToString();
         }
 
         private void DrawMarker(HexCoordinates coordinate, string label)

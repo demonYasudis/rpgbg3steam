@@ -23,6 +23,9 @@ namespace GuildTactics.Editor
                     .Concat(new[] { EnemyDefinitions.MiniBoss.Unit.DisplayName })
                     .Concat(ItemDefinitions.All.Select(i => i.Name))
                     .Concat(new[] { "Train attack +1", "Train defense +1", "Walls block the line to this target.",
+                        "Retreat requires the active hero on EXIT. No action is required.",
+                        "Retreat without the mission reward? All living heroes escape with their wounds, equipment and remaining potions. Bodies return only from reachable ground after all enemies are defeated.",
+                        "Loot forfeited: {0} gold / {1} items. Mission reward: none. Survivors gain 25 XP.",
                         "Level {0}/5 | XP {1}/{2} | Upgrades {3} | Training ATK +{4}, DEF +{5}",
                         "Survivors gain 100 XP on extraction, 25 on retreat. Dead heroes gain none; resurrection keeps training." })
                     .Concat(ExpeditionSelection.Offers.SelectMany(o => new[] { o.Name, o.Difficulty, o.Reward })).ToArray();

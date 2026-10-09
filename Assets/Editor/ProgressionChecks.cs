@@ -90,6 +90,7 @@ namespace GuildTactics.Editor
             Require(hero.Experience == 100 && hero.TrainingAttack == 1 && guild.TryResurrect(hero.Id) && hero.Experience == 100,
                 "A recovered casualty receives no reward and keeps its earned choice");
             guild = new GuildState(); fixture = new Fixture(guild);
+            RetreatChecks.ReachExit(fixture.Turns, fixture.Run);
             Require(fixture.Run.TryRetreat(true) && guild.TryReturn() && guild.Roster.Take(4).All(h => h.Experience == 25), "Retreat rewards survivors");
             fixture = new Fixture(guild);
             foreach (var unit in fixture.Units) unit.ApplyDamage(unit.CurrentHealth);

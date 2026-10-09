@@ -79,6 +79,8 @@ namespace GuildTactics.Editor
                 Require(retreat.Run.TryOpenChest(retreat.Actor), "Collect loot before retreat");
                 retreat.Actor.ApplyDamage(3);
                 retreat.Party[1].ApplyDamage(retreat.Party[1].CurrentHealth);
+                Require(!retreat.Run.TryRetreat(true), "Cannot retreat away from EXIT");
+                RetreatChecks.ReachExit(retreat.Turns, retreat.Run);
                 Require(retreat.Run.TryRetreat(true) && !retreat.Run.TryRetreat(true), "Retreat commits once");
                 var result = retreat.Run.Result;
                 Require(result.Outcome == ExpeditionOutcome.Retreated && result.Gold == 0 && result.Items.Count == 0 &&
