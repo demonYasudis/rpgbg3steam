@@ -8,16 +8,17 @@ namespace GuildTactics.Units
     {
         public enum Pose { Idle, Walk, Attack, Defend, Hit }
         private readonly Sprite[][] frames = new Sprite[5][];
+        private readonly float[] frameRates = { 5f, 10f, 10f, 10f, 10f };
         public string AssetName { get; }
 
         public static string AssetFor(string id)
         {
             switch (id)
             {
-                case "warrior": return "knight";
-                case "rogue": return "thief";
-                case "ranger": return "archer";
-                case "mage": return "mage";
+                case "warrior": return "hero-warrior-v2";
+                case "rogue": return "hero-rogue-v2";
+                case "ranger": return "hero-ranger-v2";
+                case "mage": return "hero-mage-v2";
                 case "ash-crawler": return "wolf";
                 case "veil-stalker": return "goblin";
                 case "hollow-brute": return "orc";
@@ -39,6 +40,32 @@ namespace GuildTactics.Units
         private UnitSpriteSheet(string asset, Texture2D texture)
         {
             AssetName = asset;
+            if (asset.StartsWith("hero-", StringComparison.Ordinal))
+            {
+                // V2 artwork is packed into 4 x 5 regular cells, with a common foot baseline.
+                if (texture.width != 1024 || texture.height != 1280)
+                    throw new ArgumentException("Hero V2 atlas must be 1024 x 1280: " + asset);
+                frameRates[0] = 4f;
+                frameRates[1] = 8f;
+                frameRates[2] = frameRates[3] = 5f; // Preserve the existing 0.8 second action window.
+                // Packing preserves the complete weapon silhouette, so transparent margins vary.
+                // Measured idle heights / 0.82 world units keep all four bodies at the same scale.
+                float pixelsPerUnit = asset == "hero-warrior-v2" ? 164f :
+                    asset == "hero-rogue-v2" ? 163f : asset == "hero-ranger-v2" ? 191f : 178f;
+                var pivot = new Vector2(0.5f, (32f + 0.3f * pixelsPerUnit) / 256f);
+                for (int row = 0; row < frames.Length; row++)
+                {
+                    frames[row] = new Sprite[4];
+                    for (int column = 0; column < 4; column++)
+                    {
+                        frames[row][column] = Sprite.Create(texture,
+                            new Rect(column * 256, texture.height - (row + 1) * 256, 256, 256),
+                            pivot, pixelsPerUnit, 0, SpriteMeshType.FullRect);
+                        frames[row][column].name = asset + "_" + (Pose)row + "_" + column;
+                    }
+                }
+                return;
+            }
             // Generated sheets are not uniform atlases. Row boundaries are measured in source pixels.
             int[] boundaries = asset == "wolf"
                 ? new[] { 0, 160, 310, 475, 625, 780 }
@@ -76,7 +103,7 @@ namespace GuildTactics.Units
         public Sprite Frame(Pose pose, float elapsed, bool loop = true)
         {
             var sequence = frames[(int)pose];
-            int index = Mathf.Max(0, Mathf.FloorToInt(elapsed * (pose == Pose.Idle ? 5f : 10f)));
+            int index = Mathf.Max(0, Mathf.FloorToInt(elapsed * frameRates[(int)pose]));
             return sequence[loop ? index % sequence.Length : Mathf.Min(index, sequence.Length - 1)];
         }
 

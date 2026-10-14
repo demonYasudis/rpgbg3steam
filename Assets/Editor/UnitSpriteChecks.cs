@@ -33,6 +33,22 @@ namespace GuildTactics.Editor
                 }
             }
             Require(UnitSpriteSheet.Load("unknown-content") == null, "Procedural fallback for unknown IDs");
+            foreach (var id in new[] { "warrior", "rogue", "ranger", "mage" })
+            {
+                using (var hero = UnitSpriteSheet.Load(id))
+                {
+                    Require(hero.AssetName == "hero-" + id + "-v2", "Distinct V2 hero asset: " + id);
+                    var first = hero.Frame(UnitSpriteSheet.Pose.Idle, 0);
+                    Require(first.rect.size == new Vector2(256, 256), "Regular V2 cell");
+                    Require(hero.Frame(UnitSpriteSheet.Pose.Idle, 0.76f).name.EndsWith("_3"), "Four idle poses");
+                    Require(hero.Frame(UnitSpriteSheet.Pose.Idle, 1f) == first, "Idle loop duration");
+                    Require(hero.Frame(UnitSpriteSheet.Pose.Attack, 0.61f, false).name.EndsWith("_3"), "Attack reaches recovery before action ends");
+                    Require(hero.Frame(UnitSpriteSheet.Pose.Hit, 0.31f, false).name.EndsWith("_3"), "Hit reaches recovery before flash ends");
+                }
+            }
+            Require(UnitSpriteSheet.AssetFor("crypt-warden") == "knight" &&
+                UnitSpriteSheet.AssetFor("crypt-bowman") == "archer" &&
+                UnitSpriteSheet.AssetFor("cinder-keeper") == "mage", "Hero artwork does not replace enemy artwork");
             using (var goblin = UnitSpriteSheet.Load("veil-stalker"))
             {
                 var first = goblin.Frame(UnitSpriteSheet.Pose.Idle, 0);
@@ -47,7 +63,7 @@ namespace GuildTactics.Editor
             CombatChecks.Run();
             AbilityChecks.Run();
             VisibilityChecks.Run();
-            Debug.Log("Generated unit sprite checks passed: all nine archetypes, seven textures, animation frames, movement, combat, abilities and visibility.");
+            Debug.Log("Generated unit sprite checks passed: hero V2 atlases, preserved enemy art, frame timing, movement, combat, abilities and visibility.");
         }
 
         private static void Require(bool condition, string message)

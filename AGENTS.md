@@ -1427,6 +1427,14 @@ Only after that checkpoint should deeper content systems be built.
 
 <!-- End -->
 
+## UI design proposal (updated 2026-10-14)
+
+The owner requested interface design and task breakdown for the guild and battle
+screens. See [Docs/UI_DESIGN.md](Docs/UI_DESIGN.md) and
+[Docs/UI_ROADMAP.md](Docs/UI_ROADMAP.md), proposed WP-33 through WP-42. The revised art-forward plan supersedes the initial October 10 breakdown.
+This request produces planning documents, not gameplay implementation. All new
+UI packages remain unstarted; implement one package when subsequently requested. Hero art V2 sprites are already integrated as preparation; the illustrated guild and battle screens remain mockups. The design includes animated gameplay miniatures below class portraits, a dedicated visual warehouse, and a BG3-inspired battle HUD.
+
 ## Demo v0.2 continuation (owner approved)
 
 WP-20 remains deferred until publication preparation. Preserve the tactical test
