@@ -14,6 +14,7 @@ namespace GuildTactics.Abilities
 
         private void OnGUI()
         {
+            if (UI.UiInputGate.Blocks(this)) return;
             if (controller == null || controller.InterfaceBlocked || controller.Expedition?.Result != null || !controller.IsUnitVisible(controller.SelectedUnit)) return;
             bool previous = GUI.enabled;
             var buttonStyle = new GUIStyle(GUI.skin.button) { wordWrap = true, fontSize = Screen.width < 900 ? 10 : 12 };

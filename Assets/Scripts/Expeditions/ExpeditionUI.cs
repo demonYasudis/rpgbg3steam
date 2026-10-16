@@ -37,6 +37,7 @@ namespace GuildTactics.Expeditions
 
         private void OnGUI()
         {
+            if (UI.UiInputGate.Blocks(this)) return;
             if (controller == null) return;
             if (bootstrap?.JourneyBoundary != null) return;
             var run = controller.Expedition;

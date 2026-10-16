@@ -1341,3 +1341,55 @@ Guard (1 error, 0 warnings). No system policy was changed and no WP-32 executabl
 is verified. Logs: Logs/wp32-check.log and Logs/wp32-build.log, ignored by Git.
 Batch commands remain HexPresentationChecks.RunBatch without -quit/-nographics,
 and BuildChecks.RunBatch with -quit. No further work package was started.
+
+## WP-33 — Runtime UI foundation and art (2026-10-15)
+
+Selected Unity 6000.2.8f1 runtime UI Toolkit, already installed in the project;
+no package dependency, gameplay formula or save-schema change. Added a scene-local
+UIDocument/PanelSettings clone with the built-in runtime theme, LegacyRuntime.ttf
+with Cyrillic, 1280x720 reference scaling, RU/EN through the existing preference,
+and a scrollable component workshop. Legacy IMGUI remains the default. Open via
+the bottom-right workshop button in TacticalPrototype Play Mode; Esc returns.
+Tabs and class cards are component examples, not functional guild screens.
+
+Added UiFoundation, UiComponents (card/tab/button/runtime tooltip/modal), UiInputGate,
+UiIcon (original vector gold/shield/compass ornaments), USS/theme/panel assets,
+UiArtImporter and UiFoundationChecks, all with Unity meta files. Five separate
+illustrations in Assets/Resources/UI/Art were generated with built-in image_gen;
+exact prompts are recorded in ArtSource/UIFoundation/PROMPTS.md. Reviewed the guild
+reference and all generated images. Hero art V2 atlases remain unchanged. Portraits
+use top-aligned cropping to retain faces; frames/button states are real USS.
+
+GameBootstrap wires the workshop. Existing GuildUI, JourneyUI, ExpeditionUI,
+ActionBarUI, TurnOrderUI and temporary readouts skip interactive IMGUI while the
+workshop owns input. PlayerUnitController combines its old modal block with the
+scene-local gate. HexGridInteraction rejects clicks and skips camera input.
+Closing consumes the current frame to prevent click-through; existing legacy
+modal ownership is preserved. Modal background elements are disabled, only the
+close button participates in focus, Tab stays inside, Esc closes the top layer,
+and closing restores focus. UI rebuilds replace their local callbacks, without
+global subscriptions. Destruction disposes the runtime panel/document.
+
+Validation: editor/runtime C# compilation passed. Full shared model/Play Mode
+runner passed (ALL UNITY CHECKS PASSED, WP-00–19 and WP-21–32), log
+Logs/wp33-regression.log. Dedicated UiFoundationChecks passed with actual runtime
+panels rendering into 1280x720 and 1920x1080 targets, RU/EN text geometry checks,
+modal focus/Tab/Esc, actual button events, blocked battle commands and map clicks,
+20 old/new UI switches, single close callbacks and restored input. Added a check
+that focus/selection/tooltip does not resize adjacent cards after layout settles.
+The scroll rail reserves space; card padding compensates for thicker focus borders.
+Final UI log: Logs/wp33-ui-check.log. Five rendered captures in Logs/wp33-*.png
+were inspected; selected reference captures are also saved under UI_REFERENCES.
+
+Manual Windows UI validation used the actual Unity editor and 1280x720 Game View,
+both normal and expanded: open workshop, select a card, read tooltip, switch EN/RU,
+open modal with mouse, Tab, Enter, Esc, restored opener focus, and return to legacy
+UI. Corrected modal overlay focus and portrait framing during this pass. Play Mode
+was stopped and the validation editor closed. The final panel size/language render
+matrix also exercises changing the target size while open. No claim of a standalone
+Windows player test: WP-33 requires runtime editor acceptance, not a new build.
+
+Remaining scope: WP-34–42 connect these components to actual guild/storage/battle
+screens and animation. The workshop is intentionally static and does not execute
+guild commands or RNG. Long hero names and real roster/item states belong to those
+packages. No following work package was started; no commit or push was made.

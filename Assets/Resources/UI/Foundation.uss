@@ -1,0 +1,42 @@
+.foundation-screen {
+    flex-grow: 1; padding: 22px 36px 12px; color: rgb(242, 227, 198);
+    background-color: rgb(20, 16, 15); -unity-background-scale-mode: scale-and-crop;
+    font-size: 18px;
+}
+.header { flex-direction: row; justify-content: space-between; align-items: center; min-height: 50px; }
+.title { font-size: 30px; color: rgb(246, 202, 122); white-space: normal; -unity-font-style: bold; }
+.language, .tabs, .cards, .samples { flex-direction: row; }
+.tabs { justify-content: center; margin-top: 8px; }
+.ui-button {
+    min-height: 40px; padding: 7px 16px; margin: 4px; color: rgb(239, 222, 190);
+    background-color: rgb(35, 28, 25); border-color: rgb(134, 102, 61); border-width: 1px;
+    border-radius: 3px; font-size: 18px; white-space: normal;
+}
+.ui-button:hover { background-color: rgb(66, 47, 31); border-color: rgb(229, 177, 89); }
+.ui-button:focus { border-color: rgb(255, 225, 158); border-width: 3px; }
+.ui-button:active { background-color: rgb(105, 72, 36); }
+.ui-button:disabled { color: rgb(145, 136, 123); background-color: rgb(34, 32, 30); border-color: rgb(75, 69, 61); }
+.ui-button.selected { border-color: rgb(247, 194, 102); border-width: 3px; background-color: rgb(71, 48, 29); }
+.ui-tab { min-width: 180px; border-top-width: 0; border-left-width: 0; border-right-width: 0; }
+.subtitle { -unity-text-align: middle-center; color: rgb(215, 197, 166); white-space: normal; margin: 8px 0 12px; }
+.gallery-scroll { flex-grow: 1; min-height: 100px; }
+.gallery-scroll .unity-scroller--vertical { width: 12px; min-width: 12px; max-width: 12px; margin-left: 5px; }
+.gallery-scroll .unity-scroller__low-button, .gallery-scroll .unity-scroller__high-button { display: none; }
+.gallery-scroll .unity-base-slider__tracker { background-color: rgba(15, 12, 10, 0.85); }
+.gallery-scroll .unity-base-slider__dragger { background-color: rgb(133, 102, 60); border-color: rgb(183, 144, 86); border-width: 1px; }
+.cards { justify-content: center; }
+.ui-card { flex-grow: 1; flex-basis: 0; min-width: 180px; max-width: 290px; padding: 5px; margin: 0 6px; }
+.ui-card.selected, .ui-card:focus { padding: 3px; }
+.portrait { height: 300px; min-height: 220px; background-size: cover; background-position-x: center; background-position-y: top; }
+.card-title { font-size: 23px; -unity-text-align: middle-center; margin-top: 8px; white-space: normal; }
+.card-description { font-size: 16px; -unity-text-align: middle-center; white-space: normal; margin-bottom: 7px; }
+.samples { align-items: center; justify-content: center; flex-wrap: wrap; margin-top: 12px; }
+.samples > Label { margin: 8px 16px; white-space: normal; }
+.icon-label { flex-direction: row; align-items: center; margin: 8px 12px; }
+.primary { background-color: rgb(83, 55, 29); border-color: rgb(220, 169, 87); }
+.tooltip { min-height: 26px; white-space: normal; -unity-text-align: middle-center; color: rgb(255, 214, 144); font-size: 16px; }
+.footer { white-space: normal; font-size: 15px; -unity-text-align: middle-center; margin-top: 5px; }
+.subtitle, .footer, .samples { background-color: rgba(19, 15, 13, 0.86); }
+.modal-overlay { position: absolute; left: 0; right: 0; top: 0; bottom: 0; align-items: center; justify-content: center; background-color: rgba(0, 0, 0, 0.85); }
+.dialog { width: 580px; max-width: 90%; padding: 30px; background-color: rgb(31, 24, 21); border-color: rgb(209, 160, 86); border-width: 2px; }
+.body { white-space: normal; font-size: 20px; margin: 20px 0; }

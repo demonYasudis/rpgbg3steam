@@ -14,6 +14,7 @@ namespace GuildTactics.Expeditions
 
         private void OnGUI()
         {
+            if (UI.UiInputGate.Blocks(this)) return;
             var result = bootstrap?.JourneyBoundary;
             if (result == null) return;
             int previousDepth = GUI.depth;

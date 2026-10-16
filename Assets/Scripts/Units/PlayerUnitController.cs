@@ -48,7 +48,12 @@ namespace GuildTactics.Units
         private bool enemyMoved;
         public BattleOutcome Outcome { get; private set; } = BattleOutcome.Ongoing;
         public Expeditions.ExpeditionRun Expedition { get; private set; }
-        public bool InterfaceBlocked { get; set; }
+        private bool legacyInterfaceBlocked;
+        public bool InterfaceBlocked
+        {
+            get => legacyInterfaceBlocked || UI.UiInputGate.Blocks(this);
+            set => legacyInterfaceBlocked = value;
+        }
         public bool CanPlayerAct => !InterfaceBlocked && isActiveAndEnabled && Expedition?.Result == null &&
             (Outcome == BattleOutcome.Ongoing || (Outcome == BattleOutcome.Victory && Expedition != null)) &&
             Turns != null && Turns.CanSelectAction(SelectedUnit) && SelectedUnit.Team == UnitTeam.Player &&
@@ -593,6 +598,7 @@ namespace GuildTactics.Units
 
         private void OnGUI()
         {
+            if (UI.UiInputGate.Blocks(this)) return;
             if (Turns == null || Expedition?.Result != null || !IsUnitVisible(SelectedUnit)) return;
             string status = L.F("HP {0}/{1}   Defense {2}   Move {3}   Action {4}", SelectedUnit.CurrentHealth, SelectedUnit.Definition.MaxHealth, SelectedUnit.Defense, Turns.RemainingMovement, L.T(Turns.ActionAvailable ? "ready" : "used"));
             GUI.Label(new Rect(16, 32, Screen.width - 32, 24), new GUIContent(status,

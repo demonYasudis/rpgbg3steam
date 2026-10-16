@@ -1432,8 +1432,12 @@ Only after that checkpoint should deeper content systems be built.
 The owner requested interface design and task breakdown for the guild and battle
 screens. See [Docs/UI_DESIGN.md](Docs/UI_DESIGN.md) and
 [Docs/UI_ROADMAP.md](Docs/UI_ROADMAP.md), proposed WP-33 through WP-42. The revised art-forward plan supersedes the initial October 10 breakdown.
-This request produces planning documents, not gameplay implementation. All new
-UI packages remain unstarted; implement one package when subsequently requested. Hero art V2 sprites are already integrated as preparation; the illustrated guild and battle screens remain mockups. The design includes animated gameplay miniatures below class portraits, a dedicated visual warehouse, and a BG3-inspired battle HUD.
+The original request produced planning documents. WP-33 is now implemented as a
+runtime UI Toolkit foundation/component workshop; see Docs/UI_FOUNDATION.md.
+WP-34 through WP-42 remain unstarted; implement one package per subsequent request.
+Hero art V2 sprites are already integrated. The actual guild and battle screen
+replacement remains future work. The design includes animated gameplay miniatures
+below class portraits, a dedicated visual warehouse, and a BG3-inspired battle HUD.
 
 ## Demo v0.2 continuation (owner approved)
 

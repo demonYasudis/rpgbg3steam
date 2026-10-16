@@ -111,6 +111,7 @@ namespace GuildTactics.Core
 
             gameObject.AddComponent<Meta.GuildUI>().Initialize(this);
             gameObject.AddComponent<Expeditions.JourneyUI>().Initialize(this);
+            gameObject.AddComponent<UI.UiFoundation>();
         }
 
         public bool TryLaunchExpedition()
@@ -299,6 +300,7 @@ namespace GuildTactics.Core
 
         private void OnGUI()
         {
+            if (UI.UiInputGate.Blocks(this)) return;
             // HexGridInteraction excludes these buttons from battlefield clicks.
             int previousDepth = GUI.depth;
             GUI.depth = -100;

@@ -133,6 +133,12 @@ namespace GuildTactics.HexGrid
         // Both runtime input and checks use the same screen -> plane -> cell path.
         public void ProcessPointer(Vector2 screenPosition, bool clicked, bool pointerAvailable = true)
         {
+            if (UI.UiInputGate.Blocks(this))
+            {
+                Hovered = null;
+                view.SetHighlights(null, Selected);
+                return;
+            }
             Hovered = null;
             bool overLanguageButtons = screenPosition.x >= Screen.width - 112 && screenPosition.y <= 28;
             if (pointerAvailable && !overLanguageButtons && screenPosition.y > 32 && screenPosition.y < gridCamera.pixelRect.yMax - HudHeight &&
@@ -179,6 +185,7 @@ namespace GuildTactics.HexGrid
 
         private void OnGUI()
         {
+            if (UI.UiInputGate.Blocks(this)) return;
             if (grid == null) return;
             var controller = GetComponent<Units.PlayerUnitController>();
             if (controller != null && (controller.InterfaceBlocked || controller.Expedition?.Result != null)) return;

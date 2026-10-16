@@ -16,6 +16,7 @@ namespace GuildTactics.Meta
 
         private void OnGUI()
         {
+            if (UI.UiInputGate.Blocks(this)) return;
             if (bootstrap == null || bootstrap.Guild.IsAway) return;
             if (confirmingNewGuild)
             {

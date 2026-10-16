@@ -19,6 +19,7 @@ namespace GuildTactics.Combat
 
         private void OnGUI()
         {
+            if (UI.UiInputGate.Blocks(this)) return;
             if (controller == null || controller.Turns == null || controller.Expedition?.Result != null) return;
             var turns = controller.Turns;
             if (controller.Outcome != BattleOutcome.Ongoing && controller.Expedition == null)
