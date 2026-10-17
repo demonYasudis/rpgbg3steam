@@ -19,6 +19,17 @@ namespace GuildTactics.Expeditions
         private bool confirmingRetreat;
         private bool showingLog;
         private Vector2 resultScroll;
+        public void RequestRetreat()
+        {
+            if (!controller.CanPlayerAct || !controller.Expedition.CanRetreat(controller.SelectedUnit)) return;
+            confirmingRetreat = true; showingLog = false; controller.InterfaceBlocked = true;
+        }
+        public void RequestExtraction()
+        {
+            if (!controller.CanPlayerAct || !controller.Expedition.CanExtract(controller.SelectedUnit)) return;
+            if (controller.Expedition.HasUnrecoverableBodies) { confirmingAbandonment = true; controller.InterfaceBlocked = true; }
+            else controller.TryExtract();
+        }
 
         public void Initialize(PlayerUnitController units, HexLayout hexLayout, Camera camera, Core.GameBootstrap owner = null)
         {
@@ -42,6 +53,14 @@ namespace GuildTactics.Expeditions
             if (bootstrap?.JourneyBoundary != null) return;
             var run = controller.Expedition;
             if (run.Result != null) { DrawResult(run.Result); return; }
+            if (UI.UiInputGate.UsesBattleHud(this))
+            {
+                if (run.Mission.RequiresRelic) DrawMarker(run.Chest, run.ChestOpened ? L.T("EMPTY") : L.T("RELIC"));
+                DrawMarker(run.Extraction, L.T("EXIT"));
+                if (run.MissionTarget != null && run.MissionTarget.IsAlive) DrawMarker(run.MissionTarget.Position, L.T("TARGET"));
+                foreach (var body in run.Bodies) DrawMarker(body.Position, body.Recoverable ? L.T("BODY") : L.T("LOST"));
+                return;
+            }
             bool enabledBefore = GUI.enabled;
             GUI.enabled = enabledBefore && !confirmingAbandonment &&
                 ((controller.CanPlayerAct && run.CanRetreat(controller.SelectedUnit)) || confirmingRetreat);
@@ -128,7 +147,7 @@ namespace GuildTactics.Expeditions
             if (controller.Visibility != null && !controller.Visibility.IsVisible(coordinate)) return;
             var point = worldCamera.WorldToScreenPoint(layout.ToWorld(coordinate));
             float y = Screen.height - point.y;
-            if (point.z <= 0 || y < HexGridInteraction.HudHeight || y > Screen.height - 28) return;
+            if (point.z <= 0 || (UI.UiInputGate.UsesBattleHud(this) ? UI.UiInputGate.BlocksPointer(this, point) : y < HexGridInteraction.HudHeight || y > Screen.height - 28)) return;
             // Place objective labels above the unit instead of covering its marker and HP.
             GUI.Label(new Rect(point.x - 30, y - 27, 60, 18), label,
                 new GUIStyle(GUI.skin.label) { alignment = TextAnchor.MiddleCenter, fontSize = 10 });

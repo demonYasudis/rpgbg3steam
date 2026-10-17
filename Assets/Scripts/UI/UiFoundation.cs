@@ -203,7 +203,7 @@ namespace GuildTactics.UI
 
         private void OnGUI()
         {
-            if (IsOpen) return;
+            if (IsOpen || gate.GuildOpen) return;
             if (GUI.Button(new Rect(Screen.width - 292, Screen.height - 26, 172, 24),
                 Text("UI workshop (WP-33)", "Мастерская UI (WP-33)"))) SetPreview(true);
         }

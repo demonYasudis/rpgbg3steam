@@ -102,8 +102,8 @@ namespace GuildTactics.Units
             float width = Mathf.Clamp(pixelsPerUnit * 1.25f, 8, 44);
             float y = Screen.height - screen.y;
             // Zoomed maps contain offscreen units; their bars must not paint over the HUD.
-            if (screen.x < 0 || screen.x > Screen.width || y < HexGridInteraction.HudHeight ||
-                y + pixelsPerUnit * 0.45f + 21 > Screen.height - 32) return;
+            if (screen.x < 0 || screen.x > Screen.width || (UI.UiInputGate.UsesBattleHud(this) ? UI.UiInputGate.BlocksPointer(this, screen) :
+                y < HexGridInteraction.HudHeight || y + pixelsPerUnit * 0.45f + 21 > Screen.height - 32)) return;
             var previous = GUI.color;
             GUI.color = Color.black;
             GUI.DrawTexture(new Rect(screen.x - width / 2, y + pixelsPerUnit * 0.45f, width, 5), Texture2D.whiteTexture);

@@ -1434,9 +1434,15 @@ screens. See [Docs/UI_DESIGN.md](Docs/UI_DESIGN.md) and
 [Docs/UI_ROADMAP.md](Docs/UI_ROADMAP.md), proposed WP-33 through WP-42. The revised art-forward plan supersedes the initial October 10 breakdown.
 The original request produced planning documents. WP-33 is now implemented as a
 runtime UI Toolkit foundation/component workshop; see Docs/UI_FOUNDATION.md.
-WP-34 through WP-42 remain unstarted; implement one package per subsequent request.
-Hero art V2 sprites are already integrated. The actual guild and battle screen
-replacement remains future work. The design includes animated gameplay miniatures
+WP-34 is implemented as the real guild party screen; see Docs/UI_PARTY.md.
+WP-35 adds hero details, recruitment, healing, resurrection and training; see Docs/UI_HERO.md.
+WP-36 adds the real guild storage and loadout screen; see Docs/UI_STORAGE.md.
+WP-37 adds shared animated miniatures, restrained menu motion and reduced motion; see Docs/UI_MOTION.md.
+WP-38 adds visual expedition cards, party briefing and guarded departure; see Docs/UI_EXPEDITIONS.md.
+WP-39 adds the battle HUD, model-backed initiative/inspection, input exclusion and camera safe area; see Docs/UI_BATTLE_HUD.md.
+WP-40 through WP-42 remain unstarted; implement one package per subsequent request.
+Hero art V2 sprites, animated miniatures, expedition selection and the basic battle HUD are already integrated. Action feedback and expedition
+event/result presentation remain future work. The design includes animated gameplay miniatures
 below class portraits, a dedicated visual warehouse, and a BG3-inspired battle HUD.
 
 ## Demo v0.2 continuation (owner approved)

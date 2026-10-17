@@ -25,6 +25,23 @@ namespace GuildTactics.HexGrid
         private Vector3 focusPoint;
         private Vector2 previousPointer;
         private bool dragging;
+        private Rect? safeMapArea;
+        public Rect MapScreenRect => safeMapArea.HasValue ? Intersect(safeMapArea.Value, gridCamera.pixelRect) :
+            new Rect(gridCamera.pixelRect.x, gridCamera.pixelRect.y + FooterHeight, gridCamera.pixelWidth,
+                Mathf.Max(1, gridCamera.pixelHeight - HudHeight - FooterHeight));
+        private static Rect Intersect(Rect a, Rect b) => Rect.MinMaxRect(Mathf.Max(a.xMin, b.xMin), Mathf.Max(a.yMin, b.yMin),
+            Mathf.Max(Mathf.Max(a.xMin, b.xMin) + 1, Mathf.Min(a.xMax, b.xMax)), Mathf.Max(Mathf.Max(a.yMin, b.yMin) + 1, Mathf.Min(a.yMax, b.yMax)));
+        public void SetMapSafeArea(Rect? area)
+        {
+            if (safeMapArea == area) return;
+            safeMapArea = area;
+            if (gridCamera != null) { if (detailView) ApplyDetailCamera(); else FrameCamera(); }
+        }
+        private Vector3 CameraOffset(float scale) => new Vector3((gridCamera.pixelRect.center.x - MapScreenRect.center.x) / scale,
+            (gridCamera.pixelRect.center.y - MapScreenRect.center.y) / scale, -CameraDistance);
+        public bool AllowsMapPointer(Vector2 point) => !UI.UiInputGate.BlocksPointer(this, point) && gridCamera.pixelRect.Contains(point) &&
+            (UI.UiInputGate.UsesBattleHud(this) || (point.y > 32 && point.y < gridCamera.pixelRect.yMax - HudHeight &&
+                !(point.x >= Screen.width - 112 && point.y <= 28)));
         public bool DetailView => detailView;
         public HexCoordinates? Hovered { get; private set; }
         public HexCoordinates? Selected { get; private set; }
@@ -51,18 +68,17 @@ namespace GuildTactics.HexGrid
             gridCamera.allowMSAA = false;
             gridCamera.transform.rotation = Quaternion.identity;
             // Reserve screen space above the map for the prototype readout.
-            float usableHeight = Mathf.Clamp01(1f - (HudHeight + FooterHeight) / Mathf.Max(1, gridCamera.pixelHeight));
+            float usableHeight = MapScreenRect.height / Mathf.Max(1, gridCamera.pixelHeight);
             // Keep framing consistent with the HUD input exclusion even in short windows.
             usableHeight = Mathf.Max(1f / Mathf.Max(1, gridCamera.pixelHeight), usableHeight);
             gridCamera.orthographicSize = Mathf.Max(bounds.extents.y / usableHeight,
-                bounds.extents.x / Mathf.Max(0.01f, gridCamera.aspect)) * CameraPadding;
+                bounds.extents.x / Mathf.Max(0.01f, gridCamera.aspect * MapScreenRect.width / gridCamera.pixelWidth)) * CameraPadding;
             // Whole screen pixels per 16px unit texel where the full board fits.
             // Short windows retain fit-to-board with nearest filtering instead of cropping cells.
             float texelScale = gridCamera.pixelHeight / (2f * gridCamera.orthographicSize * 16f);
             if (texelScale >= 1f)
                 gridCamera.orthographicSize = gridCamera.pixelHeight / (32f * Mathf.Floor(texelScale));
-            gridCamera.transform.position = bounds.center + new Vector3(0,
-                gridCamera.orthographicSize * (HudHeight - FooterHeight) / Mathf.Max(1, gridCamera.pixelHeight), -CameraDistance);
+            gridCamera.transform.position = bounds.center + CameraOffset(gridCamera.pixelHeight / (2f * gridCamera.orthographicSize));
             previousAspect = gridCamera.aspect;
             previousHeight = gridCamera.pixelHeight;
         }
@@ -81,8 +97,7 @@ namespace GuildTactics.HexGrid
             focusPoint.x = Mathf.Clamp(focusPoint.x, bounds.min.x, bounds.max.x);
             focusPoint.y = Mathf.Clamp(focusPoint.y, bounds.min.y, bounds.max.y);
             gridCamera.orthographicSize = Mathf.Max(1, gridCamera.pixelHeight) / (2f * pixelsPerUnit);
-            gridCamera.transform.position = new Vector3(focusPoint.x,
-                focusPoint.y + (HudHeight - FooterHeight) / (2f * pixelsPerUnit), -CameraDistance);
+            gridCamera.transform.position = new Vector3(focusPoint.x, focusPoint.y, 0) + CameraOffset(pixelsPerUnit);
             previousAspect = gridCamera.aspect;
             previousHeight = gridCamera.pixelHeight;
         }
@@ -99,8 +114,7 @@ namespace GuildTactics.HexGrid
             if (Mathf.Approximately(scroll, 0)) return;
             if (!detailView)
             {
-                focusPoint = gridCamera.transform.position - new Vector3(0,
-                    (HudHeight - FooterHeight) * gridCamera.orthographicSize / gridCamera.pixelHeight, -CameraDistance);
+                focusPoint = gridCamera.transform.position - CameraOffset(gridCamera.pixelHeight / (2f * gridCamera.orthographicSize));
                 pixelsPerUnit = gridCamera.pixelHeight / (2f * gridCamera.orthographicSize);
                 detailView = true;
             }
@@ -119,13 +133,13 @@ namespace GuildTactics.HexGrid
                 if (detailView) ApplyDetailCamera(); else FrameCamera();
             }
             Vector2 pointer = Input.mousePosition;
-            bool onMap = gridCamera.pixelRect.Contains(pointer) && pointer.y > 32 &&
-                pointer.y < gridCamera.pixelRect.yMax - HudHeight;
+            bool onMap = AllowsMapPointer(pointer);
             if (Application.isFocused && onMap) ZoomCamera(Input.mouseScrollDelta.y);
             if (!Application.isFocused || !Input.GetMouseButton(1)) dragging = false;
             if (Application.isFocused && onMap && Input.GetMouseButtonDown(1))
             { dragging = true; previousPointer = pointer; }
-            if (dragging) PanCamera(pointer - previousPointer);
+            if (dragging && onMap) PanCamera(pointer - previousPointer);
+            else if (!onMap) dragging = false;
             previousPointer = pointer;
             ProcessPointer(pointer, Input.GetMouseButtonDown(0) && !dragging, Application.isFocused);
         }
@@ -140,9 +154,7 @@ namespace GuildTactics.HexGrid
                 return;
             }
             Hovered = null;
-            bool overLanguageButtons = screenPosition.x >= Screen.width - 112 && screenPosition.y <= 28;
-            if (pointerAvailable && !overLanguageButtons && screenPosition.y > 32 && screenPosition.y < gridCamera.pixelRect.yMax - HudHeight &&
-                gridCamera.pixelRect.Contains(screenPosition))
+            if (pointerAvailable && AllowsMapPointer(screenPosition))
             {
                 var ray = gridCamera.ScreenPointToRay(screenPosition);
                 var plane = new Plane(Vector3.forward, Vector3.zero);
@@ -185,6 +197,7 @@ namespace GuildTactics.HexGrid
 
         private void OnGUI()
         {
+            if (UI.UiInputGate.UsesBattleHud(this)) return;
             if (UI.UiInputGate.Blocks(this)) return;
             if (grid == null) return;
             var controller = GetComponent<Units.PlayerUnitController>();

@@ -1,0 +1,20 @@
+.travel-layout { flex-direction: row; flex-grow: 1; flex-basis: 0; min-height: 0; margin-top: 8px; }
+.travel-offers { flex-grow: 1; flex-basis: 0; min-width: 0; margin-right: 12px; }
+.travel-grid { flex-direction: row; flex-wrap: wrap; align-content: flex-start; }
+.travel-card { width: 48%; min-height: 240px; margin: 4px; padding: 10px; background-color: rgba(25, 21, 19, 0.96); }
+.travel-card.selected, .travel-card:focus { padding: 8px; }
+.travel-illustration { height: 60px; min-height: 60px; align-self: stretch; margin-bottom: 5px; background-color: rgba(9, 12, 14, 0.9); }
+.travel-label { white-space: normal; font-size: 16px; margin: 3px 5px; flex-shrink: 0; }
+.travel-title { font-size: 22px; color: rgb(245, 205, 135); }
+.travel-selection { color: rgb(234, 188, 108); margin-top: 8px; }
+.travel-card .travel-label { -unity-text-align: middle-center; }
+.travel-briefing { width: 430px; flex-shrink: 0; padding: 10px; background-color: rgba(22, 18, 16, 0.96); border-color: rgb(158, 119, 65); border-width: 1px; }
+.travel-details { flex-grow: 1; flex-basis: 0; min-height: 100px; }
+.travel-note { font-size: 14px; color: rgb(210, 193, 165); }
+.travel-party { flex-direction: row; flex-wrap: wrap; }
+.travel-hero { width: 23%; flex-direction: column; align-items: center; min-height: 110px; margin: 1%; padding: 3px; background-color: rgba(47, 36, 27, 0.7); }
+.travel-party .party-miniature { width: 60px; height: 52px; min-height: 52px; flex-shrink: 0; align-self: center; margin-right: 5px; }
+.travel-hero .travel-label { font-size: 14px; -unity-text-align: middle-center; margin: 2px 0; }
+.travel-hero .travel-note { font-size: 14px; }
+.travel-actions { flex-shrink: 0; margin-top: 4px; border-top-color: rgb(158, 119, 65); border-top-width: 1px; padding-top: 4px; }
+.travel-actions .ui-button { margin: 3px; }

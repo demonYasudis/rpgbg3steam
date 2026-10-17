@@ -1,0 +1,32 @@
+.guild-screen { padding: 16px 28px 10px; }
+.party-cards { flex-direction: row; justify-content: center; }
+.party-slot { flex-grow: 1; flex-basis: 0; min-width: 0; max-width: 290px; margin: 0 5px; }
+.party-slot .ui-card { min-width: 0; max-width: none; margin: 0; flex-grow: 0; flex-basis: auto; }
+.party-slot .portrait { height: 164px; min-height: 164px; }
+.party-slot .card-title { font-size: 21px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.party-slot .card-description { margin: 0; }
+.party-miniature { height: 80px; min-height: 80px; align-self: stretch; background-color: rgba(12, 11, 13, 0.8); }
+.party-health { font-size: 16px; white-space: normal; -unity-text-align: middle-center; margin: 5px 0; }
+.party-slot > .ui-button { margin: 5px 0; }
+.empty-slot { height: 360px; background-color: rgba(24, 20, 19, 0.85); }
+.party-actions { flex-direction: row; justify-content: center; }
+.reserve-dialog { width: 940px; max-height: 90%; padding: 22px; }
+.reserve-dialog .body { font-size: 17px; margin: 10px 0; }
+.reserve-list { height: 340px; min-height: 120px; flex-shrink: 1; }
+.reserve-row { flex-direction: row; align-items: center; }
+.reserve-name { flex-grow: 1; flex-basis: 0; -unity-text-align: middle-left; }
+.reserve-row > .ui-button { font-size: 16px; }
+.guild-screen .gallery-scroll { min-height: 100px; }
+.guild-screen .subtitle { margin: 4px 0; font-size: 16px; }
+.guild-screen .ui-button:disabled { opacity: 1; }
+.hero-dialog { width: 860px; max-height: 92%; padding: 20px; }
+.hero-dialog .body { font-size: 17px; margin: 8px 0; }
+.hero-panel-scroll { max-height: 420px; flex-shrink: 1; }
+.hero-panel-label { white-space: normal; font-size: 17px; margin: 4px 8px; }
+.hero-command { margin: 3px 0; padding: 3px; background-color: rgba(12, 10, 9, 0.55); }
+.hero-command .ui-button { font-size: 17px; margin: 2px; }
+.hero-command .hero-panel-label { font-size: 15px; color: rgb(213, 190, 152); }
+.motion-option { align-self: center; margin-left: 12px; padding: 8px; font-size: 15px; color: rgb(239, 222, 190); background-color: rgba(20, 16, 14, 0.92); }
+.motion-option:focus { border-color: rgb(255, 225, 158); border-width: 1px; }
+.motion-portrait-window { overflow: hidden; }
+.motion-portrait-art { position: absolute; left: -2px; top: -2px; right: -2px; bottom: -2px; background-size: cover; background-position-x: center; background-position-y: top; }

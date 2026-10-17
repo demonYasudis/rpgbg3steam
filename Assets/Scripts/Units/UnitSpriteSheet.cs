@@ -100,6 +100,8 @@ namespace GuildTactics.Units
             }
         }
 
+        public float Duration(Pose pose) => frames[(int)pose].Length / frameRates[(int)pose];
+
         public Sprite Frame(Pose pose, float elapsed, bool loop = true)
         {
             var sequence = frames[(int)pose];

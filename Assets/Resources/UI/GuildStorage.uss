@@ -1,0 +1,21 @@
+.storage-layout { flex-direction: row; flex-grow: 1; flex-basis: 0; min-height: 0; margin-top: 8px; }
+.storage-equipment { width: 310px; flex-grow: 0; flex-shrink: 0; padding: 10px; margin-right: 14px; background-color: rgba(20, 16, 14, 0.95); border-color: rgb(158, 119, 65); border-width: 1px; }
+.storage-portrait { height: 156px; min-height: 156px; margin: 8px; background-size: cover; background-position-x: center; background-position-y: top; }
+.storage-equipment .unity-base-popup-field { margin: 5px; min-height: 34px; font-size: 16px; }
+.storage-equipment .unity-base-popup-field__input { background-color: rgb(39, 30, 24); color: rgb(239, 222, 190); border-color: rgb(158, 119, 65); border-width: 1px; padding: 6px; }
+.storage-equipment .hero-panel-label { font-size: 15px; }
+.storage-equipment .ui-button { font-size: 16px; }
+.storage-warehouse { flex-grow: 1; flex-basis: 0; min-width: 0; min-height: 0; padding: 10px; background-color: rgba(18, 15, 14, 0.95); border-color: rgb(158, 119, 65); border-width: 1px; }
+.storage-filters { flex-direction: row; flex-wrap: wrap; }
+.storage-filters .ui-button { min-width: 100px; font-size: 16px; }
+.storage-grid { flex-direction: row; flex-wrap: wrap; align-content: flex-start; }
+.storage-item { width: 172px; min-height: 180px; align-items: center; padding: 8px; }
+.storage-item:focus, .storage-item.selected { padding: 6px; }
+.storage-item .hero-panel-label { font-size: 16px; -unity-text-align: middle-center; margin: 2px; flex-shrink: 0; align-self: stretch; }
+.item-icon { width: 64px; height: 64px; min-width: 64px; min-height: 64px; flex-shrink: 0; }
+.equipment-slot { flex-direction: row; align-items: center; margin: 4px; }
+.equipment-slot .hero-panel-label { flex-grow: 1; flex-basis: 0; }
+.equipment-slot .item-icon { width: 40px; height: 40px; min-width: 40px; min-height: 40px; }
+.storage-items { flex-grow: 1; flex-basis: 0; min-height: 130px; }
+.storage-details { flex-grow: 0; max-height: 215px; min-height: 100px; border-top-width: 1px; border-top-color: rgb(158, 119, 65); padding-top: 5px; }
+.storage-details .hero-panel-label { font-size: 16px; }

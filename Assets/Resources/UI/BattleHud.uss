@@ -1,0 +1,37 @@
+.battle-screen { position: absolute; left: 0; top: 0; right: 0; bottom: 0; color: rgb(239, 222, 190); }
+.hud-panel { position: absolute; padding: 5px; background-color: rgba(24, 20, 19, 0.94); border-color: rgb(148, 110, 59); border-width: 1px; }
+.hud-label { white-space: normal; font-size: 14px; margin: 2px; flex-shrink: 0; }
+.hud-title { font-size: 17px; color: rgb(245, 205, 135); }
+.hud-row { flex-direction: row; }
+.hud-button { font-size: 14px; min-height: 30px; padding: 3px 6px; margin: 2px; flex-grow: 1; flex-basis: 0; }
+.hud-party { left: 8px; top: 110px; width: 110px; bottom: 175px; padding: 3px; }
+.hud-portrait-card { flex-basis: 0; min-height: 0; padding: 3px; }
+.hud-portrait-card:focus, .hud-portrait-card.selected { padding: 1px; }
+.hud-portrait-card:focus, .hud-queue-unit:focus { border-color: rgb(160, 192, 218); }
+.hud-portrait-card.selected:focus, .hud-queue-unit.selected:focus { border-color: rgb(247, 194, 102); }
+.hud-portrait { flex-grow: 1; min-height: 15px; background-size: cover; background-position-x: center; background-position-y: top; }
+.hud-portrait-card .hud-label { -unity-text-align: middle-center; font-size: 13px; }
+.fallen { opacity: 0.55; }
+.hud-queue { left: 255px; right: 165px; top: 8px; height: 94px; }
+.hud-queue-row { flex-direction: row; }
+.hud-queue .unity-scroller--horizontal { height: 5px; min-height: 5px; }
+.hud-queue .unity-scroller__low-button, .hud-queue .unity-scroller__high-button { display: none; }
+.hud-queue .unity-base-slider__tracker { background-color: rgb(28, 23, 19); }
+.hud-queue .unity-base-slider__dragger { background-color: rgb(145, 109, 62); }
+.hud-queue-unit { width: 68px; height: 56px; flex-grow: 0; flex-shrink: 0; flex-basis: auto; padding: 0; margin: 1px 3px; }
+.hud-queue-unit.selected, .hud-queue-unit:focus { padding: 0; }
+.hud-miniature { width: 64px; height: 48px; min-height: 48px; flex-shrink: 0; }
+.enemy { border-color: rgb(177, 66, 52); }
+.hud-objective { left: 8px; top: 8px; width: 238px; min-height: 94px; }
+.hud-controls { top: 8px; right: 8px; width: 146px; height: 94px; }
+.hud-actions { left: 136px; right: 174px; bottom: 8px; height: 158px; }
+.hud-actor { flex-direction: row; align-items: center; height: 36px; }
+.hud-actor .hud-miniature { width: 48px; height: 36px; min-height: 36px; }
+.hud-actor .hud-title { flex-grow: 1; flex-basis: 0; }
+.hud-hint { font-size: 12px; color: rgb(211, 193, 160); }
+.hud-end-panel { bottom: 8px; right: 8px; width: 156px; height: 72px; }
+.hud-end-panel .hud-button { font-size: 20px; }
+.hud-camera { bottom: 86px; right: 8px; width: 156px; height: 54px; }
+.hud-inspection { left: 136px; top: 116px; width: 306px; }
+.hud-log { right: 12px; top: 116px; width: 450px; max-width: 70%; height: 245px; }
+.hud-log-scroll { flex-grow: 1; min-height: 60px; }

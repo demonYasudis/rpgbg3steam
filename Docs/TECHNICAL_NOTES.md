@@ -1393,3 +1393,210 @@ Remaining scope: WP-34–42 connect these components to actual guild/storage/bat
 screens and animation. The workshop is intentionally static and does not execute
 guild commands or RNG. Long hero names and real roster/item states belong to those
 packages. No following work package was started; no commit or push was made.
+
+## WP-34 — Guild party presentation (2026-10-16)
+
+The default interactive guild screen now uses runtime UI Toolkit with four real
+party cards, shared UnitSpriteSheet idle miniatures, stable hero identity, empty
+slots, a scrollable reserve and a small bridge to the existing expedition offers.
+Detailed hero actions and storage remain available in the legacy presentation.
+See UI_PARTY.md for ownership, lifecycle and scope.
+
+Validation: GuildPartyChecks.RunBatch passed in Unity 6000.2.8f1, including
+0/1/4 heroes, two heroes of one class, 88 roster members, wounds/dead/lost states,
+reserve selection/focus/Esc, scroll retention, isolated save roundtrip, 20 UI
+switches, real departure/defeat/return and model replacement after a new guild.
+RU/EN layouts at 1280x720 and 1920x1080 and long-name ellipsis were checked.
+Rendered screenshots were visually inspected. Logs/wp34-party.log and
+Logs/wp34-*.png contain the results; representative captures are in UI_REFERENCES.
+
+HexPresentationChecks.RunBatch passed the complete existing WP-00–19/WP-21–32
+model and Play Mode regression (Logs/wp34-regression.log). Batch fixtures keep
+the legacy presentation unless explicitly opening the new UI.
+No manual mouse session or new Windows player build was performed. WP-35 was
+not started; save schema, combat rules and art atlases are unchanged.
+
+## WP-35 — Hero details, recruitment and progression (2026-10-16)
+
+GuildHeroPanels.cs extends the existing party screen with hero details and
+recruitment dialogs. Healing, resurrection and training use GuildState APIs;
+prices and visible rejection reasons derive from current state. Candidates join
+the reserve, retaining their stable identity. An unrecoverable guild can start
+over with an explicit in-game confirmation. Save schema and gameplay rules are
+unchanged; equipment remains in the legacy UI until WP-36.
+
+Commands immediately disable retained controls until the next rebuild, preventing
+duplicate submits from spending twice. Success and stale-command rejection both
+refresh HP, gold, upgrades and availability. Modal close restores focus to the
+opener, including reserve details; model replacement clears stale dialogs.
+
+GuildHeroChecks.RunBatch passed in Unity 6000.2.8f1: healing at 4/5 gold,
+resurrection at 29/30, hiring at 19/20, two-upgrade duplicate submission,
+stale-command refusal, recovered/lost heroes, no living roster, candidate
+exhaustion, confirmation/cancel, focus and isolated save/load roundtrips.
+RU/EN panel geometry passed at 1280x720 and 1920x1080. Hero and recruitment
+renders were visually inspected. Logs/wp35-hero.log and Logs/wp35-*.png contain
+the results. GuildPartyChecks.RunBatch passed the WP-34 regression.
+HexPresentationChecks.RunBatch also passed the complete WP-00–19/WP-21–32
+model and Play Mode regression (Logs/wp35-regression.log).
+No manual mouse session or separate Windows build was performed.
+See UI_HERO.md. WP-36 was not started; no commit or push was requested.
+
+## WP-36 — Guild storage and equipment (2026-10-17)
+
+GuildStorage.cs extends the existing party screen with a dedicated storage tab,
+hero selector, weapon/armor slots, carried potions and an item grid. ItemIcon.cs
+draws separate original vector illustrations. Inventory copies are grouped by ID
+with free counts; equipped entries remain visible with explicit owner IDs.
+Comparisons include training and current equipment. TryEquip, TryUnequip and
+TryTransferPotion remain the only mutation paths; save schema is unchanged.
+Commands immediately disable retained controls to reject duplicate submissions;
+changed selection/model also invalidates stale hero commands. Model Changed
+refreshes values; GameBootstrap retains ownership of automatic saving.
+
+GuildStorageChecks.RunBatch passed in Unity 6000.2.8f1: empty/stocked storage,
+filters, real stat effects, transfer between two heroes, equipped/free counts,
+stale and duplicate events, two-potion capacity/return, dead/lost rejection,
+save/load equality, tab/hero identity and 100000 stored copies. Equipment scroll
+retention and RU/EN label/layout checks passed at 1280x720 and 1920x1080.
+Fixed English label rounding at scaled resolution by stretching labels to their
+tile width; class portraits anchor to the top instead of cropping heads.
+Both representative captures were visually inspected and saved to UI_REFERENCES.
+
+Logs/wp36-storage.log, Logs/wp36-party-regression.log and
+Logs/wp36-hero-regression.log report successful UI checks. The complete shared
+HexPresentationChecks runner passed WP-00–19/WP-21–32 model and Play Mode checks
+(Logs/wp36-regression.log). Its temporary legacy sprite importer size changes
+were reverted after validation. No manual mouse session or separate Windows
+player build was performed. See UI_STORAGE.md. WP-37 was not started; no commit
+or push was requested.
+
+## WP-37 — Shared animated miniatures and menu motion (2026-10-17)
+
+UnitMiniature is a passive UI Toolkit Image driven by the visible screen's clock.
+It borrows the existing cached UnitSpriteSheet and displays full atlas cells using
+ScaleToFit, preserving foot anchors and weapon margins. UnitSpriteSheet.Duration
+derives reaction timing from the actual frame count/FPS; no animation tables were
+copied into UI. Selection displays Defend briefly, then resumes Idle, without a
+combat command. The miniature strip is 80 px instead of 64; portraits give up the
+same 16 px, retaining card height. Fixed portrait viewports clip only decorative
+subpixel translation/scale; text and hit areas stay still. A separate candlelight
+layer and short opacity transitions add restrained motion to party/storage.
+
+GuildMenuMotion owns active element lists, reduced-motion preference and the
+GuildTactics.GuildMotion profiler marker. Reduced motion freezes Idle at frame 0,
+disables selection reactions/light/portrait motion and removes transitions. The
+preference uses PlayerPrefs independently of game saves; batch checks never change
+it. Hidden, disabled, workshop/battle and covered modal states stop the clock;
+rebuild/hide clears animation references. There are no per-miniature schedulers or
+global event subscriptions. Sheets are still disposed by the screen owner.
+
+GuildMotionChecks.RunBatch passed: all four classes, shared Idle/Defend timing,
+full cells/pivots, hour-long timestamp wrapping, stable label/button geometry,
+setting pause/resume, modal/hidden/disabled pause, 60 reopenings, storage switching,
+unchanged serialized guild and Unity RNG, and 32 exact combat dice comparisons
+after a menu session. Departure, defeat and return leave no stale animations.
+Fixtures use an isolated stocked guild with disk saving disabled. RU/EN layouts
+at 1280x720 and 1920x1080 passed; party and storage captures were visually inspected.
+The 32-frame GIF under UI_REFERENCES records actual Play Mode frames after the
+profiling phases. It is not a browser mockup.
+
+Final profiling on the same 1280x720/four-hero scene (two seconds per mode):
+static reduced motion, 5368 actual PlayerLoop frames, mean motion marker 191 ns;
+animated, 4292 frames, 8348 ns (about 0.0083 ms). Whole-frame GC means were
+6976/6979 bytes respectively. The marker measures the animation update only,
+not deferred UI rendering/layout or GPU time. These are editor/batch measurements,
+not a standalone player performance guarantee. Logs/wp37-motion.log stores results.
+
+GuildPartyChecks, GuildHeroChecks and GuildStorageChecks passed their regressions;
+the party assertion now accepts Idle or the brief selection response. Icon size
+checks allow 0.1 px rounding at fractional panel scale. HexPresentationChecks also
+passed the complete WP-00–19/WP-21–32 model and Play Mode runner. Logs:
+wp37-party-regression.log, wp37-hero-regression.log, wp37-storage-regression.log,
+wp37-regression.log. Temporary legacy sprite importer max-size changes from Unity
+were reverted. No manual mouse run or separate Windows player build was performed.
+See UI_MOTION.md. WP-38 was not started; no commit or push was requested.
+
+## WP-38 — Visual expedition selection and departure (2026-10-17)
+
+GuildExpeditions replaces BuildBridge with four independent visual offer cards,
+selected mission/difficulty/reward/sections and a compact preview of actual party
+IDs, names and wounds. ExpeditionIllustration provides original code-native
+destination vignettes; these are symbols rather than generated-map previews.
+Rewards are explicitly per section on successful return and derive from the offer's
+MissionDefinition. No new offers, generation settings, balance or save schema.
+
+TrySelectExpedition remains the selection command; TryLaunchExpedition remains
+the launch command. One visible departure button captures screen/guild/selection
+identity and displayed offer index, disables controls before invoking the command,
+and rejects stale choice/party state. A retained detached button cannot launch
+after return even with a ready party. Back/Esc retains selection and restores
+party-opener focus; tabs and save/load preserve the selected expedition.
+
+GuildDepartureChecks.RunBatch passed in Unity 6000.2.8f1 with isolated saves:
+all offers, model-derived briefing, 0/3/4 party, wounds, tab/back/Esc selection,
+selection/seed save roundtrip, changed choice in the same frame, stale party,
+duplicate submit and detached old controls. Four actual launches validated each
+mission, biome, section count and party HP/IDs, then retreated through EXIT and
+returned to the same guild for the next departure (no guild replacement between
+cycles). Each launch advanced the seed exactly once. Party ID comparison respects
+the existing initiative ordering inside ExpeditionRun. RU/EN geometry passed at
+1280x720 and 1920x1080; full/incomplete-party screenshots were visually inspected.
+
+GuildPartyChecks, GuildHeroChecks, GuildStorageChecks and GuildMotionChecks all
+passed regressions. HexPresentationChecks passed the complete WP-00–19/WP-21–32
+model/Play Mode runner. Logs/wp38-departure.log, wp38-party-regression.log,
+wp38-hero-regression.log, wp38-storage-regression.log, wp38-motion-regression.log,
+wp38-regression.log contain the results. Temporary legacy sprite importer size
+changes made by Unity validation were reverted. No manual mouse session or new
+Windows player build was performed. See UI_EXPEDITIONS.md. WP-39 was not started;
+no commit or push was requested.
+
+## WP-39 — Battle HUD and measured map area (2026-10-17)
+
+BattleHud/BattleHud.uss add a separate scene-root UI Toolkit document owned by
+GameBootstrap. It rebinds on battle replacement and hides for guild, preview,
+blocking legacy confirmation, boundary/result or disable. Portraits/HP are left,
+fog-filtered initiative sprites/round are above the map, objective is short,
+active actor/resources/commands are below, and end turn is separately bottom-right.
+Shared UnitMiniature/UnitSpriteSheet preserves atlas identity and reduced motion.
+Inspection is transient and never changes control to another actor; hidden enemy
+inspection closes immediately. Dead party portraits remain, while dead/hidden
+units leave the visible queue. Long queues retain manual scroll during inspection
+and scroll to the active visible participant when the turn changes.
+
+HUD actions call existing PlayerUnitController, TurnManager, ConsumableSystem and
+ExpeditionUI APIs, guarded by controller/screen/turn identity and immediate retained
+control disabling. Legacy IMGUI battle readouts do not paint over the HUD. Journal
+shows the existing last combat result, not a new history system. Current exit,
+body-loss and retreat confirmations remain in ExpeditionUI, with HUD temporarily
+hidden; boundary/results keep their presentation until WP-41. Debug Mode retains
+legacy HUD access and a return button. Save schema and combat rules are unchanged.
+
+UiInputGate adds separate geometric pointer exclusion, not a global battle input
+lock. HexGridInteraction uses it for hover/click/wheel/drag, and the HUD converts
+actual panel bounds into camera pixels. Overview fits MapScreenRect; detail focus
+is centered there, and zoom/pan/resize preserve the same conversion. Hide restores
+legacy reservations. Objective height can grow for translated text/boss warning;
+the portrait rail and inspection move below it. Marker and unit HP clipping also
+respect HUD panels.
+
+BattleHudChecks.RunBatch passed in Unity 6000.2.8f1: real launch, exact visible
+initiative/death updates, ally/enemy inspection, enemy-turn restrictions, shared
+atlas, attack/cancel/wait/end commands, duplicate submission, each panel's pointer
+exclusion and a real unobscured map move. It verifies every overview cell fits
+the safe region, pan/zoom, journal, RU/EN at 1280x720/1920x1080, unchanged Unity RNG
+and 32 exact combat rolls, legacy/HUD switching, actual retreat confirmation,
+guild return, new controller and a 12-unit queue with active-unit auto-scroll.
+Fixtures isolate player saves and choose an initial seed with two consecutive
+player turns so intervening AI turns do not invalidate the duplicate-end check.
+
+CharacterCameraChecks passed with graphics; an earlier -nographics attempt crashed
+at Camera.Render and was replaced by the successful graphics run. Guild party,
+hero, storage, menu motion and departure regressions passed, as did the complete
+HexPresentationChecks WP-00–19/WP-21–32 model/Play Mode runner. Logs/wp39-hud.log,
+wp39-camera.log and wp39-*-regression.log contain results. Actual scene/HUD captures
+were visually inspected against the battle composition reference and stored under
+UI_REFERENCES. Temporary legacy sprite importer size changes were reverted.
+No manual mouse session or separate Windows player build was performed. See
+UI_BATTLE_HUD.md. WP-40 was not started; no commit or push was requested.
