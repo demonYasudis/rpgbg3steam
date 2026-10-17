@@ -60,7 +60,8 @@ namespace GuildTactics.Core
             // Batch validation uses isolated stores and must never touch a player's save.
             if (!Application.isBatchMode)
             {
-                saveStore = new Meta.GuildSaveStore(System.IO.Path.Combine(Application.persistentDataPath, "guild-v1.json"));
+                saveStore = new Meta.GuildSaveStore(GuildSaveLocation.Resolve(Application.persistentDataPath,
+                    System.Environment.GetCommandLineArgs(), Debug.isDebugBuild));
                 if (saveStore.TryLoad(out var savedGuild, out var savedExpeditions, out var message))
                 { Guild = savedGuild; Expeditions = savedExpeditions; }
                 SaveMessage = message;

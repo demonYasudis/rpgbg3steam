@@ -87,8 +87,8 @@ namespace GuildTactics.UI
             {
                 var art = movingPortraits[i];
                 float breath = reducedMotion ? 0 : (1 + Mathf.Sin(motionTime * 0.75f + i * 0.8f)) * 0.003f;
-                art.transform.scale = Vector3.one * (1 + breath);
-                art.transform.position = reducedMotion ? Vector3.zero : new Vector3(0, Mathf.Sin(motionTime * 0.6f + i) * 0.7f, 0);
+                art.style.scale = new Scale(Vector3.one * (1 + breath));
+                art.style.translate = new Translate(0, reducedMotion ? 0 : Mathf.Sin(motionTime * 0.6f + i) * 0.7f, 0);
             }
             if (candlelight != null)
                 candlelight.style.opacity = reducedMotion ? 0 : 0.65f + 0.08f * Mathf.Sin(motionTime * 2.1f) + 0.04f * Mathf.Sin(motionTime * 5.3f);

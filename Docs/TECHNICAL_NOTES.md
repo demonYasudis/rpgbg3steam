@@ -1647,3 +1647,23 @@ XP, inventory/storage, failed final write/retry and total defeat. RU/EN layout
 checks and screenshots cover 1280x720 and 1920x1080. See Docs/UI_RESULTS.md for
 the protocol and logs. Screenshots were visually inspected. Separate Windows
 build and manual input acceptance were not performed; these remain WP-42.
+
+## WP-42 partial acceptance (2026-10-18)
+
+All individual UI runners and the complete model/Play Mode runner passed.
+FullLoopAcceptance completed two sections using actual attacks (26 attacks,
+161 commands), then verified loot in storage and a paid save reload. Initial
+progression inventory is a test fixture; combat damage/positions/rewards and
+action completion are not injected. Full-map path planning is a test oracle.
+
+Development builds support --qa-save for an isolated guild file. AcceptanceSetup
+creates the manual fixture and checks development/release path selection. Window
+resizing is enabled. GuildMenuMotion now uses style.scale/translate; its regression
+passed and the final Windows build has zero errors and warnings. Seven atlas meta
+files were synchronized by Unity with the existing 4096 texture import policy.
+
+Manual Windows player checks covered equipment/stat updates, hero details,
+focus/Escape, RU/EN and reduced motion. Computer Use was stopped by the user's
+physical Escape key after the resized build was launched. Native resizing, combat
+input and manual player reward-return acceptance remain unverified. WP-42 is [~],
+not complete. See Docs/UI_ACCEPTANCE.md for evidence, logs and remaining checks.
