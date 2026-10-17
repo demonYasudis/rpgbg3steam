@@ -1441,9 +1441,10 @@ WP-37 adds shared animated miniatures, restrained menu motion and reduced motion
 WP-38 adds visual expedition cards, party briefing and guarded departure; see Docs/UI_EXPEDITIONS.md.
 WP-39 adds the battle HUD, model-backed initiative/inspection, input exclusion and camera safe area; see Docs/UI_BATTLE_HUD.md.
 WP-40 adds action icons/costs, shared pure attack forecasts, path previews, cancellation and compact feedback with a bounded combat journal; see Docs/UI_ACTIONS.md.
-WP-41 and WP-42 remain unstarted; implement one package per subsequent request.
-Hero art V2 sprites, animated miniatures, expedition selection, battle HUD and action feedback are already integrated. Expedition
-event/result presentation remains future work. The design includes animated gameplay miniatures
+WP-41 adds exploration events, section transitions, retreat/abandonment confirmations and illustrated results with save retry; see Docs/UI_RESULTS.md.
+WP-42 remains unstarted; implement one package per subsequent request.
+Hero art V2 sprites, animated miniatures, expedition selection, battle HUD, action feedback and expedition
+event/result presentation are integrated. The design includes animated gameplay miniatures
 below class portraits, a dedicated visual warehouse, and a BG3-inspired battle HUD.
 
 ## Demo v0.2 continuation (owner approved)

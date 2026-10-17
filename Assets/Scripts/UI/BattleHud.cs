@@ -64,7 +64,7 @@ namespace GuildTactics.UI
             }
             bool visible = !legacy && controller != null && controller.enabled && owner.Guild.IsAway &&
                 controller.Expedition?.Result == null && owner.JourneyBoundary == null && !controller.HasBlockingInterface &&
-                !gate.GuildOpen && !gate.PreviewOpen && !gate.ModalOpen;
+                !gate.GuildOpen && !gate.PreviewOpen && !gate.ModalOpen && !gate.JourneyOpen;
             if (!visible) { Hide(); return; }
             if (inspected != null && inspected.Team == UnitTeam.Enemy && !controller.IsUnitVisible(inspected)) { inspected = null; dirty = true; }
             int next = StateSignature();

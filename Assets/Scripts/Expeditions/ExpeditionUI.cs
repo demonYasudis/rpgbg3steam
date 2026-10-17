@@ -22,11 +22,15 @@ namespace GuildTactics.Expeditions
         public void RequestRetreat()
         {
             if (!controller.CanPlayerAct || !controller.Expedition.CanRetreat(controller.SelectedUnit)) return;
+            if (bootstrap?.ExpeditionScreen?.UsesNewPresentation == true)
+            { bootstrap.ExpeditionScreen.ConfirmRetreat(controller); return; }
             confirmingRetreat = true; showingLog = false; controller.InterfaceBlocked = true;
         }
         public void RequestExtraction()
         {
             if (!controller.CanPlayerAct || !controller.Expedition.CanExtract(controller.SelectedUnit)) return;
+            if (controller.Expedition.HasUnrecoverableBodies && bootstrap?.ExpeditionScreen?.UsesNewPresentation == true)
+            { bootstrap.ExpeditionScreen.ConfirmAbandonment(controller); return; }
             if (controller.Expedition.HasUnrecoverableBodies) { confirmingAbandonment = true; controller.InterfaceBlocked = true; }
             else controller.TryExtract();
         }

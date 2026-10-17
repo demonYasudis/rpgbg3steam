@@ -1,0 +1,26 @@
+.journey-screen { position: absolute; left: 0; top: 0; right: 0; bottom: 0; padding: 18px; background-color: rgba(7, 9, 13, 0.96); color: rgb(239, 222, 190); }
+.journey-panel { flex-grow: 1; padding: 14px; background-color: rgb(25, 21, 20); border-width: 1px; border-color: rgb(148, 110, 59); }
+.journey-row { flex-direction: row; align-items: center; flex-shrink: 0; }
+.journey-row .ui-button { min-width: 62px; margin: 4px; }
+.journey-label.journey-title { flex-grow: 1; font-size: 25px; color: rgb(245, 205, 135); }
+.journey-scroll { flex-grow: 1; min-height: 60px; margin: 8px 0; }
+.journey-label { white-space: normal; font-size: 15px; margin: 4px; flex-shrink: 0; }
+.journey-subtitle { font-size: 19px; color: rgb(245, 205, 135); }
+.journey-illustration { height: 76px; flex-shrink: 0; }
+.journey-event { padding: 8px; margin: 4px; background-color: rgb(36, 30, 25); border-width: 1px; border-color: rgb(112, 87, 56); }
+.journey-choices { flex-direction: row; flex-wrap: wrap; }
+.journey-choices .ui-button { margin: 3px; min-height: 36px; }
+.journey-heroes { flex-direction: row; flex-wrap: wrap; }
+.journey-hero { flex-grow: 1; flex-basis: 0; min-width: 190px; padding: 5px; margin: 4px; background-color: rgb(33, 28, 25); border-width: 1px; border-color: rgb(122, 94, 59); }
+.journey-portrait { height: 116px; background-size: cover; background-position-x: center; background-position-y: top; }
+.journey-fallen .journey-portrait { opacity: 0.45; }
+.journey-fallen { border-color: rgb(153, 73, 57); }
+.journey-loot { flex-direction: row; flex-wrap: wrap; margin: 5px; }
+.journey-item { flex-direction: row; align-items: center; width: 270px; min-height: 62px; flex-shrink: 0; padding: 4px; margin: 3px; border-width: 1px; border-color: rgb(112, 87, 56); }
+.journey-item .journey-label { flex-grow: 1; flex-shrink: 1; flex-basis: 0; }
+.journey-item-icon { width: 48px; height: 48px; flex-shrink: 0; }
+.journey-error { color: rgb(255, 155, 121); }
+.journey-scroll .unity-scroller--vertical { width: 12px; min-width: 12px; }
+.journey-scroll .unity-scroller__low-button, .journey-scroll .unity-scroller__high-button { display: none; }
+.journey-scroll .unity-base-slider__tracker { background-color: rgb(42, 34, 26); }
+.journey-scroll .unity-base-slider__dragger { background-color: rgb(145, 109, 62); }

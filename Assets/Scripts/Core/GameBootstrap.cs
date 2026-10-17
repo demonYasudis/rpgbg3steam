@@ -33,6 +33,7 @@ namespace GuildTactics.Core
         public Meta.GuildState Guild { get; private set; }
         public UI.GuildPartyScreen GuildScreen { get; private set; }
         public UI.BattleHud BattleScreen { get; private set; }
+        public UI.JourneyScreen ExpeditionScreen { get; private set; }
         public Units.PlayerUnitController ActiveController { get; private set; }
         public Expeditions.ExpeditionSelection Expeditions { get; private set; }
         public bool DebugMode => debugMode;
@@ -120,6 +121,8 @@ namespace GuildTactics.Core
             GuildScreen.Initialize(this);
             BattleScreen = new GameObject("Battle HUD").AddComponent<UI.BattleHud>();
             BattleScreen.Initialize(this);
+            ExpeditionScreen = new GameObject("Expedition Events and Results").AddComponent<UI.JourneyScreen>();
+            ExpeditionScreen.Initialize(this);
         }
 
         public bool TryLaunchExpedition()
@@ -275,10 +278,18 @@ namespace GuildTactics.Core
             SaveMessage = message;
         }
 
+        public bool RetryGuildSave()
+        {
+            if (Guild.IsAway) return false;
+            SaveProgress();
+            return string.IsNullOrEmpty(SaveMessage);
+        }
+
         private void OnDestroy() 
         { 
             if (GuildScreen != null) Destroy(GuildScreen.gameObject);
             if (BattleScreen != null) Destroy(BattleScreen.gameObject);
+            if (ExpeditionScreen != null) Destroy(ExpeditionScreen.gameObject);
             if (Guild != null) Guild.Changed -= SaveProgress; 
         }
 
@@ -328,6 +339,7 @@ namespace GuildTactics.Core
             if (debugMode && Dungeon != null && Guild.IsAway)
             {
                 if (GUI.Button(new Rect(Screen.width - 280, Screen.height - 52, 100, 22), "HUD (WP-39)")) BattleScreen?.Show();
+                if (GUI.Button(new Rect(Screen.width - 390, Screen.height - 52, 100, 22), "UI (WP-41)")) ExpeditionScreen?.Show();
                 GUI.Label(new Rect(24, Screen.height - 28, Screen.width - 48, 24),
                     Localization.F("Dungeon seed: {0} | Combat seed: {1}", Dungeon.Seed, combatSeed) + (Dungeon.UsedFallback ? Localization.T(" (fallback)") : ""));
             }

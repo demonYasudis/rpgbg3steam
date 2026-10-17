@@ -173,6 +173,8 @@ namespace GuildTactics.UI
             string saveMessage = L.SaveMessage(bootstrap.SaveMessage);
             var save = new Label(saveMessage == null ? status : status + "\n" + saveMessage) { name = "launch-reason" };
             save.AddToClassList("footer"); content.Add(save);
+            if (!string.IsNullOrEmpty(bootstrap.SaveMessage))
+                AddButton(content, Text("Retry save", "Повторить сохранение"), () => { bootstrap.RetryGuildSave(); dirty = true; }, "guild-retry-save");
             modal = null;
             if (dialog == GuildDialog.Reserve) BuildReserve();
             else if (dialog == GuildDialog.Hero) BuildHeroDetails();

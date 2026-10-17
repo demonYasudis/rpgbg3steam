@@ -1624,3 +1624,26 @@ history and unchanged RNG. Both the focused runner and full model/Play Mode runn
 passed; BattleHudChecks also passed. Screenshots were visually inspected. See
 Docs/UI_ACTIONS.md for the protocol and file list. Manual input acceptance and a
 separate Windows player build were not performed; WP-41/42 remain separate work.
+
+## WP-41 — exploration events and expedition results (2026-10-17)
+
+JourneyScreen owns the runtime UI Toolkit event/boundary/result overlays and
+retreat/abandonment confirmations. It reads ExpeditionJourney/ExpeditionResult
+and invokes existing GameBootstrap/PlayerUnitController commands. Portraits,
+actual HP/body status, capped pending XP and grouped ItemIcon loot are presented
+without changing reward, exploration, death or save rules. JourneyOpen in the
+scene-local input gate suppresses map/commands and hides BattleHud; cancellation
+restores it. Button guards retain screen/controller/boundary/result identity.
+
+Checkpoint save errors expose RetryJourneySave. Guild save errors remain visible
+after return; RetryGuildSave writes the already-paid state using SaveProgress.
+The save schema is unchanged. Debug Mode preserves a legacy screen switch;
+batch fixtures keep old presentation unless they explicitly enable JourneyScreen.
+
+JourneyScreenChecks drives four real launches, two completed sections, save
+failure/retry, skipped/investigated events, duplicate commands, unpaid boundary
+reload through RestoreJourney after deleting battle objects, recovered/lost bodies,
+XP, inventory/storage, failed final write/retry and total defeat. RU/EN layout
+checks and screenshots cover 1280x720 and 1920x1080. See Docs/UI_RESULTS.md for
+the protocol and logs. Screenshots were visually inspected. Separate Windows
+build and manual input acceptance were not performed; these remain WP-42.

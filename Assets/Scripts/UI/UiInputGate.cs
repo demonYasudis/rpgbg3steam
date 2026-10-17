@@ -9,8 +9,9 @@ namespace GuildTactics.UI
         public bool ModalOpen { get; internal set; }
         public bool GuildOpen { get; internal set; }
         public BattleHud Battle { get; internal set; }
+        public bool JourneyOpen { get; internal set; }
         private int releasedFrame = -1;
-        public bool BlocksGameplay => PreviewOpen || ModalOpen || GuildOpen || Time.frameCount == releasedFrame;
+        public bool BlocksGameplay => PreviewOpen || ModalOpen || GuildOpen || JourneyOpen || Time.frameCount == releasedFrame;
         internal void ConsumeClosingFrame() => releasedFrame = Time.frameCount;
 
         public static bool Blocks(Component component)

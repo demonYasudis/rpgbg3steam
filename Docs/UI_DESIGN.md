@@ -15,7 +15,8 @@
 в WP-37: [UI_MOTION.md](UI_MOTION.md). Визуальный выбор похода и отправка —
 в WP-38: [UI_EXPEDITIONS.md](UI_EXPEDITIONS.md). Основной боевой HUD — в WP-39:
 [UI_BATTLE_HUD.md](UI_BATTLE_HUD.md). Действия, прогноз и боевой отклик —
-в WP-40: [UI_ACTIONS.md](UI_ACTIONS.md). События и результаты остаются WP-41.
+в WP-40: [UI_ACTIONS.md](UI_ACTIONS.md). События, переходы и результаты —
+в WP-41: [UI_RESULTS.md](UI_RESULTS.md). Сквозная ручная приёмка остаётся WP-42.
 Старый трёхколоночный макет гильдии и постоянная правая панель характеристик
 в бою больше не являются целевым дизайном.
 
