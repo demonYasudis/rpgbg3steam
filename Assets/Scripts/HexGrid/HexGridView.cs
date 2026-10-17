@@ -29,6 +29,8 @@ namespace GuildTactics.HexGrid
         private readonly HashSet<HexCoordinates> targets = new HashSet<HexCoordinates>();
         private readonly HashSet<HexCoordinates> traps = new HashSet<HexCoordinates>();
         private readonly HashSet<HexCoordinates> danger = new HashSet<HexCoordinates>();
+        private readonly HashSet<HexCoordinates> path = new HashSet<HexCoordinates>();
+        public void SetPathCells(IEnumerable<HexCoordinates> coordinates) => SetCells(path, coordinates);
         public void SetDangerCells(IEnumerable<HexCoordinates> coordinates) => SetCells(danger, coordinates);
         private static readonly Color TargetColor = new Color(0.68f, 0.32f, 0.62f);
         private static readonly Color TrapColor = new Color(0.85f, 0.4f, 0.1f);
@@ -237,6 +239,7 @@ namespace GuildTactics.HexGrid
                     (traps.Contains(coordinate.Value) ? TrapColor :
                     (reachable.Contains(coordinate.Value) ? ReachableColor : TerrainColor(grid.GetCell(coordinate.Value).Terrain, Biome)))));
             if (danger.Contains(coordinate.Value)) tile.color = new Color(1f, 0.22f, 0.12f);
+            else if (path.Contains(coordinate.Value) && coordinate != selected) tile.color = new Color(0.55f, 0.82f, 0.67f);
         }
 
         private void OnDestroy()

@@ -1,5 +1,7 @@
 using System;
 using System.Text;
+using System.Collections.Generic;
+using System.Linq;
 using GuildTactics.Abilities;
 using UnityEngine;
 
@@ -15,6 +17,10 @@ namespace GuildTactics.Combat
         private float remaining;
         private string text;
         private float boxHeight = 52;
+        private string shortText;
+        private readonly Queue<string> history = new Queue<string>();
+        public int Revision { get; private set; }
+        public IReadOnlyList<string> History => history.Select(Core.Localization.CombatMessage).ToArray();
         public AttackResult LastResult { get; private set; }
         public bool IsShowing => remaining > 0;
         public string LastMessage => Core.Localization.CombatMessage(text);
@@ -36,6 +42,8 @@ namespace GuildTactics.Combat
             if (result.Hit)
                 text += $"\nd{result.DamageDie}({result.DamageRoll}) {Signed(result.DamageBonus)} = {result.Damage} | -{result.AppliedDamage} HP";
             if (result.Killed) text += " | DEAD";
+            shortText = "d20(" + result.AttackRoll + ") " + (result.Hit ? "HIT · -" + result.AppliedDamage + " HP" : "MISS") + (result.Killed ? " · DEAD" : "");
+            Record();
         }
 
         public void Show(AbilityResult result, Vector3 worldPosition)
@@ -63,16 +71,22 @@ namespace GuildTactics.Combat
             if (result.TrapHit != null)
                 message.Append("\nTRAP -").Append(result.TrapHit.Damage).Append(result.TrapHit.Killed ? " HP / DEAD" : " HP");
             ShowMessage(message.ToString(), worldPosition);
+            if (result.Attacks.Count > 0)
+                shortText = result.Ability.Name + "\n" + string.Join("\n", result.Attacks.Select(a => "d20(" + a.AttackRoll + ") " + (a.Hit ? "HIT · -" + a.AppliedDamage + " HP" : "MISS") + (a.Killed ? " · DEAD" : "")));
         }
 
         public void ShowMessage(string message, Vector3 worldPosition)
         {
             LastResult = null;
             text = message;
+            shortText = message;
             position = worldPosition;
             remaining = DisplaySeconds;
             boxHeight = Math.Max(52, 22 + message.Split('\n').Length * 18);
+            Record();
         }
+
+        private void Record() { history.Enqueue(text); while (history.Count > 40) history.Dequeue(); unchecked { Revision++; } }
 
         private static string Signed(int value) => value >= 0 ? "+" + value : value.ToString();
 
@@ -97,13 +111,16 @@ namespace GuildTactics.Combat
                 }
                 GUI.color = previous;
             }
-            float width = Mathf.Min(470, Screen.width);
+            bool hud = UI.UiInputGate.UsesBattleHud(this);
+            var area = hud ? GetComponent<HexGrid.HexGridInteraction>().MapScreenRect : new Rect(0, 0, Screen.width, Screen.height);
+            string message = hud ? Core.Localization.CombatMessage(shortText) : LastMessage;
+            float width = Mathf.Min(hud ? 290 : 470, area.width);
             var style = new GUIStyle(GUI.skin.box) { wordWrap = true };
-            float height = Mathf.Max(boxHeight, style.CalcHeight(new GUIContent(LastMessage), width));
-            float x = Mathf.Clamp(screen.x - width * 0.5f, 0, Mathf.Max(0, Screen.width - width));
+            float height = Mathf.Max(hud ? 42 : boxHeight, style.CalcHeight(new GUIContent(message), width));
+            float x = Mathf.Clamp(screen.x - width * 0.5f, area.xMin, Mathf.Max(area.xMin, area.xMax - width));
             float y = Mathf.Clamp(Screen.height - screen.y - height - 18 - 25 * (1 - remaining / DisplaySeconds),
-                0, Mathf.Max(0, Screen.height - height));
-            GUI.Box(new Rect(x, y, width, height), LastMessage, style);
+                Screen.height - area.yMax, Mathf.Max(Screen.height - area.yMax, Screen.height - area.yMin - height));
+            GUI.Box(new Rect(x, y, width, height), message, style);
         }
     }
 }

@@ -142,6 +142,18 @@ namespace GuildTactics.Abilities
             }
         }
 
+        public IReadOnlyList<AttackForecast> PreviewAttacks(UnitRuntimeState actor, AbilityDefinition ability, HexCoordinates target)
+        {
+            var forecasts = new List<AttackForecast>();
+            if (!CanUse(actor, ability, target, out _)) return forecasts.AsReadOnly();
+            if (ability.Effect == AbilityEffect.FireBurst)
+                foreach (var victim in AreaTargets(actor, target, ability.Radius))
+                    forecasts.Add(new AttackForecast(actor, victim, ability.AttackBonus, ability.Power));
+            else if (ability.Effect == AbilityEffect.HeavyStrike || ability.Effect == AbilityEffect.Backstab || ability.Effect == AbilityEffect.AimedShot)
+                forecasts.Add(new AttackForecast(actor, EnemyAt(actor, target), ability.AttackBonus, ability.Power));
+            return forecasts.AsReadOnly();
+        }
+
         private UnitRuntimeState EnemyAt(UnitRuntimeState actor, HexCoordinates target) =>
             units.Find(unit => unit.Team != actor.Team && unit.Position == target && unit.IsPlacedOn(grid));
 

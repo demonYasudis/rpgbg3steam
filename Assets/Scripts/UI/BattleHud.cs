@@ -31,6 +31,9 @@ namespace GuildTactics.UI
         private string focusName;
         private Vector2 queueScroll;
         private long queueTurn = -1;
+        private int escapeFrame = -1;
+        private VisualElement forecastPanel;
+        private Label forecastSummary, forecastDetails;
         public bool IsOpen => shell != null;
         public VisualElement ScreenRoot => shell;
         public Rect SafeMapRect => interaction == null ? default : interaction.MapScreenRect;
@@ -67,6 +70,10 @@ namespace GuildTactics.UI
             int next = StateSignature();
             if (!IsOpen || dirty || next != signature) { Build(); signature = next; }
             UpdateMapArea();
+            UpdateTargetPreview();
+            var focusedElement = document.rootVisualElement.focusController?.focusedElement as VisualElement;
+            if (Input.GetKeyDown(KeyCode.Escape) && (focusedElement == null || !shell.Contains(focusedElement)))
+                HandleEscape();
             bool reduced = owner.GuildScreen?.ReducedMotion ?? false;
             if (!reduced) clock += Mathf.Min(Time.unscaledDeltaTime, 0.1f);
             foreach (var image in miniatures) image.Render(clock, reduced);
@@ -83,7 +90,7 @@ namespace GuildTactics.UI
                 h = h * 31 + (controller.BossAttack?.Pending == true ? 1 : 0);
                 foreach (var unit in controller.Turns.Order)
                 { h = h * 31 + unit.CurrentHealth; h = h * 31 + unit.Position.GetHashCode(); h = h * 31 + unit.HealingPotions; h = h * 31 + (controller.IsUnitVisible(unit) ? 1 : 0); }
-                if (logOpen) h = h * 31 + (controller.GetComponent<CombatText>().LastMessage?.GetHashCode() ?? 0);
+                if (logOpen) h = h * 31 + controller.GetComponent<CombatText>().Revision;
                 return h;
             }
         }
@@ -92,6 +99,7 @@ namespace GuildTactics.UI
             if (!IsOpen) return;
             var oldQueue = shell.Q<ScrollView>("hud-queue-scroll"); if (oldQueue != null) queueScroll = oldQueue.scrollOffset;
             interaction?.SetMapSafeArea(null);
+            controller?.GetComponent<HexGridView>()?.SetPathCells(null);
             document.rootVisualElement.Clear(); document.rootVisualElement.style.display = DisplayStyle.None;
             shell = null; solidPanels.Clear(); miniatures.Clear();
         }
@@ -108,13 +116,12 @@ namespace GuildTactics.UI
             shell.RegisterCallback<KeyDownEvent>(evt =>
             {
                 if (evt.keyCode != KeyCode.Escape) return;
-                if (logOpen || inspected != null) { logOpen = false; inspected = null; }
-                else controller.CancelTargeting();
-                dirty = true; gate.ConsumeClosingFrame(); evt.StopImmediatePropagation();
+                HandleEscape(); evt.StopImmediatePropagation();
             });
             BuildParty(); BuildQueue(); BuildObjective(); BuildControls(); BuildActionBar();
             if (inspected != null) BuildInspection();
             if (logOpen) BuildLog();
+            BuildForecast();
             var target = shell.Q<Button>(focused ?? "");
             if (target != null && target.enabledInHierarchy) shell.schedule.Execute(() => { if (target.panel != null) target.Focus(); });
         }
@@ -217,13 +224,18 @@ namespace GuildTactics.UI
             Label(actor, "hud-resources", controller.CanPlayerAct ? Text("Move: ", "Движение: ") + controller.Turns.RemainingMovement + Text(" · Action: ", " · Действие: ") + (controller.Turns.ActionAvailable ? "1/1" : "0/1") : Text("Please wait", "Подождите"));
             var actions = new VisualElement(); actions.AddToClassList("hud-row"); actionBar.Add(actions);
             bool canAct = controller.CanPlayerAct;
-            Button(actions, "hud-move", L.T("Move / cancel"), controller.CancelTargeting, canAct);
-            Button(actions, "hud-attack", L.T("Basic attack"), () => controller.SelectBasicAttack(), canAct && controller.Turns.ActionAvailable);
+            ActionButton(actions, "move", L.T("Move / cancel"), controller.CancelTargeting, canAct,
+                !controller.IsTargetingAttack && controller.SelectedAbility == null, Text("Movement points · Esc cancels targeting", "Очки движения · Esc отменяет выбор"));
+            ActionButton(actions, "attack", L.T("Basic attack"), () => controller.SelectBasicAttack(), canAct && controller.Turns.ActionAvailable,
+                controller.IsTargetingAttack, Text("Range ", "Дальность ") + (active?.Definition.AttackRange ?? 0));
             if (active?.Team == UnitTeam.Player)
                 foreach (var ability in active.Definition.Abilities)
-                { var chosen = ability; Button(actions, "hud-ability-" + ability.Id, L.T(ability.Name), () => controller.SelectAbility(chosen), canAct && controller.Turns.ActionAvailable); }
-            Button(actions, "hud-potion", L.F("Potion ({0})", active?.HealingPotions ?? 0), () => controller.TryUseHealingPotion(), canAct && ConsumableSystem.CanHeal(controller.Turns, active));
-            Button(actions, "hud-wait", L.T("Wait"), () => controller.TryWaitAction(), canAct && controller.Turns.ActionAvailable);
+                { var chosen = ability; ActionButton(actions, "ability-" + ability.Id, L.T(ability.Name), () => controller.SelectAbility(chosen), canAct && controller.Turns.ActionAvailable,
+                    controller.SelectedAbility == ability, L.T(ability.Description), ability.Id); }
+            string potionReason = ConsumableSystem.CanHeal(controller.Turns, active) ? Text("Restore health · consumes one potion", "Восстановить здоровье · расходует одно зелье") :
+                active?.HealingPotions == 0 ? Text("No potions equipped", "Нет зелий в снаряжении") : Text("Health is already full", "Здоровье уже полное");
+            ActionButton(actions, "potion", L.F("Potion ({0})", active?.HealingPotions ?? 0), () => controller.TryUseHealingPotion(), canAct && ConsumableSystem.CanHeal(controller.Turns, active), false, potionReason);
+            ActionButton(actions, "wait", L.T("Wait"), () => controller.TryWaitAction(), canAct && controller.Turns.ActionAvailable, false, Text("Spend the action; keep movement", "Потратить действие, сохранить движение"));
             var mission = new VisualElement(); mission.AddToClassList("hud-row"); actionBar.Add(mission);
             var run = controller.Expedition; var presentation = controller.GetComponent<Expeditions.ExpeditionUI>();
             if (run.Mission.RequiresRelic) Button(mission, "hud-relic", L.T("Take relic"), () => controller.TryOpenChest(), canAct && run.CanOpenChest(controller.SelectedUnit));
@@ -233,6 +245,98 @@ namespace GuildTactics.UI
             var end = Panel("hud-end-panel", "hud-end-panel");
             var button = Button(end, "hud-end-turn", L.T("End turn"), () => controller.TryEndTurn(), canAct); button.AddToClassList("primary");
         }
+        private void HandleEscape()
+        {
+            if (escapeFrame == Time.frameCount) return;
+            escapeFrame = Time.frameCount;
+            if (logOpen || inspected != null) { logOpen = false; inspected = null; }
+            else controller.CancelTargeting();
+            dirty = true; gate.ConsumeClosingFrame();
+        }
+
+        private void ActionButton(VisualElement parent, string id, string title, Action action, bool enabled, bool selected, string description, string icon = null)
+        {
+            var wrapper = new VisualElement(); wrapper.AddToClassList("hud-action-wrapper"); parent.Add(wrapper);
+            var button = Button(wrapper, "hud-" + id, "", action, enabled);
+            button.AddToClassList("hud-action-button"); button.EnableInClassList("selected", selected);
+            button.Add(new ActionIcon(icon ?? id));
+            Label(button, "action-title-" + id, title + (id == "move" ? "" : " · 1"));
+            string blocked = !controller.CanPlayerAct ? Text("Wait for your turn / resolution", "Дождитесь своего хода / выполнения") :
+                !controller.Turns.ActionAvailable && id != "move" ? Text("Action already spent", "Действие уже потрачено") : !enabled ? description : "";
+            button.tooltip = (id == "move" ? "" : Text("Cost: 1 action. ", "Цена: 1 действие. ")) + description + (blocked.Length > 0 ? "\n" + blocked : "");
+            wrapper.tooltip = button.tooltip;
+            // Keep disabled reasons discoverable without attempting a command.
+            wrapper.RegisterCallback<PointerEnterEvent>(_ => { var hint = shell?.Q<Label>("hud-hint"); if (hint != null) hint.text = blocked.Length > 0 ? blocked : button.tooltip; });
+            wrapper.RegisterCallback<PointerLeaveEvent>(_ => { var hint = shell?.Q<Label>("hud-hint"); if (hint != null) hint.text = controller.ActionHint; });
+        }
+
+        private void BuildForecast()
+        {
+            // A non-interactive overlay follows the map target. It must never steal hover from it.
+            forecastPanel = new VisualElement { name = "hud-forecast", pickingMode = PickingMode.Ignore };
+            forecastPanel.AddToClassList("hud-forecast"); shell.Add(forecastPanel);
+            forecastSummary = Label(forecastPanel, "hud-forecast-summary", "", "hud-title");
+            forecastDetails = Label(forecastPanel, "hud-forecast-details", "");
+            forecastPanel.style.display = DisplayStyle.None;
+        }
+
+        private void UpdateTargetPreview()
+        {
+            var view = controller.GetComponent<HexGridView>();
+            var hovered = interaction.Hovered;
+            bool targeting = controller.IsTargetingAttack || controller.SelectedAbility != null ||
+                (hovered.HasValue && controller.Enemies.Any(e => controller.IsUnitVisible(e) && e.Position == hovered.Value));
+            if (!controller.CanPlayerAct || !hovered.HasValue || gate.BlocksGameplay)
+            { forecastPanel.style.display = DisplayStyle.None; view.SetPathCells(null); return; }
+            string summary, details = "";
+            if (targeting)
+            {
+                view.SetPathCells(null);
+                bool valid = controller.PreviewTarget(hovered.Value, out var attacks, out var reason);
+                if (!valid) summary = L.T(reason);
+                else if (attacks.Count > 0)
+                {
+                    summary = string.Join("\n", attacks.Select(a => a.TargetPosition + " · " + a.HitPercent + "% · " +
+                        a.MinimumDamage + "–" + a.MaximumDamage + Text(" damage on hit", " урона при попадании")));
+                    details = string.Join("\n", attacks.Select(a => "d20 " + Signed(a.AttackBonus) + " ≥ " + a.Defense + " · d" + a.DamageDie + " " + Signed(a.DamageBonus)));
+                }
+                else summary = L.T(controller.SelectedAbility.Description);
+                if (valid && controller.SelectedAbility?.Effect == Abilities.AbilityEffect.Push)
+                {
+                    var actor = controller.SelectedUnit;
+                    var landing = new HexCoordinates(hovered.Value.Q * 2 - actor.Position.Q, hovered.Value.R * 2 - actor.Position.R);
+                    summary = owner.Grid.GetCell(landing).Terrain == TerrainType.Pit ? Text("Push into pit · fatal", "Толчок в пропасть · гибель") : Text("Push one hex · no attack roll", "Толчок на одну клетку · без броска атаки");
+                }
+                forecastPanel.EnableInClassList("invalid", !valid);
+                if (valid) details += Text("\nCost: 1 action", "\nЦена: 1 действие");
+            }
+            else
+            {
+                var range = controller.Turns.GetMovementRange(controller.SelectedUnit);
+                var path = range?.GetPathTo(hovered.Value);
+                // Do not show a path through unknown terrain, even if a future model permits it.
+                bool visiblePath = path != null && path.Count > 1 && path.All(c => controller.Visibility == null || controller.Visibility.IsVisible(c));
+                view.SetPathCells(visiblePath ? path : null);
+                if (!visiblePath) { forecastPanel.style.display = DisplayStyle.None; return; }
+                summary = Text("Move · ", "Движение · ") + range.Costs[hovered.Value] + " / " + controller.Turns.RemainingMovement;
+                forecastPanel.EnableInClassList("invalid", false);
+            }
+            forecastPanel.style.display = DisplayStyle.Flex;
+            forecastSummary.text = summary;
+            bool expanded = Input.GetKey(KeyCode.LeftAlt) || Input.GetKey(KeyCode.RightAlt);
+            forecastDetails.text = expanded ? details : targeting ? Text("Hold Alt for details · Esc to cancel", "Удерживайте Alt: детали · Esc: отмена") : Text("Click to move", "Нажмите для движения");
+            var root = document.rootVisualElement.worldBound;
+            var camera = interaction.GridCamera.pixelRect;
+            var point = interaction.GridCamera.WorldToScreenPoint(new HexLayout().ToWorld(hovered.Value));
+            float x = (point.x - camera.x) * root.width / camera.width;
+            float y = (camera.yMax - point.y) * root.height / camera.height;
+            float height = Mathf.Max(85, forecastPanel.layout.height);
+            forecastPanel.style.left = Mathf.Clamp(x + 18, 128, root.width - 338);
+            forecastPanel.style.top = Mathf.Clamp(y - height - 18, 110, Mathf.Max(110, actionBar.layout.y - height - 8));
+        }
+
+        private static string Signed(int value) => value < 0 ? value.ToString() : "+" + value;
+
         private void BuildInspection()
         {
             var panel = Panel("hud-inspection", "hud-inspection");
@@ -244,9 +348,10 @@ namespace GuildTactics.UI
         private void BuildLog()
         {
             var panel = Panel("hud-log", "hud-log");
-            Label(panel, "hud-log-title", L.T("Last combat result"), "hud-title");
+            Label(panel, "hud-log-title", Text("Combat log", "Журнал боя"), "hud-title");
             var scroll = new ScrollView(ScrollViewMode.Vertical); scroll.AddToClassList("hud-log-scroll"); panel.Add(scroll);
-            Label(scroll, "hud-log-message", controller.GetComponent<CombatText>().LastMessage ?? L.T("No combat result yet."));
+            var feedback = controller.GetComponent<CombatText>();
+            Label(scroll, "hud-log-message", feedback.History.Count > 0 ? string.Join("\n\n", feedback.History.Reverse()) : L.T("No combat result yet."));
             Button(panel, "hud-close-log", Text("Close", "Закрыть"), () => logOpen = false);
         }
         public Rect ScreenRect(VisualElement element)

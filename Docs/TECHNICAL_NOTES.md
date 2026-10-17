@@ -1600,3 +1600,27 @@ were visually inspected against the battle composition reference and stored unde
 UI_REFERENCES. Temporary legacy sprite importer size changes were reverted.
 No manual mouse session or separate Windows player build was performed. See
 UI_BATTLE_HUD.md. WP-40 was not started; no commit or push was requested.
+
+## WP-40 — actions, forecasts and combat feedback (2026-10-17)
+
+AttackForecast is a pure arithmetic snapshot also used by CombatSystem.PrepareAttack;
+probabilities enumerate d20 outcomes without adding critical hit rules. AbilitySystem
+exposes its validated area target list as read-only forecasts. PlayerUnitController
+rejects non-visible cells before occupancy lookup. Command validation/locks, rules,
+balance and save schema are preserved.
+
+BattleHud adds code-native ActionIcon symbols, costs, selection, enabled hover
+wrappers for disabled reasons, path/target forecasts and Alt details. Forecast overlays
+ignore pointer picking and stay inside the map area. Esc has a per-frame guard shared
+by focused UI events and map keyboard polling. CombatText retains up to 40 original
+messages for localized history while the new HUD uses compact floating results.
+
+ActionForecastChecks covers all d20 outcomes for four classes, integer extremes,
+eight signatures, range, walls, fog/area filters, resource purity and duplicates;
+it is included in HexPresentationChecks. BattleActionChecks exercises the actual
+scene/HUD with isolated saves, pointer hover through ProcessPointer, icon/selection/
+cost/disabled feedback, RU/EN geometry at two resolutions, roll agreement, Escape,
+history and unchanged RNG. Both the focused runner and full model/Play Mode runner
+passed; BattleHudChecks also passed. Screenshots were visually inspected. See
+Docs/UI_ACTIONS.md for the protocol and file list. Manual input acceptance and a
+separate Windows player build were not performed; WP-41/42 remain separate work.

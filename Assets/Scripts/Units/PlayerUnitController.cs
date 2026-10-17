@@ -445,6 +445,24 @@ namespace GuildTactics.Units
         public bool CanAttack(UnitRuntimeState target) => CanPlayerAct && combat != null &&
             combat.CanAttack(SelectedUnit, target);
 
+        // All target previews pass through the same validators as commands. Hidden cells are rejected
+        // before inspecting occupancy, so neither a reason nor an area list can reveal unseen enemies.
+        public bool PreviewTarget(HexCoordinates coordinate, out IReadOnlyList<AttackForecast> attacks, out string reason)
+        {
+            attacks = Array.Empty<AttackForecast>(); reason = null;
+            if (!CanPlayerAct) { reason = "No action available for this unit."; return false; }
+            if (!grid.Contains(coordinate) || !Turns.CanSee(SelectedUnit, coordinate))
+            { reason = "Target is outside current vision."; return false; }
+            if (SelectedAbility != null)
+            {
+                if (!abilities.CanUse(SelectedUnit, SelectedAbility, coordinate, out reason)) return false;
+                attacks = abilities.PreviewAttacks(SelectedUnit, SelectedAbility, coordinate); return true;
+            }
+            var target = enemies.Find(unit => unit.IsAlive && unit.Position == coordinate);
+            if (!combat.CanAttack(SelectedUnit, target, out reason)) return false;
+            attacks = new[] { new AttackForecast(SelectedUnit, target) }; return true;
+        }
+
         public bool TryAttackSelected(HexCoordinates coordinate)
         {
             if (!CanPlayerAct || combat == null) return false;

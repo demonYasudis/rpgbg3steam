@@ -88,6 +88,7 @@ namespace GuildTactics.Editor
                 UnitMovementChecks.Run();
                 TurnChecks.Run();
                 CombatChecks.Run();
+                ActionForecastChecks.Run();
                 EnemyChecks.Run();
                 AbilityChecks.Run();
                 TerrainChecks.Run();

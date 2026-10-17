@@ -35,3 +35,12 @@
 .hud-inspection { left: 136px; top: 116px; width: 306px; }
 .hud-log { right: 12px; top: 116px; width: 450px; max-width: 70%; height: 245px; }
 .hud-log-scroll { flex-grow: 1; min-height: 60px; }
+.hud-actions { height: 174px; }
+.hud-action-button { flex-direction: row; align-items: center; min-height: 42px; padding: 2px; }
+.hud-action-wrapper { flex-direction: row; flex-grow: 1; flex-basis: 0; }
+.hud-action-button .hud-label { font-size: 12px; flex-grow: 1; flex-shrink: 1; flex-basis: 0; }
+.action-icon { width: 24px; height: 24px; min-width: 24px; flex-shrink: 0; margin: 1px; }
+.hud-forecast { position: absolute; width: 326px; padding: 7px; background-color: rgba(22, 27, 25, 0.96); border-width: 1px; border-color: rgb(139, 182, 147); }
+.hud-forecast.invalid { border-color: rgb(197, 103, 79); }
+.hud-forecast .hud-title { font-size: 15px; }
+.hud-forecast .hud-label { font-size: 12px; }

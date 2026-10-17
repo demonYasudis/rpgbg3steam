@@ -20,13 +20,21 @@ namespace GuildTactics.Combat
                 throw new ArgumentException("Combat and turns must use the same grid.", nameof(turns));
         }
 
-        public bool CanAttack(UnitRuntimeState attacker, UnitRuntimeState target) =>
-            turns.CanSelectAction(attacker) && turns.ActionAvailable &&
-            attacker.IsPlacedOn(grid) && target != null && target.IsPlacedOn(grid) &&
-            attacker.Team != target.Team && attacker.Position.DistanceTo(target.Position) >= 1 &&
-            turns.CanSee(attacker, target.Position) &&
-            HexGrid.HexLineOfSight.CanShoot(grid, attacker.Position, target.Position) &&
-            attacker.Position.DistanceTo(target.Position) <= attacker.Definition.AttackRange;
+        public bool CanAttack(UnitRuntimeState attacker, UnitRuntimeState target) => CanAttack(attacker, target, out _);
+
+        public bool CanAttack(UnitRuntimeState attacker, UnitRuntimeState target, out string reason)
+        {
+            reason = null;
+            if (!turns.CanSelectAction(attacker) || !turns.ActionAvailable || !attacker.IsPlacedOn(grid))
+                reason = "No action available for this unit.";
+            else if (target == null || !target.IsPlacedOn(grid) || attacker.Team == target.Team)
+                reason = "Choose a living enemy.";
+            else if (!turns.CanSee(attacker, target.Position)) reason = "Target is outside current vision.";
+            else if (attacker.Position.DistanceTo(target.Position) < 1 || attacker.Position.DistanceTo(target.Position) > attacker.Definition.AttackRange)
+                reason = "Target is out of range.";
+            else if (!HexGrid.HexLineOfSight.CanShoot(grid, attacker.Position, target.Position)) reason = "Walls block the line to this target.";
+            return reason == null;
+        }
 
         public bool TryAttack(UnitRuntimeState attacker, UnitRuntimeState target, out AttackResult result)
         {
@@ -52,18 +60,15 @@ namespace GuildTactics.Combat
         internal static AttackResult PrepareAttack(IDice dice, UnitRuntimeState attacker,
             UnitRuntimeState target, int attackModifier = 0, int damageModifier = 0)
         {
-            int bonus = Clamp((long)attacker.Attack + attackModifier);
-            int damageBonus = Clamp((long)attacker.Definition.DamageBonus + damageModifier);
+            var forecast = new AttackForecast(attacker, target, attackModifier, damageModifier);
             int attackRoll = RollChecked(dice, 20);
-            bool hit = (long)attackRoll + bonus >= target.Defense;
+            bool hit = forecast.Hits(attackRoll);
             int damageRoll = hit ? RollChecked(dice, attacker.DamageDie) : 0;
-            int damage = hit ? (int)Math.Max(0L, Math.Min(int.MaxValue, (long)damageRoll + damageBonus)) : 0;
-            return new AttackResult(target.Position, attackRoll, bonus, target.Defense,
-                attacker.DamageDie, damageRoll, damageBonus, damage,
+            int damage = hit ? forecast.DamageForRoll(damageRoll) : 0;
+            return new AttackResult(target.Position, attackRoll, forecast.AttackBonus, target.Defense,
+                attacker.DamageDie, damageRoll, forecast.DamageBonus, damage,
                 Math.Min(target.CurrentHealth, damage), damage >= target.CurrentHealth);
         }
-
-        private static int Clamp(long value) => (int)Math.Max(int.MinValue, Math.Min(int.MaxValue, value));
 
         private static int RollChecked(IDice dice, int sides)
         {
